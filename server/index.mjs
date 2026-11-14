@@ -12,7 +12,7 @@ import { createCityResourceLookup } from "./city-resources.mjs";
 import { cacheTravelServices } from "./research-cache.mjs";
 import { readPublicPage } from "./public-page.mjs";
 import { createWebHost } from "./web-host.mjs";
-import { createRateLimiter, callerKey } from './rate-limit.mjs';
+import { createRateLimiter, admit, callerKey } from './rate-limit.mjs';
 import { createAccountService } from "./accounts.mjs";
 import { createTravelServices } from "./travel-services.mjs";
 import { createCalendarPlaceResolver } from "./calendar-places.mjs";
@@ -376,8 +376,8 @@ const server = http.createServer(async (request, response) => {
 
   const route = (request.url || '').split('?')[0];
   const caller = callerKey(request, { trustProxy });
-  const verdict = [callerLimiter.take(caller), siteLimiter.take('site'), ...(fetchRoutes.has(route) ? [fetchLimiter.take(caller)] : [])].find(result => !result.allowed);
-  if (verdict) {
+  const verdict = admit([[callerLimiter, caller], [siteLimiter, 'site'], ...(fetchRoutes.has(route) ? [[fetchLimiter, caller]] : [])]);
+  if (!verdict.allowed) {
     response.setHeader('Retry-After', String(verdict.retryAfterSeconds));
     send(response, 429, { error: '查询较频繁，请稍后重试' });
     return;
