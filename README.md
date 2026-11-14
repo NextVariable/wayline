@@ -43,8 +43,7 @@ npm start
 | [`server/`](server/) | Node 同源服务、账号与同步、地图及交通供应接入 |
 | [`shared/`](shared/) | 跨客户端和服务端共用的解析规则 |
 | [`public/`](public/) · [`tests/fixtures/`](tests/fixtures/) | 静态资源与隔离验收样本 |
-| [`docs/`](docs/README.md) | 当前设计、运行说明与历史验收 |
-| [`ios/`](ios/) · [`android/`](android/) | Capacitor 原生工程。网站是当前发布主线。 |
+| [`docs/`](docs/README.md) | 当前设计、运行说明与验收记录 |
 
 修改后运行 `npm test` 和 `npm run build`。
 

@@ -27,10 +27,10 @@ Wayline 把日历里的行程画在地图上，让经常出差的人一眼看到
 - 航班查询只覆盖深圳与上海之间。
 - 道路耗时是查询时的结果，不预测未来路况。
 - Gmail 只读权限属于 Google 受限权限。应用通过 Google 验证前，只能给测试用户使用。
-- iOS 与 Android 工程是 Capacitor 原生壳，未随网站同步维护。
+- Wayline 只做网站，不提供 iOS 或 Android 应用。
 
 完整的验证范围与发布前剩余条件见 [`docs/release-readiness.md`](docs/release-readiness.md)，产品取舍见 [`docs/design/positioning.md`](docs/design/positioning.md)。
 
 ## 命名
 
-项目原名 Whereto。存储键、备份格式标识和 Capacitor 应用标识仍保留旧名称，用于兼容已有数据，不影响功能。
+项目原名 Whereto。存储键和备份格式标识仍保留旧名称，用于兼容已有数据，不影响功能。

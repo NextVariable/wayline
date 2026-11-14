@@ -23,7 +23,6 @@ const readCalendarLayer = (owner: string) => { try { return localStorage.getItem
 const placePairKey = (pair: TodayLegPair) => JSON.stringify([pair.from.place.id, pair.to.place.id]);
 const dayLabel = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric" });
 const noTripLines: [] = [];
-import { mergeFootprintTracks } from "./lib/footprintBackup";
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { flushSync } from "react-dom";
 import type { MapZoomState } from "./lib/mapZoom";
@@ -57,7 +56,6 @@ import { useCurrentLocation } from "./lib/useCurrentLocation";
 import { shouldApplyLocation } from "./lib/currentLocation";
 import type { City } from "./types/place";
 import { useFootprints } from "./lib/useFootprints";
-import { useNativeFootprints } from "./lib/useNativeFootprints";
 import { localDate } from "./lib/footprints";
 import { gcjToWgs, wgsToGcj } from "./lib/trackCoordinates";
 import type { FootprintSelection } from "./components/FootprintsPanel";
@@ -308,7 +306,6 @@ export default function App() {
     loadUserPlaces(loadActiveUser()),
   );
   const footprints = useFootprints(activeUser.id, userPlaces);
-  const nativeFootprints = useNativeFootprints(activeUser.id);
   const visitedResourcePlaces = useMemo(() => footprints.snapshot.visits
     .filter(v => !v.deletedAt)
     .filter((v, i, rows) => rows.findIndex(q => q.name === v.name && q.city === v.city && Math.abs(q.lat-v.lat) < .001 && Math.abs(q.lng-v.lng) < .001) === i)
@@ -999,10 +996,7 @@ export default function App() {
   const footprintActive =
     activeOverlay === "footprints" ||
     (activeOverlay === "account" && auxiliaryOrigin.current.some((o) => o.overlay === "footprints"));
-  const footprintTrack = mergeFootprintTracks(
-    footprints.snapshot.tracks,
-    nativeFootprints.tracks,
-  ).find(
+  const footprintTrack = footprints.snapshot.tracks.find(
     (t) =>
       !t.deletedAt &&
       t.id === (footprintSelection.id ?? footprints.snapshot.activeId),
@@ -1370,7 +1364,6 @@ export default function App() {
           places={savedLocations.filter((p) => !isSchedule(p))}
           selection={footprintSelection}
           onSelection={setFootprintSelection}
-          native={nativeFootprints}
           onBack={() => returnFromWorkflow("footprints")}
         />
       </DeferredWorkflow>
@@ -1553,7 +1546,7 @@ export default function App() {
             if (!footprints.recorder || footprints.snapshot.storageError) throw new Error("足迹尚未就绪");
             await footprints.recorder.flush();
             const data = footprints.recorder.getSnapshot();
-            return { tracks: mergeFootprintTracks(data.tracks, nativeFootprints.tracks), visits: data.visits };
+            return { tracks: data.tracks, visits: data.visits };
           }}
           onLogin={(user) => {
             if (user.id !== activeUser.id && footprints.snapshot.storageError) {

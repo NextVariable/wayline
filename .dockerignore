@@ -4,8 +4,6 @@ dist
 .env*
 !.env.example
 .tools
-android
-ios
 行程规划 for business
 tests
 docs

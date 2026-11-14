@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">Wayline</string>
-    <string name="title_activity_main">Wayline</string>
-    <string name="package_name">app.whereto.business</string>
-    <string name="custom_url_scheme">app.whereto.business</string>
-</resources>

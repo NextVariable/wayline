@@ -1,10 +1,7 @@
 import { userFacingError } from "../lib/userFacingError";
 import { parseGpxFootprints } from "../lib/gpxImport";
 import { ActionMenu } from "./ActionMenu";
-import {
-  completeFootprintBackup,
-  mergeFootprintTracks,
-} from "../lib/footprintBackup";
+import { completeFootprintBackup } from "../lib/footprintBackup";
 import { useEffect, useRef, useState } from "react";
 import {
   ChevronLeft,
@@ -35,7 +32,6 @@ import {
 } from "../lib/footprints";
 import { usePanelFocus } from "../lib/usePanelFocus";
 import { useToast } from "./Toast";
-import type { NativeFootprintsState } from "../lib/useNativeFootprints";
 export interface FootprintSelection {
   id: string | null;
   date: string;
@@ -61,7 +57,6 @@ export function FootprintsPanel({
   places,
   selection,
   onSelection,
-  native,
   onBack,
 }: {
   onBack?: () => void;
@@ -73,7 +68,6 @@ export function FootprintsPanel({
   places: Place[];
   selection: FootprintSelection;
   onSelection: (selection: FootprintSelection) => void;
-  native: NativeFootprintsState;
 }) {
   const ref = usePanelFocus<HTMLElement>(active);
   const visitToggle = useRef<HTMLButtonElement>(null);
@@ -97,7 +91,7 @@ export function FootprintsPanel({
     return () => clearInterval(timer);
   }, [active]);
   const live = snapshot.tracks.find((t) => t.id === snapshot.activeId);
-  const tracks = mergeFootprintTracks(snapshot.tracks, native.tracks).filter(
+  const tracks = snapshot.tracks.filter(
     (t) => !t.deletedAt,
   );
   const onDate = (date: string) =>
@@ -123,12 +117,8 @@ export function FootprintsPanel({
     setExporting(true);
     try {
       await recorder?.flush();
-      const device = native.available ? await native.exportTracks() : [];
       const latest = recorder?.getSnapshot() ?? snapshot;
-      const text = completeFootprintBackup(
-        { tracks: latest.tracks, visits: latest.visits },
-        device,
-      );
+      const text = completeFootprintBackup({ tracks: latest.tracks, visits: latest.visits });
       const url = URL.createObjectURL(
         new Blob([text], { type: "application/json" }),
       );
@@ -183,7 +173,7 @@ export function FootprintsPanel({
         <ActionMenu label="足迹操作" actions={[
           { label: exporting ? "导出中…" : "导出足迹", icon: <Download size={16} />, disabled: loading || !!error || exporting, onSelect: () => void download() },
           { label: importing ? "导入中…" : "导入轨迹或备份", icon: <Upload size={16} />, disabled: !recorder || importing, onSelect: () => fileRef.current?.click() },
-          ...(!native.available ? [{ label: "临时记录（仅当前页面）", icon: <Play size={16}/>, onSelect: () => setRecorderOptionsOpen(value => !value) }] : []),
+          { label: "临时记录（仅当前页面）", icon: <Play size={16}/>, onSelect: () => setRecorderOptionsOpen(value => !value) },
           ...(tracks.some(track=>!track.points.length && track.status!=="recording") ? [{label:showEmptyTracks?"隐藏空记录":"显示空记录",onSelect:()=>setShowEmptyTracks(value=>!value)}] : []),
         ]} />
       </div>
@@ -232,87 +222,7 @@ export function FootprintsPanel({
       {!loading && !error && (
         <>
           {!!cityVisits.length && <details className="visited-cities"><summary>已到访 {cityVisits.length} 座城市</summary><div>{cityVisits.map(v => <button className="text-action" key={v.city} onClick={() => onSelection({date:"",id:"visit:"+v.id,nonce:selection.nonce+1})}>{v.city}</button>)}</div></details>}
-          {native.available && (
-            <div className="footprint-recorder">
-              <div className="footprint-record-state">
-                <span
-                  className={
-                    native.status?.running
-                      ? "recording-dot is-recording"
-                      : "recording-dot"
-                  }
-                />
-                <strong>
-                  {native.status?.occupied
-                    ? "另一空间正在记录"
-                    : !native.status?.enabled
-                      ? "自动足迹未启用"
-                      : native.status.paused
-                        ? "已暂停"
-                        : native.status.running
-                          ? "自动记录中"
-                          : "已中断"}
-                </strong>
-                {!!native.status?.lastFixAt && (
-                  <span>{time(native.status.lastFixAt)} 更新</span>
-                )}
-              </div>
-              <div className="footprint-record-actions">
-                {!native.status?.enabled ? (
-                  <button
-                    className="primary-action"
-                    disabled={native.busy || !!native.status?.occupied}
-                    onClick={() => void native.enable()}
-                  >
-                    启用自动足迹
-                  </button>
-                ) : native.status.paused ? (
-                  <button
-                    className="primary-action"
-                    disabled={native.busy || !!native.status?.occupied}
-                    onClick={() => void native.resume()}
-                  >
-                    <Play size={16} />
-                    恢复
-                  </button>
-                ) : (
-                  <button
-                    className="secondary-action"
-                    disabled={native.busy || !!native.status?.occupied}
-                    onClick={() => void native.pause()}
-                  >
-                    <Pause size={16} />
-                    暂停
-                  </button>
-                )}
-                {native.status?.enabled && (
-                  <button
-                    className="secondary-action"
-                    disabled={native.busy || !!native.status?.occupied}
-                    onClick={() => void native.disable()}
-                  >
-                    关闭
-                  </button>
-                )}
-              </div>
-              {native.status?.enabled &&
-                !native.status.alwaysPermission &&
-                !native.status.paused && (
-                  <button
-                    className="text-action"
-                    onClick={() => void native.openSettings()}
-                  >
-                    定位权限需设为“始终允许”
-                  </button>
-                )}
-              {native.error && (
-                <p role="alert" className="footprint-warning">
-                  {native.error}
-                </p>
-              )}
-            </div>
-          )}
-          {!native.available && (recorderOptionsOpen || live?.status === "recording") && (
+          {(recorderOptionsOpen || live?.status === "recording") && (
             <details className="footprint-recorder-options" open={recorderOptionsOpen || live?.status === "recording"} onToggle={event => setRecorderOptionsOpen(event.currentTarget.open)}>
               <summary>临时记录</summary>
             <div className="footprint-recorder">
@@ -398,7 +308,7 @@ export function FootprintsPanel({
           </div>}
           {!list.length && !visits.length && <div className="footprint-review-empty">
             <strong>{selection.date ? "这一天没有足迹" : "还没有足迹"}</strong>
-            {!native.available && <button className="text-action" disabled={!recorder || importing} onClick={()=>fileRef.current?.click()}><Upload size={16}/>导入轨迹</button>}
+            <button className="text-action" disabled={!recorder || importing} onClick={()=>fileRef.current?.click()}><Upload size={16}/>导入轨迹</button>
           </div>}
           <div className="footprint-history">
             {list.map((track) => (

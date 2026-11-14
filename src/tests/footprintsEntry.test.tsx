@@ -3,10 +3,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { FootprintsPanel } from "../components/FootprintsPanel";
 import { ToastProvider } from "../components/Toast";
 import type { RecorderSnapshot } from "../lib/footprintRecorder";
-const noop=async()=>{};
-const native={available:false,status:null,tracks:[],busy:false,error:"",enable:noop,pause:noop,resume:noop,disable:noop,openSettings:noop,exportTracks:async()=>[]};
 const empty:RecorderSnapshot={tracks:[],visits:[],activeId:null,busy:false,message:"",storageError:false,fix:null};
-const render=(snapshot=empty, selectedId:string|null=null)=>renderToStaticMarkup(<ToastProvider><FootprintsPanel active recorder={null} snapshot={snapshot} loading={false} error="" places={[]} selection={{id:selectedId,date:"",nonce:0}} onSelection={()=>{}} native={native}/></ToastProvider>);
+const render=(snapshot=empty, selectedId:string|null=null)=>renderToStaticMarkup(<ToastProvider><FootprintsPanel active recorder={null} snapshot={snapshot} loading={false} error="" places={[]} selection={{id:selectedId,date:"",nonce:0}} onSelection={()=>{}}/></ToastProvider>);
 it("makes web footprints a review and import view without recording controls",()=>{
  const html=render();
  expect(html).not.toContain('class="footprint-recorder-options"');
@@ -34,8 +32,4 @@ it("keeps empty historical attempts out of the default archive without deleting 
  const track={id:"old-empty",name:"旧的空记录",status:"paused" as const,startedAt:Date.now(),endedAt:null,coordinateSystem:"WGS84" as const,source:"browser" as const,points:[],gaps:[]};
  expect(render({...empty,activeId:track.id,tracks:[track]})).not.toContain("旧的空记录");
  expect(render({...empty,activeId:track.id,tracks:[track]},track.id)).toContain("旧的空记录");
-});
-it("retains the native automatic-recording entry instead of web manual recording",()=>{
- const html=renderToStaticMarkup(<ToastProvider><FootprintsPanel active recorder={null} snapshot={empty} loading={false} error="" places={[]} selection={{id:null,date:"",nonce:0}} onSelection={()=>{}} native={{...native,available:true}}/></ToastProvider>);
- expect(html).toContain("启用自动足迹");expect(html).not.toContain("开始记录");expect(html).not.toContain("导入已有轨迹");
 });
