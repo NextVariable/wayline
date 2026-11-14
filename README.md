@@ -1,6 +1,6 @@
 # Wayline
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![CI](https://github.com/NextVariable/wayline-oss/actions/workflows/ci.yml/badge.svg)](https://github.com/NextVariable/wayline-oss/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![CI](https://github.com/NextVariable/wayline/actions/workflows/ci.yml/badge.svg)](https://github.com/NextVariable/wayline/actions/workflows/ci.yml)
 
 **把行程可视化。**
 
@@ -24,7 +24,7 @@ Wayline 为经常出差的人把日历、地图和已订交通住宿放在一起
 准备 **Node.js 22** 和 npm。
 
 ```bash
-git clone https://github.com/NextVariable/wayline-oss.git
+git clone https://github.com/NextVariable/wayline.git
 cd wayline
 npm ci
 npm run build
