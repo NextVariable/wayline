@@ -6,7 +6,7 @@
   "description": "Calendar-driven business trip map: see where your day goes, how to get there, and whether you will be on time.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/NextVariable/wayline.git"
+    "url": "git+https://github.com/NextVariable/wayline-oss.git"
   },
   "engines": {
     "node": ">=22"
