@@ -12,6 +12,7 @@ import { createCityResourceLookup } from "./city-resources.mjs";
 import { cacheTravelServices } from "./research-cache.mjs";
 import { readPublicPage } from "./public-page.mjs";
 import { createWebHost } from "./web-host.mjs";
+import { createRateLimiter, callerKey } from './rate-limit.mjs';
 import { createAccountService } from "./accounts.mjs";
 import { createTravelServices } from "./travel-services.mjs";
 import { createCalendarPlaceResolver } from "./calendar-places.mjs";
@@ -44,6 +45,14 @@ const host = process.env.HOST || '127.0.0.1';
 if (!['127.0.0.1', 'localhost', '::1'].includes(host) && !process.env.WEB_ACCESS_PASSWORD)
   throw new Error('Public hosting requires WEB_ACCESS_PASSWORD');
 const serveWeb = createWebHost({ password: process.env.WEB_ACCESS_PASSWORD || '', secure: process.env.PUBLIC_ORIGIN?.startsWith('https://') });
+// The anonymous API routes spend the operator's map quota. Limit each caller, add a
+// stricter budget for routes that fetch outside pages, and cap the whole site.
+const positiveInt = (value, fallback) => Number.isInteger(Number(value)) && Number(value) > 0 ? Number(value) : fallback;
+const trustProxy = process.env.TRUST_PROXY === '1';
+const callerLimiter = createRateLimiter({ limit: positiveInt(process.env.API_RATE_LIMIT_PER_MINUTE, 90) });
+const fetchLimiter = createRateLimiter({ limit: positiveInt(process.env.API_FETCH_LIMIT_PER_MINUTE, 10) });
+const siteLimiter = createRateLimiter({ limit: positiveInt(process.env.API_SITE_LIMIT_PER_MINUTE, 1500), maxKeys: 1 });
+const fetchRoutes = new Set(['/api/extract']);
 
 // City layers request several POI groups together. Space those calls while
 // keeping the usual cadence for interactive search and route requests.
@@ -362,6 +371,15 @@ const server = http.createServer(async (request, response) => {
 
   if (request.method !== "POST") {
     send(response, 405, { error: "Method not allowed" });
+    return;
+  }
+
+  const route = (request.url || '').split('?')[0];
+  const caller = callerKey(request, { trustProxy });
+  const verdict = [callerLimiter.take(caller), siteLimiter.take('site'), ...(fetchRoutes.has(route) ? [fetchLimiter.take(caller)] : [])].find(result => !result.allowed);
+  if (verdict) {
+    response.setHeader('Retry-After', String(verdict.retryAfterSeconds));
+    send(response, 429, { error: '查询较频繁，请稍后重试' });
     return;
   }
 
