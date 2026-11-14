@@ -1,0 +1,19 @@
+node_modules
+dist
+.git
+.env*
+!.env.example
+.tools
+android
+ios
+行程规划 for business
+tests
+docs
+
+.wayline-private
+.workbuddy
+output
+**/node_modules
+.playwright-cli
+
+src/tests

@@ -1,0 +1,104 @@
+import { readFileSync, writeFileSync, chmodSync, mkdirSync } from 'node:fs';
+import { mkdir, writeFile, rename, chmod } from 'node:fs/promises';
+import { dirname } from 'node:path';
+import { createHmac, randomBytes } from 'node:crypto';
+
+/** Same rule as src/lib/placeAliases.ts normalizeLocationText. */
+export const normalizeLocationText = text => String(text ?? '').toLowerCase().replace(/[\s，,、。.（）()【】\[\]·・\-—_:：;；'"“”‘’]/g, '');
+
+const MAX_ITEMS = 40, MAX_TEXT = 200, MAX_CACHE = 5000, MAX_CANDIDATES = 5;
+
+/** Same rule as classifyLocation in src/lib/calendarPlaces.ts: a meeting link or a bare word like 线上 is not a place. */
+const ONLINE_LINK = /https?:\/\/|meeting\.tencent\.com|zoom\.us|teams\.microsoft|feishu\.cn|larksuite/i;
+const ONLINE_WORDS = new Set(['线上', '视频会议', '电话', '腾讯会议', 'zoom']);
+export const isOnlineLocation = text => { const value = String(text ?? '').trim(); return ONLINE_LINK.test(value) || ONLINE_WORDS.has(value.toLowerCase()); };
+const invalid = message => Object.assign(new Error(message), { status: 400 });
+const placeOf = p => ({ name: p.name, city: p.city, address: p.address, lat: p.lat, lng: p.lng });
+
+/** A random secret kept beside the cache (0600). Without it the cached keys cannot be matched against guessed text. */
+function cacheSecret(cacheFile) {
+  if (!cacheFile) return randomBytes(32);
+  const file = cacheFile + '.key';
+  try {
+    const value = readFileSync(file);
+    if (value.length === 32) return value;
+  } catch { /* created below */ }
+  const value = randomBytes(32);
+  mkdirSync(dirname(file), { recursive: true, mode: 0o700 });
+  writeFileSync(file, value, { mode: 0o600 });
+  chmodSync(file, 0o600);
+  return value;
+}
+
+/**
+ * Calendar location text → one map place, a short candidate list, or nothing.
+ * Signed-in lookups are cached per account under a keyed hash of account, text and city; the raw text, which may be private,
+ * is never stored, and one account's lookups never answer another's. Guests are not cached.
+ */
+export function createCalendarPlaceResolver({ searchPlaces, cacheFile }) {
+  const secret = cacheSecret(cacheFile);
+  const keyOf = (owner, text, city) => createHmac('sha256', secret).update(owner + '\u0000' + normalizeLocationText(text) + '\u0000' + String(city || '')).digest('hex');
+  const cache = new Map();
+  if (cacheFile) {
+    try {
+      const rows = JSON.parse(readFileSync(cacheFile, 'utf8'));
+      // Entries written before keys were account-scoped and secret are unreadable under the new key and simply dropped.
+      if (rows && rows.version === 2 && Array.isArray(rows.entries)) {
+ for (const [key, value] of rows.entries.slice(-MAX_CACHE)) if (/^[a-f0-9]{64}$/.test(key) && value && typeof value.status === 'string') cache.set(key, value);
+      }
+    } catch { /* missing or unreadable cache starts empty */ }
+  }
+  let writing = Promise.resolve();
+  const persist = () => {
+    if (!cacheFile) return writing;
+    writing = writing.then(async () => {
+      await mkdir(dirname(cacheFile), { recursive: true, mode: 0o700 });
+      const tmp = cacheFile + '.' + process.pid + '.tmp';
+      await writeFile(tmp, JSON.stringify({ version: 2, entries: [...cache.entries()] }), { mode: 0o600 });
+      await chmod(tmp, 0o600);
+      await rename(tmp, cacheFile);
+    }).catch(() => { /* a failed write only costs a repeat lookup later */ });
+    return writing;
+  };
+  const remember = (key, value) => {
+    cache.delete(key); cache.set(key, value);
+    while (cache.size > MAX_CACHE) cache.delete(cache.keys().next().value);
+  };
+  const lookup = async (text, city) => {
+    let rows;
+    try { rows = await searchPlaces({ keyword: text.trim(), city: city || '', count: 10 }); }
+    catch { return { status: 'unavailable' }; }
+    const wanted = normalizeLocationText(text);
+    const exact = rows.filter(p => normalizeLocationText(p.name) === wanted);
+    if (exact.length === 1) return { status: 'found', place: placeOf(exact[0]) };
+    if (rows.length === 1 && normalizeLocationText(rows[0].address).includes(wanted)) return { status: 'found', place: placeOf(rows[0]) };
+    if (!rows.length) return { status: 'none' };
+    return { status: 'ambiguous', candidates: (exact.length ? exact : rows).slice(0, MAX_CANDIDATES).map(placeOf) };
+  };
+  return {
+    /** owner: the signed-in account id; omitted for guests, whose lookups are never cached. */
+    async resolve(items, owner) {
+      if (!Array.isArray(items) || items.length < 1 || items.length > MAX_ITEMS) throw invalid('每次需要 1 到 40 个地点');
+      for (const item of items) {
+ if (!item || typeof item.text !== 'string' || !item.text.trim() || item.text.length > MAX_TEXT || (item.city !== undefined && typeof item.city !== 'string')) throw invalid('地点文字无效');
+      }
+      const cached = typeof owner === 'string' && owner.length > 0;
+      const pending = new Map();
+      let changed = false;
+      const results = await Promise.all(items.map(async ({ text, city }) => {
+        if (isOnlineLocation(text)) return { text, status: 'online' };
+        const dedupe = normalizeLocationText(text) + '\u0000' + String(city || '');
+ const key = cached ? keyOf(owner, text, city) : null;
+ let value = key ? cache.get(key) : undefined;
+ if (!value) {
+          if (!pending.has(dedupe)) pending.set(dedupe, lookup(text, city));
+          value = await pending.get(dedupe);
+   if (key && value.status !== 'unavailable' && !cache.has(key)) { remember(key, value); changed = true; }
+        }
+ return { text, ...value };
+      }));
+      if (changed) await persist();
+      return results;
+    },
+  };
+}

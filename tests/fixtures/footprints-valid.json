@@ -1,0 +1,67 @@
+{
+  "format": "whereto-footprints",
+  "version": 1,
+  "exportedAt": 1792803600000,
+  "tracks": [
+    {
+      "id": "browser-ui-synthetic-track",
+      "name": "验收样本（模拟轨迹）",
+      "startedAt": 1792803600000,
+      "endedAt": 1792803900000,
+      "status": "completed",
+      "coordinateSystem": "WGS84",
+      "source": "backup",
+      "points": [
+        {
+          "lng": 113.91,
+          "lat": 22.485,
+          "time": 1792803600000,
+          "accuracy": 12,
+          "segment": 0
+        },
+        {
+          "lng": 113.91069999999999,
+          "lat": 22.4853,
+          "time": 1792803660000,
+          "accuracy": 12,
+          "segment": 0
+        },
+        {
+          "lng": 113.9114,
+          "lat": 22.485599999999998,
+          "time": 1792803720000,
+          "accuracy": 12,
+          "segment": 0
+        },
+        {
+          "lng": 113.9121,
+          "lat": 22.4859,
+          "time": 1792803780000,
+          "accuracy": 12,
+          "segment": 1
+        },
+        {
+          "lng": 113.91279999999999,
+          "lat": 22.4862,
+          "time": 1792803840000,
+          "accuracy": 12,
+          "segment": 1
+        },
+        {
+          "lng": 113.9135,
+          "lat": 22.4865,
+          "time": 1792803900000,
+          "accuracy": 12,
+          "segment": 1
+        }
+      ],
+      "gaps": [
+        {
+          "time": 1792803780000,
+          "reason": "模拟中断，新开轨迹段"
+        }
+      ]
+    }
+  ],
+  "visits": []
+}

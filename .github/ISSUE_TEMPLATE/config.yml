@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 报告安全问题
+    url: https://github.com/NextVariable/wayline/security/policy
+    about: 请先阅读安全政策，通过其中的私密渠道报告，不要公开提交 Issue。

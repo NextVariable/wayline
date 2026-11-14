@@ -1,0 +1,30 @@
+node_modules/
+dist/
+output/playwright/
+output/intent-audit-2026-10-30/
+.tools/
+.env
+.env.local
+*.tsbuildinfo
+.DS_Store
+__pycache__/
+*.pyc
+
+
+# Local encrypted calendar credentials and OAuth flows; never publish or commit.
+.wayline-private/
+
+# Local automation and browser diagnostics.
+.playwright-cli/
+.workbuddy/
+.env.*
+!.env.example
+
+# AI assistant tool directories (local only)
+.claude/
+.agents/
+skills-lock.json
+
+# Editor recovery files.
+*.swp
+*.swo
