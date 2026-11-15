@@ -10,7 +10,6 @@ import {
   Loader2,
   MapPin,
   Pencil,
-  Plus,
   Search,
   Trash2,
   
@@ -37,7 +36,7 @@ import type {
   City,
 } from "../types/place";
 import { useToast } from "./Toast";
-import { ActionMenu, type MenuAction } from "./ActionMenu";
+import { ActionMenu } from "./ActionMenu";
 import { LibraryHoverEntry } from "./LibraryHoverEntry";
 export type UserFilter =
   | { kind: "status"; value: PlaceStatus | "all"; label: string }
@@ -430,7 +429,7 @@ export function Sidebar(props: Props) {
             <MapPin size={19}/><span><strong>{city.name}</strong><small>城市</small></span><ChevronRight size={15}/>
           </button>)}
         </div>}
-        {!!query.trim() && items.map((place,index) => {
+        {!!query.trim() && items.map(place => {
           const Icon=categoryIcons[place.category] ?? MapPin;
           const distance=place.distanceText?.match(/约\s*(\d+(?:\.\d+)?)(km|m)/);
           return <button className="search-poi-suggestion" role="option" aria-selected={false} key={place.id} onClick={event=>selectPlace(place,event.currentTarget)} onKeyDown={event=>{

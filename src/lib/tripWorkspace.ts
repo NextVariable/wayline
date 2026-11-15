@@ -2,7 +2,7 @@ import { isStoredPlace } from "./placeValidation";
 import { samePlace } from "./placeIdentity";
 import { useEffect, useRef, useState } from "react";
 import type { City, Place } from "../types/place";
-import { loadUserPlaces, type AppUser } from "./userStorage";
+import type { AppUser } from "./userStorage";
 
 export function tripStorageKey(userId: string) {
   return `whatto.tripDraft.${userId}`;

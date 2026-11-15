@@ -9,13 +9,12 @@ import {
   Pencil,
   Plus,
 } from "lucide-react";
-import { useState } from "react";
 import { officialAddressByName } from "../data/systemPlaces";
 import { isSchedule } from "../lib/placeIdentity";
 import { usePanelFocus } from "../lib/usePanelFocus";
 import { categoryLabels } from "../lib/mapUtils";
 import { placeMapLink } from "../lib/navigationLinks";
-import type { Place, PlaceCategory } from "../types/place";
+import type { Place } from "../types/place";
 import { ActionMenu, type MenuAction } from "./ActionMenu";
 import { useToast } from "./Toast";
 

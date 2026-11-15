@@ -42,12 +42,6 @@ const time = (n: number) =>
     hour: "2-digit",
     minute: "2-digit",
   });
-const statusText = {
-  recording: "记录中",
-  paused: "已暂停",
-  interrupted: "已中断",
-  completed: "已结束",
-};
 export function FootprintsPanel({
   active,
   recorder,

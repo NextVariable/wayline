@@ -1,6 +1,6 @@
 import { searchAMapTips } from "./amapSuggestions";
 import type { City, CityName, ExtractedPlace, Place } from "../types/place";
-import { findCityPreset, cityCatalog } from "../data/cities";
+import { cityCatalog } from "../data/cities";
 import { wgsToGcj, gcjToWgs } from "./trackCoordinates";
 import { officialAddressByName } from "../data/systemPlaces";
 
@@ -384,24 +384,6 @@ function usefulPoiName(value:unknown): value is string {
 
 function normalizeText(value: string) {
   return value.toLowerCase().replace(/[（）()·\s]/g, "");
-}
-
-async function geocodeCityInBrowser(keyword: string, fallback: City): Promise<City> {
-  const preset = findCityPreset(keyword, fallback);
-  if (!tiandituToken) return preset;
-  try {
-    const adminUrl = `https://api.tianditu.gov.cn/v2/administrative?keyword=${encodeURIComponent(keyword)}&childLevel=0&extensions=true&tk=${tiandituToken}`;
-    const admin = await fetchWithTimeout(adminUrl).then((response) => response.json());
-    const city = normalizeCityResult(keyword, admin);
-    if (city) return city;
-    const geocodeUrl = `https://api.tianditu.gov.cn/geocoder?ds=${encodeURIComponent(JSON.stringify({ keyWord: keyword }))}&tk=${tiandituToken}`;
-    const geo = await fetchWithTimeout(geocodeUrl).then((response) => response.json());
-    const location = geo?.location;
-    if (location?.lat && location?.lon) return { name: keyword, lat: Number(location.lat), lng: Number(location.lon), zoom: 11 };
-    return { name: keyword, lat: fallback.lat, lng: fallback.lng, zoom: fallback.zoom };
-  } catch {
-    return { name: keyword, lat: fallback.lat, lng: fallback.lng, zoom: fallback.zoom };
-  }
 }
 
 async function geocodeCityStrict(keyword: string): Promise<City | null> {

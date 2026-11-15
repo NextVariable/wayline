@@ -23,7 +23,7 @@ const readCalendarLayer = (owner: string) => { try { return localStorage.getItem
 const placePairKey = (pair: TodayLegPair) => JSON.stringify([pair.from.place.id, pair.to.place.id]);
 const dayLabel = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric" });
 const noTripLines: [] = [];
-import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import type { MapZoomState } from "./lib/mapZoom";
 import { MapCompass } from "./components/MapCompass";
@@ -38,7 +38,6 @@ import { DeferredWorkflow, preloadableWorkflow } from "./components/DeferredWork
 import { Sidebar, type UserFilter } from "./components/Sidebar";
 import { useToast } from "./components/Toast";
 import {
-  ChevronDown,
   Crosshair,
   Navigation,
   Loader2,
@@ -80,7 +79,7 @@ import {
   
 } from "./lib/guideFilters";
 import { searchCitySystemPlaces } from "./lib/resourceSearch";
-import { calendarSearchCity, geocodeCity, reverseGeocodeAddress, searchPlaceCandidates, suggestPlaceCandidates, cachedPlaceSuggestions } from "./lib/geoSearch";
+import { calendarSearchCity, reverseGeocodeAddress, searchPlaceCandidates, suggestPlaceCandidates, cachedPlaceSuggestions } from "./lib/geoSearch";
 import {
   loadActiveUser,
   loadUserPlaces,
@@ -92,7 +91,6 @@ import type {
   CityName,
   MapMode,
   Place,
-  PlaceCategory,
   SystemLayer,
 } from "./types/place";
 
