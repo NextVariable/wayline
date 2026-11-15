@@ -4,7 +4,6 @@ dist
 .env*
 !.env.example
 .tools
-行程规划 for business
 tests
 docs
 
