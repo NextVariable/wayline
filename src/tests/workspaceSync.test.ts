@@ -1,7 +1,7 @@
 import {expect, it, vi} from 'vitest';
 import {pullWorkspace, pushWorkspace, guestDataWorthMigrating, migrateGuestWorkspace} from '../lib/workspaceSync';
 import {replaceWorkspaceRecords, type WorkspaceBackup} from '../lib/workspaceBackup';
-import {initialUserPlaces} from '../data/userPlaces';
+import {initialUserPlaces} from './fixtures/userPlaces';
 import {guestUser} from '../lib/userStorage';
 
 const owner = 'google:abc';

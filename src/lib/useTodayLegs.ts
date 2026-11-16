@@ -88,10 +88,12 @@ export function useTodayLegs({ pairs, choices, owner, retryCount }: {
   const [result, setResult] = useState<{ signature: string; legs: Legs; pending: boolean }>();
   const signature = JSON.stringify([owner, pairs.map(p => [
     p.id, ...[p.from.place, p.to.place].map(place => [place.id, place.city, place.lat, place.lng]),
-    p.from.event.end, p.to.event.start,
+    p.from.event.end, p.to.event.start, p.sameSpot, p.defaultMode,
   ])]);
   const chosenModes = JSON.stringify(choices);
   const hasRoutes = pairs.some(pair => !pair.sameSpot);
+  const input = useRef({ pairs, choices });
+  input.current = { pairs, choices };
   useEffect(() => {
     if (!hasRoutes) return;
     if (runner.current?.owner !== owner) runner.current = { owner, lookup: createTodayLegsRunner() };
@@ -99,7 +101,7 @@ export function useTodayLegs({ pairs, choices, owner, retryCount }: {
     let live = true;
     setResult(old => ({ signature, legs: old?.signature === signature ? old.legs : emptyLegs, pending: true }));
     void current.run({
-      pairs, choices,
+      ...input.current,
       onLeg: (id, mode, leg) => {
         if (live) setResult(old => {
           if (old?.signature !== signature || old.legs[id]?.[mode] === (leg ?? undefined)) return old;
@@ -110,9 +112,7 @@ export function useTodayLegs({ pairs, choices, owner, retryCount }: {
       if (live) setResult(old => old?.signature === signature ? { ...old, pending: false } : old);
     });
     return () => { live = false; current.cancel(); };
-    // `signature` captures every input the lookup depends on.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signature, chosenModes, retryCount]);
+  }, [signature, chosenModes, retryCount, owner, hasRoutes]);
   return { legs: result?.signature === signature ? result.legs : emptyLegs,
     loading: hasRoutes && (result?.signature !== signature || result.pending) };
 }

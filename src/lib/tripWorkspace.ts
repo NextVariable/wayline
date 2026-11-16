@@ -1,6 +1,6 @@
 import { isStoredPlace } from "./placeValidation";
 import { samePlace } from "./placeIdentity";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { City, Place } from "../types/place";
 import type { AppUser } from "./userStorage";
 
@@ -84,7 +84,7 @@ export function useTripDraft(userId: string) {
 
 export function useUserCities(user: AppUser) {
   const key = `whatto.cities.${user.id}`;
-  const read = (): City[] => {
+  const read = useCallback((): City[] => {
     try {
       const raw: unknown = JSON.parse(localStorage.getItem(key) ?? "[]");
       return Array.isArray(raw)
@@ -102,7 +102,7 @@ export function useUserCities(user: AppUser) {
     } catch {
       return [];
     }
-  };
+  }, [key]);
   const [cities, setCities] = useState<City[]>(read);
   const [saved, setSaved] = useState(true);
   const owner = useRef(user.id);
@@ -118,6 +118,6 @@ export function useUserCities(user: AppUser) {
     } catch {
       setSaved(false);
     }
-  }, [user.id, key, cities]);
+  }, [user.id, key, cities, read]);
   return [cities, setCities, saved] as const;
 }

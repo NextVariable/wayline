@@ -33,5 +33,5 @@ export function useWorkspaceMotion(root:RefObject<HTMLElement|null>,collapsed:bo
     };
     start();preference.addEventListener("change",start);
     return ()=>{if(frame.current!==null)cancelAnimationFrame(frame.current);frame.current=null;preference.removeEventListener("change",start);};
-  },[collapsed]);
+  }, [collapsed, root]);
 }

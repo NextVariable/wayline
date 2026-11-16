@@ -89,7 +89,7 @@ export function ActionMenu({
       viewport?.removeEventListener("resize", follow);
       viewport?.removeEventListener("scroll", follow);
     };
-  }, [open]);
+  }, [open, hover.origin]);
   useEffect(() => {
     if (!open) return;
     const dismiss = (event: PointerEvent) => {

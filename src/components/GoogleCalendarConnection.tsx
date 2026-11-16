@@ -7,9 +7,9 @@ export function GoogleCalendarConnection({ connection }: { connection: GoogleCal
   const [choosing, setChoosing] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
-  const selectedKey = (status?.selected ?? []).join("\n");
+  const selectedKey = JSON.stringify(status?.selected ?? []);
 
-  useEffect(() => { setSelected(status?.selected ?? []); }, [selectedKey]);
+  useEffect(() => { setSelected(JSON.parse(selectedKey)); }, [selectedKey]);
   useEffect(() => {
     if (!status?.connected) { setChoosing(false); setConfirming(false); }
   }, [status?.connected]);

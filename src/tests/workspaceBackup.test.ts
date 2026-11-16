@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createWorkspaceBackup, parseWorkspaceBackup, restoreWorkspaceRecords } from "../lib/workspaceBackup";
-import { initialUserPlaces } from "../data/userPlaces";
+import { initialUserPlaces } from "./fixtures/userPlaces";
 import { guestUser, loadUserPlaces } from "../lib/userStorage";
 import { samePlace } from "../lib/placeIdentity";
 import { validRoutePlaces } from "../lib/tripWorkspace";

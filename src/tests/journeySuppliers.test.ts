@@ -1,8 +1,6 @@
 import {expect,it,vi} from "vitest";
 // @ts-expect-error server module
 import {validateHotelRecheck,createJourneySuppliers,readLuggagePolicy,readTrainSeatOptions} from '../../server/journey-suppliers.mjs';
-import {normalizeJoint} from '../lib/plannerEvidence';
-const t=(day:number,clock:string)=>`2026-11-0${day}T${clock}:00+08:00`;
 const p=(name:string)=>({name,city:'上海',lat:31,lng:121});
 const hotels=[{...p('酒店甲'),id:'hotel-a'},{...p('酒店乙'),id:'hotel-b'}];
 it('checks exact rate/date/occupancy/allotment/currency before exposing a room quote',()=>{
@@ -23,8 +21,4 @@ it('retains queried seat counts and fares without inventing numbers for 有 or �
  expect(readTrainSeatOptions({prices:[{seat_name:'二等座',num:'8',price:66},{seat_name:'一等座',num:'有',price:88},{seat_name:'硬座',num:'0',price:33},{seat_name:'商务座',num:'候补',price:NaN}]})).toEqual([
   {name:'二等座',count:8,price:66,status:'available'},{name:'一等座',count:null,price:88,status:'available'},{name:'硬座',count:0,price:33,status:'unavailable'},{name:'商务座',count:null,price:null,status:'unknown'}]);
  expect(readTrainSeatOptions({prices:[null,{seat_name:{bad:true},num:'10'}, {seat_name:'二等座',num:'-1',price:-5}]})).toEqual([{name:'二等座',count:null,price:null,status:'unknown'}]);
-});
-it('removes malformed seat observations before rendering',()=>{
- const joint=normalizeJoint({status:'conditional',plans:[],railOptions:[{number:'G101',origin:'A',destination:'B',direction:'outbound',departure:t(2,'08:00'),checkedAt:new Date().toISOString(),seatOptions:[{name:'bad',price:{bad:true},count:8,status:'available'}]}, {number:'G2',departure:'invalid',checkedAt:'invalid',direction:'return',seatOptions:[]}]});
- expect(joint!.railOptions).toHaveLength(1);expect(joint!.railOptions![0].seatOptions).toEqual([]);
 });

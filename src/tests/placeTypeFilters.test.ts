@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { getCitiesPlacesByType } from "../lib/guideFilters";
-import { initialUserPlaces } from "../data/userPlaces";
+import { initialUserPlaces } from "./fixtures/userPlaces";
 it("filters actual place type independently of guide membership and visit state", () => {
   const base = initialUserPlaces[0];
   const station = {...base,id:"station",city:"上海",category:"transport" as const,guideCategories:["business" as const],status:"visited" as const};

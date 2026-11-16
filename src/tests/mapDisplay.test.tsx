@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MapDisplayOptions } from "../components/MapDisplayOptions";
 import { renderPlacePinHTML } from "../components/PlacePin";
-import { initialUserPlaces } from "../data/userPlaces";
+import { initialUserPlaces } from "./fixtures/userPlaces";
 
 const base = { mapMode: "explore" as const, activeLayers: ["business" as const], onMapModeChange: () => {}, onToggleLayers: () => {}, showLayers: true };
 describe("compact map display choices", () => {

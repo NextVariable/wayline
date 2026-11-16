@@ -23,7 +23,7 @@ const readCalendarLayer = (owner: string) => { try { return localStorage.getItem
 const placePairKey = (pair: TodayLegPair) => JSON.stringify([pair.from.place.id, pair.to.place.id]);
 const dayLabel = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric" });
 const noTripLines: [] = [];
-import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import type { MapZoomState } from "./lib/mapZoom";
 import { MapCompass } from "./components/MapCompass";
@@ -68,9 +68,6 @@ import { cities, cityCatalog } from "./data/cities";
 import { cityKey, cityScopeNames, uniqueCities } from "./lib/citySelection";
 import { useCityView } from "./lib/useCityView";
 import { officialAddressByName } from "./data/systemPlaces";
-import {
-  seedCities,
-} from "./data/seedCityResources";
 import {
   
   getCitiesGuideCategoriesPlaces,
@@ -130,14 +127,14 @@ export default function App() {
   const [loadingWorkflow, setLoadingWorkflow] = useState<keyof typeof workspaceWorkflows | null>(null);
   const workflowRequest = useRef(0);
   const panelTransition = useRef<ViewTransition | null>(null);
-  const cancelPendingWorkflow = () => {
+  const cancelPendingWorkflow = useCallback(() => {
     workflowRequest.current++;
     setLoadingWorkflow(null);
-  };
-  const setActiveOverlay = (panel: OverlayPanel | null) => {
+  }, []);
+  const setActiveOverlay = useCallback((panel: OverlayPanel | null) => {
     cancelPendingWorkflow();
     commitOverlay(panel);
-  };
+  }, [cancelPendingWorkflow]);
   const presentWorkspace = (update: () => void, direction?: "forward" | "back") => {
     cancelPendingWorkflow();
     if (!document.startViewTransition || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -196,10 +193,10 @@ export default function App() {
   const settingsTrigger = useRef<HTMLButtonElement>(null);
   const settingsRef = usePanelFocus<HTMLDivElement>(settingsOpen && !settingsHoverOrigin.current);
   const settingsHover = useHoverPopover(settingsOpen, setSettingsOpen, settingsTrigger, settingsRef, settingsHoverOrigin);
-  const closeMapSettings = () => {
+  const closeMapSettings = useCallback(() => {
     setSettingsOpen(false);
     settingsTrigger.current?.focus({ preventScroll: true });
-  };
+  }, []);
   const [settingsPosition, setSettingsPosition] = useState({left:0,top:0});
   useLayoutEffect(()=>{
     if(!settingsOpen || !settingsTrigger.current || !settingsRef.current)return;
@@ -213,7 +210,7 @@ export default function App() {
     observer.observe(settingsRef.current);observer.observe(settingsTrigger.current);
     window.addEventListener("resize",update);window.visualViewport?.addEventListener("resize",update);
     return ()=>{observer.disconnect();window.removeEventListener("resize",update);window.visualViewport?.removeEventListener("resize",update);};
-  },[settingsOpen]);
+  }, [settingsOpen, settingsRef]);
   const [editPlace, setEditPlace] = useState<Place | null>(null);
   const [storageHealthy, setStorageHealthy] = useState(true);
   const [detailOrigin, setDetailOrigin] = useState<
@@ -238,9 +235,9 @@ export default function App() {
   const [showLocalSpace, setShowLocalSpace] = useState(false);
   // Signed in → the account's own owner; otherwise the local space or guest (never a stale account).
   const accountKey = account.status === "signed-in" ? account.account.id : "";
-  const signedInUser = useMemo(() => (account.status === "signed-in" ? accountUser(account.account) : null),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [accountKey]);
+  const accountEmail = account.status === "signed-in" ? account.account.email : "";
+  const signedInUser = useMemo(() => accountKey ? accountUser({ id: accountKey, email: accountEmail }) : null,
+    [accountKey, accountEmail]);
   // Bumped whenever the shown owner's data changes; drives the debounced cloud push.
   const [dataRevision, setDataRevision] = useState(0);
   const workspaceSync = useWorkspaceSync({
@@ -254,9 +251,9 @@ export default function App() {
   });
   // The account becomes the shown owner only once its cloud copy is in local storage.
   const accountReady = !!signedInUser && workspaceSync.readyOwner === signedInUser.id;
-  const activeUser = useMemo(() => chooseActiveUser(accountReady && !showLocalSpace ? account : {status: "loading"}, localUser),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [accountReady, accountKey, localUser, showLocalSpace]);
+  const activeUser = accountReady && !showLocalSpace && signedInUser
+    ? signedInUser
+    : chooseActiveUser({status: "loading"}, localUser);
   const mailbox = useTripMailbox(activeUser.method === "google" ? accountKey : undefined);
   const [calendarEvents, setCalendarEvents] = useState(()=>readCalendarEntries(activeUser.id));
   const [tripSettingsOverride, setTripSettingsOverride] = useState<{ owner: string; settings: BusinessTripSettings }>();
@@ -359,33 +356,22 @@ export default function App() {
         addToast("另一台设备有更新，已载入最新内容", "info");
       }
     } catch { /* storage unavailable */ }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [addToast]);
+  const { offerMigration, dismissMigration, migrateGuest } = workspaceSync;
   useEffect(() => {
-    if (!workspaceSync.offerMigration) return;
-    workspaceSync.dismissMigration();
-    addToast("这台浏览器里有游客数据，要迁入你的账号吗？", "info", { label: "迁入", onClick: () => void workspaceSync.migrateGuest(), dismissLabel: "不用" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workspaceSync.offerMigration]);
+    if (!offerMigration) return;
+    dismissMigration();
+    addToast("这台浏览器里有游客数据，要迁入你的账号吗？", "info", { label: "迁入", onClick: () => void migrateGuest(), dismissLabel: "不用" });
+  }, [offerMigration, dismissMigration, migrateGuest, addToast]);
   useEffect(() => {
     if (workspaceSync.state !== "conflict") return;
     addToast("云端有更新。本机修改已保留，可在「资料与备份」处理。", "info");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workspaceSync.state]);
+  }, [workspaceSync.state, addToast]);
 
-  const seededExtraCities = useMemo(
-    () =>
-      seedCities.filter(
-        (seedCity) =>
-          !cities.some((coreCity) => coreCity.name === seedCity.name),
-      ),
-    [],
-  );
   const allCities = useMemo(
     () =>
       uniqueCities([
         ...cityCatalog,
-        ...seededExtraCities,
         ...customCities,
         ...(detectedCity ? [detectedCity] : []),
         ...[...userPlaces, ...routePlaces].map((place) => ({
@@ -395,7 +381,7 @@ export default function App() {
           zoom: 12,
         })),
       ]),
-    [customCities, seededExtraCities, detectedCity, userPlaces, routePlaces],
+    [customCities, detectedCity, userPlaces, routePlaces],
   );
   const selectedCities = useMemo(
     () =>
@@ -463,7 +449,7 @@ export default function App() {
       url.searchParams.delete("gmail");
       window.history.replaceState(null, "", url.pathname + url.search + url.hash);
     }
-  },[]);
+  }, [addToast, setActiveOverlay]);
   const resourceCity = cityScope === "current" && activeOverlay !== "footprints" ? city.name : "";
   useEffect(() => {
     if (!resourceCity || !activeLayers.length) return;
@@ -502,12 +488,12 @@ export default function App() {
       detail: null,
     }));
   }, [activeCity]);
-  const closeAuxiliary = () => {
+  const closeAuxiliary = useCallback(() => {
     const origin = auxiliaryOrigin.current.pop();
     setActiveOverlay(origin?.overlay ?? null);
     setSelectedPlace(origin?.place ?? null);
     setDetailOrigin(origin?.detail ?? null);
-  };
+  }, [setActiveOverlay]);
   const openOverlay = () => openWorkflow("account", () => {
     const panel = "account";
     setWorkspaceCollapsed(false);
@@ -770,7 +756,8 @@ export default function App() {
     };
     window.addEventListener("keydown", dismiss);
     return () => window.removeEventListener("keydown", dismiss);
-  }, [activeOverlay, settingsOpen, detailOrigin, scheduleOrigin, businessSelection]);
+  }, [activeOverlay, settingsOpen, detailOrigin, scheduleOrigin, businessSelection,
+    cancelPendingWorkflow, closeAuxiliary, closeMapSettings, setActiveOverlay, settingsRef]);
 
   const togglePlaceSelection = (place: Place) => {
     if (selectedPlace?.id === place.id && !activeOverlay) return;
@@ -1084,6 +1071,9 @@ export default function App() {
     currentLocation.requestId,
     currentLocation.position,
     currentLocation.city,
+    currentLocation.startedAt,
+    setActiveCity,
+    setCityScope,
     activeOverlay,
     selectedPlace,
     allCities,

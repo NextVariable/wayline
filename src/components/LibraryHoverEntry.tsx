@@ -1,4 +1,4 @@
-import { cloneElement, useEffect, useId, useRef, useState, type ReactElement, type ReactNode, type ButtonHTMLAttributes } from "react";
+import { cloneElement, useCallback, useEffect, useId, useRef, useState, type ReactElement, type ReactNode, type ButtonHTMLAttributes } from "react";
 import { createPortal } from "react-dom";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement>;
@@ -9,8 +9,8 @@ export function LibraryHoverEntry({ label, children, preview }: {label: string; 
   const panel = useRef<HTMLDivElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const id = useId();
-  const cancel = () => clearTimeout(timer.current);
-  const close = () => { cancel(); setPosition(null); };
+  const cancel = useCallback(() => clearTimeout(timer.current), []);
+  const close = useCallback(() => { cancel(); setPosition(null); }, [cancel]);
   const show = () => {
     const rect = trigger.current?.getBoundingClientRect();
     if (!rect || !window.matchMedia("(min-width: 701px) and (hover: hover) and (pointer: fine)").matches) return;
@@ -24,8 +24,9 @@ export function LibraryHoverEntry({ label, children, preview }: {label: string; 
   useEffect(() => {
     return () => clearTimeout(timer.current);
   },[]);
+  const isOpen = position !== null;
   useEffect(() => {
-    if (!position) return;
+    if (!isOpen) return;
     const dismiss = (e: PointerEvent) => {
       if (e.target instanceof Node && !panel.current?.contains(e.target) && !trigger.current?.contains(e.target)) close();
     };
@@ -37,7 +38,7 @@ export function LibraryHoverEntry({ label, children, preview }: {label: string; 
     window.addEventListener("resize",resize);
     window.addEventListener("scroll",resize,true);
     return () => {document.removeEventListener("pointerdown",dismiss);window.removeEventListener("resize",resize);window.removeEventListener("scroll",resize,true);};
-  },[!!position]);
+  }, [isOpen, close]);
   return <>{cloneElement(children, {
     ref: trigger,
     "aria-expanded":!!position,

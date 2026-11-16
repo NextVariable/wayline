@@ -1,6 +1,4 @@
-import type { City, CoreCityName } from "../types/place";
-
-export const coreCityNames: CoreCityName[] = ["北京", "上海", "广州", "深圳"];
+import type { City } from "../types/place";
 
 export const cities: City[] = [
   { name: "北京", lat: 39.9042, lng: 116.4074, zoom: 11 },

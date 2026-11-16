@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { groupBusinessTrips, tripPlaces } from "../lib/businessTrips";
 import type { CalendarEntry } from "../lib/calendarEvents";
-import { initialUserPlaces } from "../data/userPlaces";
+import { initialUserPlaces } from "./fixtures/userPlaces";
 
 const date = "2026-11-13";
 const event = (id: string, day: string, city: string, hour = "10"): CalendarEntry => ({

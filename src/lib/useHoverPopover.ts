@@ -31,7 +31,7 @@ export function useHoverPopover(
     if (panel.current?.contains(document.activeElement))
       trigger.current?.focus({ preventScroll: true });
     current.current.setOpen(false);
-  }), []);
+  }), [origin, panel, trigger]);
   useEffect(() => () => intent.cancel(), [intent]);
   useEffect(() => {
     if (!open) { intent.cancel(); origin.current = false; }

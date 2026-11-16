@@ -1,7 +1,6 @@
 import {expect,it,vi} from 'vitest';
 // @ts-expect-error server
 import {readLuggagePolicy,readHotelTerms,createJourneySuppliers} from '../../server/journey-suppliers.mjs';
-import {normalizeHotelTerms} from '../lib/plannerEvidence';
 it('reads actual provider amenities_hotel/descriptions without inventing hours or post-checkout permission',()=>{
  const p=readLuggagePolicy({hotel:{amenities_hotel:[{id:'4003',name:'Luggage storage'}],descriptions:{BusinessAmenities:'Luggage storage'}}});
  expect(p.status).toBe('listed');expect(p.hours).toBeNull();expect(p.fee).toBeNull();
@@ -16,10 +15,6 @@ it('does not select a non-refundable room when the traveller requires free cance
  const fetchImpl=vi.fn(async(url:string)=>({ok:true,text:async()=>JSON.stringify({ok:true,data:url.endsWith('query_room_rates')?{room_types:[{name_cn:'行政双床房',products:[{max_occupancy:2,cancellation_policy:{type:'non_refundable',effective_non_refundable:true},rate:{currency:'CNY',is_on_request:false,rate_code:'nonrefund',total_price:500}}]}]}:{hotel:{}}})}));
  const service=createJourneySuppliers({fetchImpl});const offer=await service.hotelOffer({hotel:{name:'酒店甲',supplierId:'id'},checkIn:'2026-11-02',checkOut:'2026-11-03',travelers:2,rooms:1,roomType:'twin',freeCancellationRequired:true});
  expect(offer.quote).toBeNull();expect(offer.availability).not.toBe('available');expect(fetchImpl.mock.calls.some(([u])=>u.endsWith('check_room_availability'))).toBe(false);
-});
-it('removes malformed hotel terms from saved plans before they reach the UI',()=>{
- const terms=normalizeHotelTerms({cancellation:{kind:'free_before',deadline:'not a date'},meals:-1,checkIn:'30:99',propertyFeeNotice:'x'.repeat(351)});
- expect(terms).toMatchObject({cancellation:{kind:'unknown'},meals:null,checkIn:null,propertyFeeNotice:null});
 });
 it('retries one transient read outage but does not retry long rate limits or failed input',async()=>{
  const success={ok:true,text:async()=>JSON.stringify({ok:true,data:{hotels:[]}})};

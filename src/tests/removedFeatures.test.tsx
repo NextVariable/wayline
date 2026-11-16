@@ -4,7 +4,7 @@ import {readFileSync, existsSync, readdirSync} from "node:fs";
 import {resolve} from "node:path";
 import {Sidebar} from "../components/Sidebar";
 import {ToastProvider} from "../components/Toast";
-import {initialUserPlaces} from "../data/userPlaces";
+import {initialUserPlaces} from "./fixtures/userPlaces";
 
 // Features removed by the 2026-11-12 positioning (docs/design/positioning.md).
 const root = resolve(__dirname, "../..");

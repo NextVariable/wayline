@@ -9,6 +9,7 @@ import {
   Pencil,
   Plus,
 } from "lucide-react";
+import { safeExternalUrl } from "../lib/externalUrl";
 import { officialAddressByName } from "../data/systemPlaces";
 import { isSchedule } from "../lib/placeIdentity";
 import { usePanelFocus } from "../lib/usePanelFocus";
@@ -56,6 +57,11 @@ export function PlaceCard({
   onViewSchedule,
   calendarEvents = [],
 }: Props) {
+  const evidence = place.resourceEvidence && typeof place.resourceEvidence === "object"
+    ? place.resourceEvidence
+    : undefined;
+  const coordinateUrl = safeExternalUrl(evidence && "coordinateUrl" in evidence ? evidence.coordinateUrl : undefined);
+  const officialUrl = safeExternalUrl(evidence && "officialUrl" in evidence ? evidence.officialUrl : undefined);
   const panel = usePanelFocus(true);
   const returningToSameView =
     (inRoute && returnLabel === "返回行程") ||
@@ -168,12 +174,12 @@ export function PlaceCard({
           </button>
         )}
       </div>}
-      {place.resourceEvidence && <div className="detail-facts">
-        {place.resourceEvidence.provider !== "天地图" ? <>
-          <p>点位来源 · {"coordinateUrl" in place.resourceEvidence
-            ? <a className="text-action" href={place.resourceEvidence.coordinateUrl} target="_blank" rel="noreferrer">{place.resourceEvidence.provider}</a>
-            : place.resourceEvidence.provider}</p>
-          {place.resourceEvidence.officialUrl && <a className="text-action" href={place.resourceEvidence.officialUrl} target="_blank" rel="noreferrer">查看官方资料</a>}
+      {evidence && <div className="detail-facts">
+        {evidence.provider !== "天地图" ? <>
+          <p>点位来源 · {coordinateUrl
+            ? <a className="text-action" href={coordinateUrl} target="_blank" rel="noreferrer">{evidence.provider}</a>
+            : evidence.provider}</p>
+          {officialUrl && <a className="text-action" href={officialUrl} target="_blank" rel="noreferrer">查看官方资料</a>}
         </> : <p>天地图 · 未核验</p>}
       </div>}
       {(schedule || hours) && (

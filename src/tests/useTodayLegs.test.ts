@@ -1,6 +1,6 @@
 process.env.TZ = "Asia/Shanghai";
 import { describe, it, expect, vi } from "vitest";
-import { initialUserPlaces } from "../data/userPlaces";
+import { initialUserPlaces } from "./fixtures/userPlaces";
 import type { CalendarEntry } from "../lib/calendarEvents";
 import { legPairs } from "../lib/todayMap";
 import { fetchLeg, createTodayLegsRunner, type LegResult } from "../lib/useTodayLegs";

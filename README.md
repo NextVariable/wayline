@@ -21,7 +21,7 @@ Wayline 为经常出差的人把日历、地图和已订交通住宿放在一起
 
 ## 本地运行
 
-准备 **Node.js 22** 和 npm。
+准备 **Node.js 22.13+** 和 npm。
 
 ```bash
 git clone https://github.com/NextVariable/wayline.git

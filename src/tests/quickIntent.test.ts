@@ -6,7 +6,7 @@ import {
   scheduleContext,
   changedIntentFields,
 } from "../lib/quickIntent";
-import { initialUserPlaces } from "../data/userPlaces";
+import { initialUserPlaces } from "./fixtures/userPlaces";
 const now = new Date(2026, 9, 24, 10);
 describe("one sentence scheduling", () => {
   it("reads date, time and venue without inventing a meeting", () =>

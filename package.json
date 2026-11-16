@@ -9,7 +9,7 @@
     "url": "git+https://github.com/NextVariable/wayline.git"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.13.0"
   },
   "type": "module",
   "scripts": {
@@ -18,7 +18,8 @@
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",
     "preview": "vite preview",
-    "providers:install": "npm ci --prefix server/provider-runtime --omit=dev --ignore-scripts --no-audit --no-fund"
+    "providers:install": "npm ci --prefix server/provider-runtime --omit=dev --ignore-scripts --no-audit --no-fund",
+    "lint": "eslint src --max-warnings 0"
   },
   "dependencies": {
     "@amap/amap-jsapi-loader": "^1.0.1",
@@ -39,9 +40,12 @@
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "autoprefixer": "^10.4.21",
+    "eslint": "10.15.0",
+    "eslint-plugin-react-hooks": "7.1.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.9.2",
+    "typescript-eslint": "8.62.1",
     "vite": "^7.1.7",
     "vitest": "^5.1.0"
   }

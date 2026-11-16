@@ -5,7 +5,7 @@ import {
   tripStorageKey,
   validRoutePlaces,
 } from "../lib/tripWorkspace";
-import { initialUserPlaces } from "../data/userPlaces";
+import { initialUserPlaces } from "./fixtures/userPlaces";
 
 describe("route draft boundaries", () => {
   it("restores only valid, distinct locations from browser storage", () => {

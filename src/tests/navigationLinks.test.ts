@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { initialUserPlaces } from "../data/userPlaces";
+import { initialUserPlaces } from "./fixtures/userPlaces";
 import { gcjToWgs } from "../lib/trackCoordinates";
 import { amapNavigationUrl, googleNavigationUrl, placeMapLink, routeMapLink } from "../lib/navigationLinks";
 

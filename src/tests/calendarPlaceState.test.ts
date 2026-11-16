@@ -1,5 +1,5 @@
 import {it, expect} from 'vitest';
-import {initialUserPlaces} from '../data/userPlaces';
+import {initialUserPlaces} from './fixtures/userPlaces';
 import {isCalendarEntry, mergeCalendarEntries, type CalendarEntry} from '../lib/calendarEvents';
 import {mergeGoogleSnapshot} from '../lib/googleCalendarSync';
 import {createWorkspaceBackup, parseWorkspaceBackup, restoreWorkspaceRecords} from '../lib/workspaceBackup';

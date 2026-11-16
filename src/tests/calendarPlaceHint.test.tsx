@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { CalendarPlaceHint } from "../components/CalendarPlaceHint";
-import { initialUserPlaces } from "../data/userPlaces";
+import { initialUserPlaces } from "./fixtures/userPlaces";
 import type { CalendarEntry } from "../lib/calendarEvents";
 
 const office = { ...initialUserPlaces[0], id: "calendar:office", name: "国贸大厦" };

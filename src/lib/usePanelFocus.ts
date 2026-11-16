@@ -28,6 +28,7 @@ export function usePanelFocus<T extends HTMLElement = HTMLElement>(
       target.focus({ preventScroll: true });
     }
     panel.scrollTop = scrollPosition.current;
+    const currentPanel = () => ref.current;
     const rememberScroll = () => {
       scrollPosition.current = panel.scrollTop;
     };
@@ -36,7 +37,7 @@ export function usePanelFocus<T extends HTMLElement = HTMLElement>(
       panel.removeEventListener("scroll", rememberScroll);
       queueMicrotask(() => {
         // StrictMode replays effects while the same panel is still open.
-        if (ref.current === panel && panel.isConnected && !panel.hidden) return;
+        if (currentPanel() === panel && panel.isConnected && !panel.hidden) return;
         if (
           (document.activeElement === document.body ||
             panel.contains(document.activeElement)) &&

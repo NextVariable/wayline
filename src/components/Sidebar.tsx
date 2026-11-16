@@ -126,6 +126,8 @@ export function Sidebar(props: Props) {
   openSearch.current = props.onOpenSearch;
   const search = useRef(props.onSearchPlaces);
   search.current = props.onSearchPlaces;
+  const cachedSuggestions = useRef(props.getCachedSuggestions);
+  cachedSuggestions.current = props.getCachedSuggestions;
   const { addToast } = useToast();
   useEffect(() => {
     let frame = 0;
@@ -165,7 +167,7 @@ export function Sidebar(props: Props) {
   useEffect(() => {
     let cancelled = false;
     const abort = new AbortController();
-    const cached = props.getCachedSuggestions?.(query.trim());
+    const cached = cachedSuggestions.current?.(query.trim());
     setResults(cached ?? []);
     setSearchFailed(false);
     if (composing || query.trim().length < 2 || cached) {
@@ -201,7 +203,7 @@ export function Sidebar(props: Props) {
       (p) =>
         `${p.name} ${p.address}`.toLowerCase().includes(keyword),
     );
-  }, [query, userPlaces, selectedCities]);
+  }, [query, userPlaces]);
   const scoped = getCitiesGuidePlaces(userPlaces, selectedCities);
   const showingVisited = activeFilter.kind === "status" && activeFilter.value === "visited";
   const displayed =

@@ -87,8 +87,11 @@ export function CityPicker({
     onChange(city);
     close();
   };
+  const openingSelection = useRef({ allowAll, scope, cities, selection, activeCity });
+  openingSelection.current = { allowAll, scope, cities, selection, activeCity };
   useEffect(() => {
     if (!open) return;
+    const { allowAll, scope, cities, selection, activeCity } = openingSelection.current;
     setQuery("");
     setMultiple(allowAll && scope === "selected");
     setChosen(cities.filter(city => (scope === "selected" ? selection : [activeCity]).some(name => cityKey(name) === cityKey(city.name))));
@@ -99,7 +102,7 @@ export function CityPicker({
     };
     document.addEventListener("pointerdown", dismiss);
     return () => document.removeEventListener("pointerdown", dismiss);
-  }, [open]);
+  }, [open, hover.origin]);
   useEffect(() => {
     setRemote([]);
     setStatus("");

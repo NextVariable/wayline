@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it } from "vitest";
 import { TodayPanel } from "../components/TodayPanel";
-import { initialUserPlaces } from "../data/userPlaces";
+import { initialUserPlaces } from "./fixtures/userPlaces";
 import type { CalendarEntry } from "../lib/calendarEvents";
 import { judgeLeg, legPairs, stopsOfDay, type TravelMode } from "../lib/todayMap";
 import type { LegResult } from "../lib/useTodayLegs";

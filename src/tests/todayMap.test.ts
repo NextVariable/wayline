@@ -1,7 +1,7 @@
 // The "local day" rules depend on the device's zone, so the suite pins one before any date is built.
 process.env.TZ = 'Asia/Shanghai';
 import {describe, it, expect} from 'vitest';
-import {initialUserPlaces} from '../data/userPlaces';
+import {initialUserPlaces} from './fixtures/userPlaces';
 import type {CalendarEntry} from '../lib/calendarEvents';
 import {pickDay, stopsOfDay, legPairs, defaultMode, haversineKm, judgeLeg, modeName, type TravelMode, type TodayLegPair, type LegOption} from '../lib/todayMap';
 

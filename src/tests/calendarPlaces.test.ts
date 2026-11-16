@@ -1,5 +1,5 @@
 import {it, expect} from 'vitest';
-import {initialUserPlaces} from '../data/userPlaces';
+import {initialUserPlaces} from './fixtures/userPlaces';
 import type {CalendarEntry} from '../lib/calendarEvents';
 import {normalizeLocationText, type PlaceAliases} from '../lib/placeAliases';
 import {

@@ -1,7 +1,7 @@
 import {it,expect,vi} from 'vitest';
 import {mergeGoogleSnapshot,reconcileCalendarRoute,persistCalendarState} from '../lib/googleCalendarSync';
 import {calendarContext,readCalendarEntries,type CalendarEntry} from '../lib/calendarEvents';
-import {initialUserPlaces} from '../data/userPlaces';
+import {initialUserPlaces} from './fixtures/userPlaces';
 const place={...initialUserPlaces[0],id:'old',name:'上海虹桥站',city:'上海',lat:31.19,lng:121.32,reason:'自己的备注'};
 const updated={...place,id:'new',name:'上海国家会展中心',address:'上海市崧泽大道333号',lat:31.18,lng:121.30,reason:''};
 const event=(patch:Partial<CalendarEntry>={}):CalendarEntry=>({id:'google:connection:work:meeting',uid:'meeting',title:'会议',location:place.name,description:'会议资料',start:'2026-10-30T01:00:00.000Z',end:'2026-10-30T02:00:00.000Z',allDay:false,timezone:'Asia/Shanghai',calendar:'工作',google:{connectionId:'connection',calendarId:'work',eventId:'meeting',updated:'now',originalStart:null},...patch});

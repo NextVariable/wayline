@@ -182,6 +182,8 @@ export function ScheduleAssistant({
     query: string;
   } | null>(null);
   const editing = useRef(false);
+  const currentDraft = useRef({ type, placeId, candidate, date, time, content, query, cityPlaces });
+  currentDraft.current = { type, placeId, candidate, date, time, content, query, cityPlaces };
   useLayoutEffect(() => {
     (
       document.getElementById("schedule-content") as HTMLTextAreaElement | null
@@ -200,18 +202,9 @@ export function ScheduleAssistant({
       editing.current = false;
       return;
     }
-    if (!editing.current)
-      newDraft.current = {
-        type,
-        placeId,
-        candidate,
-        date,
-        time,
-        content,
-        query,
-      };
+    if (!editing.current) newDraft.current = currentDraft.current;
     editing.current = true;
-    const linked = cityPlaces.find(
+    const linked = currentDraft.current.cityPlaces.find(
       (place) =>
         place.name === editSchedule.name && place.city === editSchedule.city,
     );

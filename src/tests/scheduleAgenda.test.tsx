@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, it, vi } from "vitest";
 import { ScheduleAgenda } from "../components/ScheduleAgenda";
-import { initialUserPlaces } from "../data/userPlaces";
+import { initialUserPlaces } from "./fixtures/userPlaces";
 import type { CalendarEntry } from "../lib/calendarEvents";
 
 const today = new Date(2026, 10, 13, 12);

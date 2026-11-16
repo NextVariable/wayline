@@ -1,4 +1,5 @@
 import L from 'leaflet';
+import type { AMapInstance, AMapOverlay, AMapSdk } from '../lib/amapTypes';
 import { useEffect, useRef, useState } from 'react';
 import {createPortal} from 'react-dom';
 import { wgsToGcj, gcjToWgs } from '../lib/trackCoordinates';
@@ -18,7 +19,7 @@ export type ChinaMiniMapProps = {
     mainMapCenter: MapViewport['center'];
     mainMapBounds?: MapViewport['bounds'];
     onJumpToLocation: (lat: number, lng: number) => void;
-    amap?: any;
+    amap?: AMapSdk;
     /** Follows the main map so the overview never flashes light over a dark map. */
     appearance?: 'young' | 'business';
 };
@@ -35,7 +36,11 @@ const BOUNDS: [
 /** Fixed national overview; the provider draws boundaries, never generated geometry. */
 export function ChinaMiniMap({ mainMapCenter, mainMapBounds, onJumpToLocation, amap, appearance = 'young' }: ChinaMiniMapProps) {
     const dark = appearance === 'business';
-    const container = useRef<HTMLDivElement>(null), map = useRef<any>(null), frame = useRef<any>(null), dot = useRef<any>(null);
+    const container = useRef<HTMLDivElement>(null);
+    const map = useRef<
+        { kind: 'amap'; map: AMapInstance; frame?: AMapOverlay; dot?: AMapOverlay } |
+        { kind: 'leaflet'; map: L.Map; frame?: L.Rectangle; dot?: L.CircleMarker } | null
+    >(null);
     const jump = useRef(onJumpToLocation);
     const [collapsed, setCollapsed] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width:700px)').matches);
     jump.current = (lat,lng) => {
@@ -51,15 +56,15 @@ export function ChinaMiniMap({ mainMapCenter, mainMapBounds, onJumpToLocation, a
         let fit: () => void, cleanup: () => void;
         if (amap) {
             const mini = new amap.Map(element, { center: [105, 35], zoom: 2, zooms: [2, 5], viewMode: '2D', dragEnable: false, zoomEnable: false, scrollWheel: false, doubleClickZoom: false, touchZoom: false, keyboardEnable: false, rotateEnable: false, showLabel: false, mapStyle: dark ? 'amap://styles/dark' : 'amap://styles/whitesmoke', features: ['bg', 'road'], resizeEnable: true });
-            map.current = mini;
+            map.current = { kind: 'amap', map: mini };
             fit = () => mini.setZoomAndCenter(2, [105, 35], true);
             fit();
-            mini.on('click', (e: any) => { const [lng, lat] = gcjToWgs(e.lnglat.lng, e.lnglat.lat); jump.current(lat, lng); });
+            mini.on('click', (e) => { const [lng, lat] = gcjToWgs(e.lnglat.lng, e.lnglat.lat); jump.current(lat, lng); });
             cleanup = () => mini.destroy();
         }
         else {
             const mini = L.map(element, { center: [35, 105], zoom: 2, minZoom: 0, maxZoom: 5, zoomSnap: 0, zoomControl: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, dragging: false, touchZoom: false, fadeAnimation: false, zoomAnimation: false });
-            map.current = mini;
+            map.current = { kind: 'leaflet', map: mini };
             L.DomEvent.disableClickPropagation(element);
             L.DomEvent.disableScrollPropagation(element);
             L.tileLayer(`https://{s}.basemaps.cartocdn.com/${dark ? 'dark_all' : 'light_all'}/{z}/{x}/{y}{r}.png`, { attribution: '© OpenStreetMap © CARTO', noWrap: true }).addTo(mini);
@@ -70,33 +75,35 @@ export function ChinaMiniMap({ mainMapCenter, mainMapBounds, onJumpToLocation, a
         }
         const observer = new ResizeObserver(fit);
         observer.observe(element);
-        return () => { observer.disconnect(); cleanup(); map.current = null; frame.current = null; dot.current = null; };
+        return () => { observer.disconnect(); cleanup(); map.current = null; };
     }, [amap, collapsed, dark]);
     useEffect(() => {
-        const mini = map.current;
-        if (!mini)
+        const overview = map.current;
+        if (!overview)
             return;
-        if (amap) {
-            if (frame.current)
-                mini.remove(frame.current);
-            if (dot.current)
-                mini.remove(dot.current);
+        if (overview.kind === "amap" && amap) {
+            if (overview.frame)
+                overview.map.remove(overview.frame);
+            if (overview.dot)
+                overview.map.remove(overview.dot);
+            overview.frame = undefined;
             if (mainMapBounds) {
                 const b = mainMapBounds;
-                frame.current = new amap.Polygon({ path: [[b.west, b.south], [b.east, b.south], [b.east, b.north], [b.west, b.north]].map(([lng, lat]) => wgsToGcj(lng, lat)), strokeColor: '#155bd0', strokeWeight: 1, fillColor: '#155bd0', fillOpacity: .1, bubble: true });
-                mini.add(frame.current);
+                overview.frame = new amap.Polygon({ path: [[b.west, b.south], [b.east, b.south], [b.east, b.north], [b.west, b.north]].map(([lng, lat]) => wgsToGcj(lng, lat)), strokeColor: '#155bd0', strokeWeight: 1, fillColor: '#155bd0', fillOpacity: .1, bubble: true });
+                overview.map.add(overview.frame);
             }
-            dot.current = new amap.CircleMarker({ center: wgsToGcj(mainMapCenter.lng, mainMapCenter.lat), radius: 3, strokeColor: '#fff', strokeWeight: 1, fillColor: '#155bd0', fillOpacity: 1, bubble: true });
-            mini.add(dot.current);
+            overview.dot = new amap.CircleMarker({ center: wgsToGcj(mainMapCenter.lng, mainMapCenter.lat), radius: 3, strokeColor: '#fff', strokeWeight: 1, fillColor: '#155bd0', fillOpacity: 1, bubble: true });
+            overview.map.add(overview.dot);
         }
-        else {
-            frame.current?.remove();
-            dot.current?.remove();
+        else if (overview.kind === "leaflet") {
+            overview.frame?.remove();
+            overview.dot?.remove();
+            overview.frame = undefined;
             if (mainMapBounds) {
                 const b = mainMapBounds;
-                frame.current = L.rectangle([[b.south, b.west], [b.north, b.east]], { color: '#155bd0', weight: 1, fillOpacity: .1, interactive: false }).addTo(mini);
+                overview.frame = L.rectangle([[b.south, b.west], [b.north, b.east]], { color: '#155bd0', weight: 1, fillOpacity: .1, interactive: false }).addTo(overview.map);
             }
-            dot.current = L.circleMarker([mainMapCenter.lat, mainMapCenter.lng], { radius: 3, color: '#fff', weight: 1, fillColor: '#155bd0', fillOpacity: 1, interactive: false }).addTo(mini);
+            overview.dot = L.circleMarker([mainMapCenter.lat, mainMapCenter.lng], { radius: 3, color: '#fff', weight: 1, fillColor: '#155bd0', fillOpacity: 1, interactive: false }).addTo(overview.map);
         }
     }, [amap, collapsed, dark, mainMapCenter.lat, mainMapCenter.lng, mainMapBounds]);
     const content=<aside className={`china-mini-map${collapsed ? ' is-collapsed' : ''}`} aria-label="全国概览" data-center={`${mainMapCenter.lat.toFixed(4)},${mainMapCenter.lng.toFixed(4)}`}>

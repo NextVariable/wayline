@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { ComponentProps } from "react";
 import { Sidebar } from "../components/Sidebar";
 import { ToastProvider } from "../components/Toast";
-import { initialUserPlaces } from "../data/userPlaces";
+import { initialUserPlaces } from "./fixtures/userPlaces";
 const noop = () => {};
 function render(patch: Partial<ComponentProps<typeof Sidebar>>) {
   const props: ComponentProps<typeof Sidebar> = {ownerId:"guest",activeCity:"深圳",selectedCities:["深圳"],activeFilter:{kind:"status",value:"visited",label:"已到访"},detailOpen:false,overviewRequest:0,userPlaces:[],visitedPlaces:[],onFilterChange:noop,onSelectPlace:noop,isOpen:true,onToggleOpen:noop,onSearchPlaces:async()=>[],onCreatePlace:noop,onDeletePlace:noop,onEditPlace:noop,storageHealthy:true,onOpenBusinessTrips:noop,onOpenFootprints:noop,onOpenSearch:noop,onNavigatePanel:update=>update(),...patch};

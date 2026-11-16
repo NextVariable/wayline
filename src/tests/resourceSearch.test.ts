@@ -10,7 +10,8 @@ describe("city resource response", () => {
     const documented = { ...business, id: "official", resourceEvidence: { provider: "Wikidata",
       officialUrl: "https://www.suzhou.gov.cn/example", coordinateUrl: "https://www.wikidata.org/wiki/Q1" } };
     const fetch = vi.fn(async () => Response.json({ incomplete: true, places: [
-      business, documented,
+      business, documented, null,
+      { ...business, resourceEvidence: { ...business.resourceEvidence, officialUrl: "data:text/plain,untrusted" } },
       { ...business, city: "上海" },
       { ...business, category: "transport" },
       { ...business, resourceEvidence: { provider: "高德地图" } },

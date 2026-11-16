@@ -2,7 +2,12 @@ import type {
   FootprintData,
   FootprintTrack,
   FootprintVisit,
+  TrackPoint,
 } from "./footprints";
+type Owned<T> = T & { owner: string };
+type StoredTrack = Owned<Omit<FootprintTrack, "points">>;
+type StoredPoint = Owned<TrackPoint> & { trackId: string; index: number };
+
 export interface FootprintStore {
   load(): Promise<FootprintData>;
   saveTrack(track: FootprintTrack): Promise<void>;
@@ -51,12 +56,12 @@ export async function openFootprintStore(
     const tx = db.transaction(["tracks", "points", "visits"], "readonly");
     const completed = done(tx);
     const [metas, points, visits] = await Promise.all([
-      all<any>(tx.objectStore("tracks")),
-      all<any>(tx.objectStore("points")),
-      all<any>(tx.objectStore("visits")),
+      all<StoredTrack>(tx.objectStore("tracks")),
+      all<StoredPoint>(tx.objectStore("points")),
+      all<Owned<FootprintVisit>>(tx.objectStore("visits")),
       completed,
     ]);
-    const grouped = new Map<string, any[]>();
+    const grouped = new Map<string, StoredPoint[]>();
     for (const p of points) {
       const list = grouped.get(p.trackId) ?? [];
       list.push(p);
@@ -71,7 +76,7 @@ export async function openFootprintStore(
     });
     return {
       tracks,
-      visits: visits.map(({ owner: _, ...v }) => v) as FootprintVisit[],
+      visits: visits.map(({ owner: _, ...v }) => v),
     };
   };
   return {

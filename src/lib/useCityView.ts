@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { cityKey, type CityScope } from "./citySelection";
 export function readCityView(userId: string): {
   activeCity: string;
@@ -54,12 +54,14 @@ export function useCityView(userId: string) {
       /* Browsing still works without persisted preferences. */
     }
   }, [view, userId]);
+  const setActiveCity = useCallback((activeCity: string) =>
+    setView(previous => ({ ...previous, activeCity, restored: true })), []);
+  const setCityScope = useCallback((scope: CityScope) =>
+    setView(previous => ({ ...previous, scope, restored: true })), []);
   return {
     ...view,
-    setActiveCity: (activeCity: string) =>
-      setView((previous) => ({ ...previous, activeCity, restored: true })),
-    setCityScope: (scope: CityScope) =>
-      setView((previous) => ({ ...previous, scope, restored: true })),
+    setActiveCity,
+    setCityScope,
     selectCities: (names: string[]) => setView(previous => {
       const selectedCities = Array.from(new Set(names.filter(name => name.trim())));
       if (!selectedCities.length) return previous;

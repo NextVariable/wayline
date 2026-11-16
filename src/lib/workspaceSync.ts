@@ -193,9 +193,10 @@ export function useWorkspaceSync({ account, pausePush, changeKey, readFootprints
     }
   }, [signedIn, user.id, pull]);
 
+  const dismissMigration = useCallback(() => setOfferMigration(false), []);
   return {
     state, offerMigration, migrateGuest, readyOwner, useCloudVersion,
-    dismissMigration: () => setOfferMigration(false),
+    dismissMigration,
   };
 }
 export type WorkspaceSync = ReturnType<typeof useWorkspaceSync>;

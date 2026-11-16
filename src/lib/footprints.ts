@@ -181,9 +181,12 @@ export function exportFootprints(data: FootprintData) {
 // Backups are untrusted: validate the entire file before any database write.
 export function parseFootprints(text: string): FootprintData {
   if (text.length > 20_000_000) throw new Error("备份超过20MB，请拆分后导入");
-  const data = JSON.parse(text);
+  const data: unknown = JSON.parse(text);
+  const record = (value: unknown): value is Record<string, unknown> =>
+    !!value && typeof value === "object" && !Array.isArray(value);
   if (
-    data?.format !== "whereto-footprints" ||
+    !record(data) ||
+    data.format !== "whereto-footprints" ||
     data.version !== 1 ||
     !Array.isArray(data.tracks) ||
     !Array.isArray(data.visits) ||
@@ -191,31 +194,28 @@ export function parseFootprints(text: string): FootprintData {
     data.visits.length > 10000
   )
     throw new Error("不是受支持的足迹备份");
-  const finite = (n: unknown) => typeof n === "number" && Number.isFinite(n);
-  const epoch = (n: unknown) =>
-    finite(n) && (n as number) >= 0 && (n as number) <= 8.64e15;
-  const coord = (p: any) =>
-    p !== null &&
-    typeof p === "object" &&
+  const finite = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n);
+  const epoch = (n: unknown): n is number => finite(n) && n >= 0 && n <= 8.64e15;
+  const coord = (p: Record<string, unknown>): p is Record<string, unknown> & { lat: number; lng: number } =>
     finite(p.lat) &&
     Math.abs(p.lat) <= 90 &&
     finite(p.lng) &&
     Math.abs(p.lng) <= 180;
-  const str = (s: unknown, max = 200) =>
+  const str = (s: unknown, max = 200): s is string =>
     typeof s === "string" && s.length > 0 && s.length <= max;
   const ids = new Set<string>();
   let total = 0;
-  const tracks: FootprintTrack[] = data.tracks.map((t: any) => {
+  const tracks: FootprintTrack[] = data.tracks.map((t: unknown) => {
     if (
-      !t ||
-      typeof t !== "object" ||
+      !record(t) ||
       !str(t.id) ||
       ids.has(t.id) ||
       !str(t.name) ||
       !epoch(t.startedAt) ||
       !(t.endedAt === null || (epoch(t.endedAt) && t.endedAt >= t.startedAt)) ||
       (t.status === "completed" && t.endedAt === null) ||
-      !["recording", "paused", "interrupted", "completed"].includes(t.status) ||
+      (t.status !== "recording" && t.status !== "paused" &&
+        t.status !== "interrupted" && t.status !== "completed") ||
       t.coordinateSystem !== "WGS84" ||
       !Array.isArray(t.points) ||
       !Array.isArray(t.gaps) ||
@@ -223,21 +223,22 @@ export function parseFootprints(text: string): FootprintData {
       (t.deletedAt !== undefined && !epoch(t.deletedAt))
     )
       throw new Error("轨迹信息无效");
+    const { startedAt, endedAt } = t;
     ids.add(t.id);
     total += t.points.length;
     if (total > 100000) throw new Error("备份最多包含10万个定位点");
     let previousTime = -1,
       previousSegment = -1;
-    const points = t.points.map((p: any) => {
+    const points = t.points.map((p: unknown) => {
       if (
-        !coord(p) ||
+        !record(p) || !coord(p) ||
         !epoch(p.time) ||
-        p.time < t.startedAt ||
-        (t.endedAt !== null && p.time > t.endedAt) ||
+        p.time < startedAt ||
+        (endedAt !== null && p.time > endedAt) ||
         !finite(p.accuracy) ||
         p.accuracy < 0 ||
         p.accuracy > 150 ||
-        !Number.isInteger(p.segment) ||
+        !finite(p.segment) || !Number.isInteger(p.segment) ||
         p.segment < 0 ||
         p.segment < previousSegment ||
         p.time <= previousTime
@@ -253,8 +254,8 @@ export function parseFootprints(text: string): FootprintData {
         segment: p.segment,
       };
     });
-    const gaps = t.gaps.map((g: any) => {
-      if (!g || !epoch(g.time) || !str(g.reason, 200))
+    const gaps = t.gaps.map((g: unknown) => {
+      if (!record(g) || !epoch(g.time) || !str(g.reason, 200))
         throw new Error("轨迹中断信息无效");
       return { time: g.time, reason: g.reason };
     });
@@ -271,10 +272,9 @@ export function parseFootprints(text: string): FootprintData {
       ...(t.deletedAt === undefined ? {} : { deletedAt: t.deletedAt }),
     };
   });
-  const visits: FootprintVisit[] = data.visits.map((v: any) => {
+  const visits: FootprintVisit[] = data.visits.map((v: unknown) => {
     if (
-      !v ||
-      typeof v !== "object" ||
+      !record(v) ||
       !str(v.id) ||
       ids.has(v.id) ||
       !str(v.placeId) ||

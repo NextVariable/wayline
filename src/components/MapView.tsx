@@ -22,7 +22,10 @@ import { trackSegments, type TrackPoint } from "../lib/footprints";
 import { wgsToGcj, gcjToWgs } from "../lib/trackCoordinates";
 import { resetMapNorth, subscribeMapOrientation } from "../lib/mapOrientation";
 import { createSmoothMapZoom, zoomAvailability, type MapZoomState } from "../lib/mapZoom";
+import type { AMapInstance, AMapMarker, AMapOverlay, AMapSdk } from "../lib/amapTypes";
 import type { CurrentPosition } from "../lib/currentLocation";
+type PlaceMarker = AMapMarker & { __place?: Place; __selected?: boolean; __mode?: string; __routeIndex?: number };
+
 interface TodayRouteLine {
   id: string;
   points: { latitude: number; longitude: number }[];
@@ -429,10 +432,11 @@ function FallbackCityScopeFit({ cities, focusNonce }: { cities: City[]; focusNon
   const map = useMap();
   const key = JSON.stringify(cities.map(city => [city.lat, city.lng]));
   useEffect(() => {
-    if (cities.length < 2) return;
+    const points: L.LatLngTuple[] = JSON.parse(key);
+    if (points.length < 2) return;
     const fit = () => {
       const padding = mapPadding(true);
-      map.fitBounds(cities.map(city => [city.lat, city.lng] as [number, number]), {
+      map.fitBounds(points, {
         animate: false, maxZoom: 12,
         paddingTopLeft: [padding.left, padding.top], paddingBottomRight: [padding.right, padding.bottom],
       });
@@ -454,16 +458,17 @@ function FallbackFlyTo({
 }) {
   const map = useMap();
   const previous = useRef<{ nonce: number; city: string } | null>(null);
+  const { id: selectedId, lat: selectedLat, lng: selectedLng } = selectedPlace ?? {};
   useEffect(() => {
     const refocusCity =
       !previous.current ||
       previous.current.nonce !== focusNonce ||
       previous.current.city !== city.name;
     previous.current = { nonce: focusNonce, city: city.name };
-    if (selectedPlace) {
+    if (selectedId && selectedLat !== undefined && selectedLng !== undefined) {
       const fit = () => {
         const padding = mapPadding(true);
-        map.fitBounds([[selectedPlace.lat, selectedPlace.lng]], {
+        map.fitBounds([[selectedLat, selectedLng]], {
           animate: false,
           paddingTopLeft: [padding.left, padding.top],
           paddingBottomRight: [padding.right, padding.bottom],
@@ -474,7 +479,7 @@ function FallbackFlyTo({
       return onMapResize(fit, map);
     } else if (refocusCity)
       map.setView([city.lat, city.lng], city.zoom, { animate: false });
-  }, [city.lat, city.lng, city.zoom, selectedPlace?.id, focusNonce, map]);
+  }, [city.name, city.lat, city.lng, city.zoom, selectedId, selectedLat, selectedLng, focusNonce, map]);
   return null;
 }
 
@@ -494,11 +499,12 @@ function FallbackRouteFit({
   const map = useMap();
   const geometryKey=JSON.stringify([places.map(p=>[p.lat,p.lng]),roadPoints]);
   useEffect(() => {
+    const [points, roads]: [L.LatLngTuple[], typeof roadPoints] = JSON.parse(geometryKey);
     const fit = () => {
-      if (selected || places.length === 0) return;
+      if (selected || points.length === 0) return;
       const padding = mapPadding(overview);
       map.fitBounds(
-        roadPoints?.length?roadPoints.flatMap(leg=>leg.map(point=>{const [lng,lat]=gcjToWgs(point.longitude,point.latitude);return [lat,lng] as [number,number];})):places.map((p) => [p.lat, p.lng] as [number, number]),
+        roads?.length ? roads.flatMap(leg => leg.map(roadToLeaflet)) : points,
         {
           paddingTopLeft: [padding.left, padding.top],
           paddingBottomRight: [padding.right, padding.bottom],
@@ -525,13 +531,14 @@ function FallbackOverviewFit({
 }) {
   const map = useMap();
   const last = useRef("");
-  const key = JSON.stringify(places.map((p) => [p.id, p.lat, p.lng]));
+  const key = JSON.stringify(places.map((p) => [p.lat, p.lng]));
   useEffect(() => {
-    if (selected || hasRoute || !places.length) return;
+    const points: L.LatLngTuple[] = JSON.parse(key);
+    if (selected || hasRoute || !points.length) return;
     const fit = () => {
       const padding = mapPadding(overview);
       map.fitBounds(
-        places.map((p) => [p.lat, p.lng] as [number, number]),
+        points,
         {
           animate: false,
           paddingTopLeft: [padding.left, padding.top],
@@ -628,13 +635,13 @@ export function MapView({
   scopeCities?: City[];
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<any>(null); // AMap 实例
-  const routeLineRef = useRef<any>(null);
-  const satelliteLayerRef = useRef<any>(null);
+  const mapRef = useRef<AMapInstance | null>(null);
+  const routeLineRef = useRef<AMapOverlay[] | null>(null);
+  const satelliteLayerRef = useRef<AMapOverlay | null>(null);
   const previousZoomCommand = useRef(zoomCommand);
   const previousNorthCommand = useRef(northCommand);
-  const markersMapRef = useRef<Map<string, any>>(new Map()); // key → AMap.Marker（增量更新）
-  const amapRef = useRef<any>(null); // AMap 命名空间
+  const markersMapRef = useRef(new Map<string, PlaceMarker>());
+  const amapRef = useRef<AMapSdk | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState(false);
   const [viewport,setViewport]=useState<MapViewport>({center:{lat:city.lat,lng:city.lng}});
@@ -666,6 +673,9 @@ export function MapView({
   const mapStyle =
     mode === "business" ? "amap://styles/dark" : "amap://styles/whitesmoke";
 
+  const mapOptions = useRef({ city, mapStyle });
+  mapOptions.current = { city, mapStyle };
+
   // 1) 初始化高德地图
   useEffect(() => {
     setMapReady(false);
@@ -673,6 +683,7 @@ export function MapView({
       setMapError(true);
       return;
     }
+    const markers = markersMapRef.current;
     let cancelled = false;
     let expired = false;
     const loadTimeout = window.setTimeout(() => {
@@ -680,10 +691,11 @@ export function MapView({
       if (!cancelled) setMapError(true);
     }, 12000);
     AMapLoader.load({ key: amapKey, version: "2.0", plugins: ["AMap.AutoComplete"] })
-      .then((AMap) => {
+      .then((AMap: AMapSdk) => {
         window.clearTimeout(loadTimeout);
         if (cancelled || expired || !containerRef.current) return;
         amapRef.current = AMap;
+        const { city, mapStyle } = mapOptions.current;
         const map = new AMap.Map(containerRef.current, {
           zoom: city.zoom,
           zooms: [2, 18],
@@ -737,7 +749,7 @@ export function MapView({
           .getContainer()
           .addEventListener("wheel", onWheel, { passive: false });
 
-        (map as any).__wheelCleanup = () => {
+        map.__wheelCleanup = () => {
           map.getContainer()?.removeEventListener("wheel", onWheel);
           if (rafId) {
             cancelAnimationFrame(rafId);
@@ -757,17 +769,16 @@ export function MapView({
       window.clearTimeout(loadTimeout);
       cancelled = true;
       if (mapRef.current) {
-        (mapRef.current as any).__wheelCleanup?.();
+        mapRef.current.__wheelCleanup?.();
         mapRef.current.destroy();
       }
       mapRef.current = null;
       satelliteLayerRef.current = null;
       routeLineRef.current = null;
-      markersMapRef.current.clear();
+      markers.clear();
       overviewFit.current = "";
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [amapKey]);
 
   // 2) 同步 places → AMap markers（增量 diff：只增删变化的，不动没变的）
   useEffect(() => {
@@ -831,7 +842,7 @@ export function MapView({
       } else {
         // 创建新 marker
         const content = markerContent(place, isSelected);
-        const marker = new AMap.Marker({
+        const marker: PlaceMarker = new AMap.Marker({
           position: [place.lng, place.lat],
           content,
           offset: new AMap.Pixel(-22, -22),
@@ -841,7 +852,7 @@ export function MapView({
         marker.__selected = isSelected;
         marker.__mode = mode;
         marker.__routeIndex = routePlaces.findIndex((p) => p.id === place.id);
-        marker.on("click", () => onSelectPlaceRef.current(marker.__place));
+        marker.on("click", () => onSelectPlaceRef.current(marker.__place ?? place));
         map.add(marker);
         existing.set(key, marker);
       }
@@ -854,6 +865,8 @@ export function MapView({
     map: unknown;
   } | null>(null);
   // Preserve the camera when closing details; only explicit focus commands reset a city.
+  const { id: selectedId, lat: selectedLat, lng: selectedLng } = selectedPlace ?? {};
+  const { name: cityName, lat: cityLat, lng: cityLng, zoom: cityZoom } = city;
   useEffect(() => {
     if (!mapRef.current) return;
     const map = mapRef.current;
@@ -865,18 +878,19 @@ export function MapView({
     const refocusCity =
       !previousFocus.current ||
       previousFocus.current.nonce !== focusNonce ||
-      previousFocus.current.city !== city.name ||
+      previousFocus.current.city !== cityName ||
       previousFocus.current.map !== mapRef.current;
     previousFocus.current = {
       nonce: focusNonce,
-      city: city.name,
+      city: cityName,
       map: mapRef.current,
     };
-    if (selectedPlace && amapRef.current) {
+    const AMap = amapRef.current;
+    if (selectedId && selectedLat !== undefined && selectedLng !== undefined && AMap) {
       const fit = (transition = false) => {
         const padding = mapPadding(true);
-        const marker = new amapRef.current.Marker({
-          position: [selectedPlace.lng, selectedPlace.lat],
+        const marker = new AMap.Marker({
+          position: [selectedLng, selectedLat],
         });
         const avoid = [
           padding.top,
@@ -902,13 +916,13 @@ export function MapView({
     } else if (refocusCity) {
       map.__smoothZoom?.stop();
       map.setZoomAndCenter(
-        city.zoom,
-        [city.lng, city.lat],
+        cityZoom,
+        [cityLng, cityLat],
         !animate,
         animate ? 180 : 0,
       );
     }
-  }, [focusNonce, selectedPlace?.id, city.name, mapReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [focusNonce, selectedId, selectedLat, selectedLng, cityName, cityLat, cityLng, cityZoom, mapReady]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -979,10 +993,13 @@ export function MapView({
       .map((p) => [p.lng, p.lat])
       .sort((a, b) => a[0] - b[0] || a[1] - b[1]),
   ]);
+  const routeFitInput = useRef({ routePlaces, todayRoutes });
+  routeFitInput.current = { routePlaces, todayRoutes };
   useEffect(() => {
+    const { routePlaces, todayRoutes } = routeFitInput.current;
     const map = mapRef.current,
       AMap = amapRef.current;
-    if (!map || !AMap || !routePlaces.length || selectedPlace) return;
+    if (!map || !AMap || !routePlaces.length || selectedId) return;
     const targets = !todayRoutes && routeLineRef.current?.length
       ? routeLineRef.current
       : routePlaces.map(
@@ -1002,21 +1019,18 @@ export function MapView({
     };
     fit();
     return onMapResize(fit, map);
-    // Route order does not change its bounds.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeBoundsKey, mapReady, routeOverview, selectedPlace?.id, routeFitCommand]);
+  }, [routeBoundsKey, mapReady, routeOverview, selectedId, routeFitCommand]);
 
   const overviewFit = useRef("");
-  const overviewKey = JSON.stringify(places.map((p) => [p.id, p.lat, p.lng]));
+  const hasSelectedPlace = !!selectedPlace;
+  const overviewKey = JSON.stringify(places.map((p) => [p.type, p.id, p.lat, p.lng]));
   useEffect(() => {
     const map = mapRef.current,
       AMap = amapRef.current;
-    if (!map || !AMap || selectedPlace || routePlaces.length || !places.length)
-      return;
-    const targets = places.map(
-      (p) =>
-        markersMapRef.current.get(`${p.type}-${p.id}`) ??
-        new AMap.Marker({ position: [p.lng, p.lat] }),
+    const points: [Place["type"], string, number, number][] = JSON.parse(overviewKey);
+    if (!map || !AMap || hasSelectedPlace || routePlaces.length || !points.length) return;
+    const targets = points.map(([type, id, lng, lat]) =>
+      markersMapRef.current.get(`${type}-${id}`) ?? new AMap.Marker({ position: [lng, lat] }),
     );
     const fit = () => {
       const padding = mapPadding(routeOverview);
@@ -1036,7 +1050,7 @@ export function MapView({
   }, [
     overviewKey,
     mapReady,
-    selectedPlace?.id,
+    hasSelectedPlace,
     routePlaces.length,
     routeOverview,
   ]);
@@ -1044,16 +1058,17 @@ export function MapView({
   const scopeCitiesKey = JSON.stringify(scopeCities?.map(city => [city.lat, city.lng]) ?? []);
   useEffect(() => {
     const map = mapRef.current, AMap = amapRef.current;
-    if (!map || !AMap || selectedPlace || !scopeCities || scopeCities.length < 2) return;
+    const points: [number, number][] = JSON.parse(scopeCitiesKey);
+    if (!map || !AMap || hasSelectedPlace || points.length < 2) return;
     const fit = () => {
       const padding = mapPadding(true);
       map.__smoothZoom?.stop();
-      map.setFitView(scopeCities.map(city => new AMap.Marker({ position: [city.lng, city.lat] })), true,
+      map.setFitView(points.map(([lat, lng]) => new AMap.Marker({ position: [lng, lat] })), true,
         [padding.top, padding.bottom, padding.left, padding.right], 12);
     };
     fit();
     return onMapResize(fit, map);
-  }, [scopeCitiesKey, focusNonce, mapReady, selectedPlace?.id]);
+  }, [scopeCitiesKey, focusNonce, mapReady, hasSelectedPlace]);
 
   // 5) mapMode 变化 → 切换图层
   useEffect(() => {
@@ -1087,15 +1102,16 @@ export function MapView({
   }, [mapStyle, mode, mapReady]);
 
   // ── MiniMap 跳转 ──
-  const footprintOverlays = useRef<any[]>([]);
+  const { points: footprintPoints, label: footprintLabel, focusKey: footprintFocus } = footprint ?? {};
+  const footprintOverlays = useRef<AMapOverlay[]>([]);
   useEffect(() => {
     const map = mapRef.current,
       AMap = amapRef.current;
     if (!map || !AMap) return;
     if (footprintOverlays.current.length) map.remove(footprintOverlays.current);
-    const overlays: any[] = [];
-    if (footprint) {
-      for (const segment of trackSegments(footprint.points)) {
+    const overlays: AMapOverlay[] = [];
+    if (footprintPoints && footprintLabel !== undefined) {
+      for (const segment of trackSegments(footprintPoints)) {
         if (segment.length === 1) overlays.push(new AMap.CircleMarker({ center:wgsToGcj(segment[0].lng,segment[0].lat),radius:5,strokeColor:"#fff",strokeWeight:2,fillColor:"#155bd0",fillOpacity:1,zIndex:150 }));
         if (segment.length > 1)
           overlays.push(
@@ -1108,7 +1124,7 @@ export function MapView({
             }),
           );
       }
-      const last = footprint.points.at(-1);
+      const last = footprintPoints.at(-1);
       if (last) {
         const center = wgsToGcj(last.lng, last.lat);
         if (last.accuracy > 0)
@@ -1127,11 +1143,11 @@ export function MapView({
         const markerElement = document.createElement("div");
         markerElement.className = "footprint-position";
         markerElement.setAttribute("role", "img");
-        markerElement.setAttribute("aria-label", footprint.label);
+        markerElement.setAttribute("aria-label", footprintLabel);
         overlays.push(
           new AMap.Marker({
             position: center,
-            title: footprint.label,
+            title: footprintLabel,
             content: markerElement,
             offset: new AMap.Pixel(-9, -9),
             zIndex: 200,
@@ -1145,10 +1161,10 @@ export function MapView({
       if (overlays.length) map.remove(overlays);
       footprintOverlays.current = [];
     };
-  }, [footprint?.points, mapReady]);
+  }, [footprintPoints, footprintLabel, mapReady]);
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !footprint) return;
+    if (!map || footprintFocus === undefined) return;
     const fit = () => {
       if (!footprintOverlays.current.length) return;
       const p = mapPadding(true);
@@ -1162,7 +1178,7 @@ export function MapView({
     };
     fit();
     return onMapResize(fit, map);
-  }, [footprint?.focusKey, mapReady]);
+  }, [footprintFocus, mapReady]);
 
   useEffect(() => {
     const map = mapRef.current, AMap = amapRef.current;
@@ -1173,12 +1189,12 @@ export function MapView({
     return () => map.remove(area);
   }, [mapReady, stayArea]);
 
-  const currentPositionOverlays = useRef<any[]>([]);
+  const currentPositionOverlays = useRef<AMapOverlay[]>([]);
   useEffect(() => {
     const map = mapRef.current,
       AMap = amapRef.current;
     if (!map || !AMap) return;
-    const overlays: any[] = [];
+    const overlays: AMapOverlay[] = [];
     if (myPosition) {
       const center = wgsToGcj(myPosition.lng, myPosition.lat);
       const dot = document.createElement("div");
@@ -1274,7 +1290,7 @@ export function MapView({
         />
       )}
 
-      {(mapReady||mapError)&&<ChinaMiniMap mainMapCenter={viewport.center} mainMapBounds={viewport.bounds} onJumpToLocation={jumpTo} amap={mapReady&&!mapError?amapRef.current:undefined} appearance={mode}/>}
+      {(mapReady||mapError)&&<ChinaMiniMap mainMapCenter={viewport.center} mainMapBounds={viewport.bounds} onJumpToLocation={jumpTo} amap={mapReady&&!mapError?amapRef.current ?? undefined:undefined} appearance={mode}/>}
 
       {/* 加载中 */}
       {!mapReady && !mapError && (

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderPlacePinHTML } from "../components/PlacePin";
-import { initialUserPlaces } from "../data/userPlaces";
+import { initialUserPlaces } from "./fixtures/userPlaces";
 describe("shared map markers", () => {
   it("escapes imported names and schedule text", () => {
     const place = {

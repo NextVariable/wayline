@@ -1,6 +1,6 @@
 import {expect,it} from 'vitest';
 import {readRecentPlaceSearches,writeRecentPlaceSearches,addRecentPlaceSearch} from '../lib/recentPlaceSearches';
-import {initialUserPlaces} from '../data/userPlaces';
+import {initialUserPlaces} from './fixtures/userPlaces';
 function memory(){const data=new Map<string,string>();return{getItem:(k:string)=>data.get(k)||null,setItem:(k:string,v:string)=>{data.set(k,v);}};}
 it('keeps recent searches isolated by workspace and clears only the selected owner',()=>{
  const s=memory(),p=initialUserPlaces[0];writeRecentPlaceSearches('a',[p],s);writeRecentPlaceSearches('b',[p],s);writeRecentPlaceSearches('a',[],s);

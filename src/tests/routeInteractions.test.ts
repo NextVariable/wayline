@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { routeCandidates, restoreRouteStops } from "../lib/routeInteractions";
-import { initialUserPlaces } from "../data/userPlaces";
+import { initialUserPlaces } from "./fixtures/userPlaces";
 const [a, b, c] = initialUserPlaces;
 describe("direct route additions", () => {
   it("offers saved places immediately and excludes route members", () =>

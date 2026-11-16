@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { safeExternalUrl } from "../lib/externalUrl";
 import { cityKey } from "../lib/citySelection";
 import type { Place } from "../types/place";
 import { bookingPlaceKey } from "../lib/useBookingPlaces";
@@ -54,13 +55,15 @@ function TransportOptions({ leg }: {leg: TravelGap}) {
     </details>
     <RecommendationAction key={buffer} label="查车次和航班" input={{kind:"transport", from:leg.from, to:leg.to, date:leg.date, after:leg.after, before:leg.before, buffer}}>
       {value => <>
-        {!!value.options?.length && <><small>时刻参考 · 余票以购票页为准</small><ul>{value.options.map(option => <li key={option.kind+option.number+option.departure}>
+        {!!value.options?.length && <><small>时刻参考 · 余票以购票页为准</small><ul>{value.options.map(option => {
+          const bookingUrl = safeExternalUrl(option.bookingUrl);
+          return <li key={option.kind+option.number+option.departure}>
           <strong>{option.number}</strong> {option.from} → {option.to}
           <small>{when(option.departure)} 出发 · {when(option.arrival)} 到达</small>
           <small>{leg.before ? `约提前 ${Math.floor((Date.parse(leg.before)-Date.parse(option.arrival))/60000)} 分钟到达` :
             `约在活动后 ${Math.floor((Date.parse(option.departure)-Date.parse(leg.after!))/60000)} 分钟出发`} · {option.source.startsWith("12306") ? "12306 参考" : option.source}</small>
-          {option.bookingUrl && <a className="text-action" href={option.bookingUrl} target="_blank" rel="noreferrer">{option.kind === "rail" ? "打开 12306" : "查看购票入口"}</a>}
-        </li>)}</ul></>}
+          {bookingUrl && <a className="text-action" href={bookingUrl} target="_blank" rel="noreferrer">{option.kind === "rail" ? "打开 12306" : "查看购票入口"}</a>}
+        </li>; })}</ul></>}
         {value.railState === "outside" && <p>车票尚未进入预售期</p>}
         {value.railState === "unsupported" && <p>这条线路暂未覆盖车次查询</p>}
         {value.railState === "unavailable" && <p>车次暂时无法查询</p>}

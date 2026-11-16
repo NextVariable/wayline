@@ -20,7 +20,7 @@ it("never imports a claimed model match after map verification fails",async()=>{
 });
 it("does not merge a same-name branch merely because it shares a city", async () => {
   const {samePlace} = await import("../lib/placeIdentity");
-  const {initialUserPlaces} = await import("../data/userPlaces");
+  const {initialUserPlaces} = await import("./fixtures/userPlaces");
   const place = initialUserPlaces[0];
   expect(samePlace(place,{...place,id:"branch",address:"另一条街100号",lat:place.lat+.03})).toBe(false);
   expect(samePlace(place,{...place,id:"provider",lat:place.lat+.002})).toBe(true);
