@@ -148,14 +148,15 @@ export function createAccountService({env = process.env, fetcher = fetch, now = 
       catch (error) { fail(error.status || 500, error.status ? error.message : 'Gmail 连接暂时无法保存'); }
       return goTo(res, '/?gmail=connected', [clearFlow]);
     }
+    // Check capacity before touching the account so a rejected sign-in leaves no partial state.
+    for (const [key, session] of Object.entries(store.data.sessions)) if (session.until <= now()) delete store.data.sessions[key];
+    if (Object.keys(store.data.sessions).length >= MAX_SESSIONS) fail(503, '登录暂时繁忙，请稍后重试');
     const previous = store.data.accounts[id];
     store.data.accounts[id] = {
       email: String(profile.email || '').slice(0, 320), name: String(profile.name || '').slice(0, 200),
       token: {access: token.access_token, refresh: token.refresh_token || previous?.token?.refresh || '', expiresAt: now() + Number(token.expires_in || 3600) * 1000},
       scopes: String(token.scope || '').split(' ').filter(Boolean), createdAt: previous?.createdAt ?? now(),
     };
-    for (const [key, session] of Object.entries(store.data.sessions)) if (session.until <= now()) delete store.data.sessions[key];
-    if (Object.keys(store.data.sessions).length >= MAX_SESSIONS) fail(503, '登录暂时繁忙，请稍后重试');
     const sessionToken = random();
     store.data.sessions[hash(sessionToken)] = {account: id, until: now() + SESSION_MS};
     await store.save();

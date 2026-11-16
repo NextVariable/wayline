@@ -5,7 +5,7 @@ import { createUser, guestUser, type AppUser } from "../lib/userStorage";
 import type { AccountState } from "../lib/account";
 import type { SyncState } from "../lib/workspaceSync";
 
-const SYNC_LABEL: Record<SyncState, string> = { off: "", syncing: "同步中", idle: "已同步", offline: "未同步（离线）", conflict: "已载入另一台设备的更新" };
+const SYNC_LABEL: Record<SyncState, string> = { off: "", syncing: "同步中", idle: "已同步", offline: "未同步（离线）", conflict: "同步暂停 · 本机修改已保留" };
 import { createWorkspaceBackup, parseWorkspaceBackup, restoreWorkspaceRecords, type WorkspaceBackup } from "../lib/workspaceBackup";
 import { openFootprintStore } from "../lib/footprintStore";
 import type { FootprintData } from "../lib/footprints";
@@ -21,6 +21,7 @@ export function AuthPanel({
   accountStatus,
   accountEmail,
   syncState,
+  onUseCloudVersion,
   onSignIn,
   onSignOut,
   onReturnToAccount,
@@ -28,6 +29,7 @@ export function AuthPanel({
   accountStatus: AccountState["status"];
   accountEmail?: string;
   syncState: SyncState;
+  onUseCloudVersion?: () => void;
   onSignIn: () => void;
   onSignOut: () => void;
   onReturnToAccount?: () => void;
@@ -94,6 +96,12 @@ export function AuthPanel({
           <p className="field-help">登录后可跨设备恢复资料，并在日历来源中连接 Google 日历。</p>
         </>}
       </div>
+      {user.method === "google" && syncState === "conflict" && onUseCloudVersion &&
+        <p className="field-help">云端有更新。导出本机资料后，可
+          <button type="button" className="text-action" onClick={() => {
+            if (window.confirm("用云端版本替换本机修改？需要保留的内容请先导出。")) onUseCloudVersion();
+          }}>使用云端版本</button>。
+        </p>}
       {spaces.some(space => space.method === "local") && <div className="space-list" aria-label="本机空间">
         {spaces.filter(space => space.method !== "google").map((space) => (
           <button

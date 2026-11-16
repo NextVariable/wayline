@@ -369,8 +369,7 @@ export default function App() {
   }, [workspaceSync.offerMigration]);
   useEffect(() => {
     if (workspaceSync.state !== "conflict") return;
-    addToast("另一台设备有更新，已载入最新内容", "info");
-    workspaceSync.acknowledgeConflict();
+    addToast("云端有更新。本机修改已保留，可在「资料与备份」处理。", "info");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceSync.state]);
 
@@ -1533,6 +1532,7 @@ export default function App() {
    accountStatus={account.status}
    accountEmail={account.status === "signed-in" ? account.account.email : undefined}
           syncState={workspaceSync.state}
+          onUseCloudVersion={() => void workspaceSync.useCloudVersion()}
    onSignIn={() => void account.signIn().catch(error => addToast(error instanceof Error ? error.message : "暂时无法登录，请稍后重试", "error"))}
           onSignOut={() => void account.signOut().catch(() => addToast("退出未完成，请重试", "error"))}
           onReturnToAccount={() => {

@@ -4,7 +4,7 @@ import { isPublicAddress, readPublicPage } from "../../server/public-page.mjs";
 // @ts-expect-error Server ESM is exercised directly in Node.
 import { cacheTravelServices } from "../../server/research-cache.mjs";
 describe("public research boundaries", () => {
-  it.each(["127.0.0.1","10.0.0.2","192.168.0.1","169.254.169.254","172.16.0.1","100.64.0.1","0.0.0.0","::1","::ffff:127.0.0.1","fe80::1","fd00::1"])("blocks private address %s", address => expect(isPublicAddress(address)).toBe(false));
+  it.each(["127.0.0.1","10.0.0.2","192.168.0.1","169.254.169.254","172.16.0.1","100.64.0.1","0.0.0.0","::1","::ffff:127.0.0.1","fe80::1","fd00::1","2002:7f00:1::1","2002:c0a8:101::1","2001::1","2001:0:4136:e378::1","2001:db8::1"])("blocks private address %s", address => expect(isPublicAddress(address)).toBe(false));
   it("allows public unicast addresses", () => {expect(isPublicAddress("8.8.8.8")).toBe(true);expect(isPublicAddress("2606:4700:4700::1111")).toBe(true);});
   it.each(["http://example.org", "https://user:pass@example.org", "https://example.org:8000", "https://127.0.0.1"])("rejects unsafe URL %s before contacting it", async url => {
     const requestImpl = vi.fn(); await expect(readPublicPage(url,{requestImpl})).rejects.toThrow(); expect(requestImpl).not.toHaveBeenCalled();

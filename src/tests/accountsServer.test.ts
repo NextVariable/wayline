@@ -110,6 +110,17 @@ it('signs in with Google using state and PKCE, then reports the account', async 
   expect(new URLSearchParams((token as any)[1].body).get('code_verifier')).toBeTruthy();
 });
 
+it('does not store the account when the session limit rejects the sign-in', async () => {
+  const s = setup();
+  await s.call('/api/auth/google/start', {method: 'POST', body: {}});
+  const until = Date.parse('2026-11-12T01:00:00Z') + 86400000;
+  for (let i = 0; i < 10000; i++) s.store.data.sessions['filler' + i] = {account: 'other', until};
+  const {callback} = await s.signIn();
+  expect(callback.status).toBe(503);
+  expect(s.store.data.accounts[sha('g-123')]).toBeUndefined();
+  expect(cookieValue(callback, 'wayline_session')).toBeUndefined();
+});
+
 it('rejects a replayed or foreign state', async () => {
   const s = setup();
   const {auth, flowCookie} = await s.signIn();

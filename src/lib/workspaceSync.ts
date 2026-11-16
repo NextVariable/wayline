@@ -9,6 +9,7 @@ export type PullResult = { version: number; empty: boolean; footprints?: Footpri
 export type PushResult = { version: number } | { conflict: true; version: number };
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
+const conflictKey = (owner: string) => `wayline.workspaceConflict.${owner}`;
 const GUEST_RECORDS = ["whatto.userPlaces.", "whatto.calendarEvents.", "whatto.tripDraft.", "whatto.savedTrips."];
 
 /** Load the account's cloud workspace into local storage for `owner`. Empty accounts leave local data untouched. */
@@ -81,6 +82,7 @@ export function useWorkspaceSync({ account, pausePush, changeKey, readFootprints
   const [offerMigration, setOfferMigration] = useState(false);
   const version = useRef(0);
   const ready = useRef(false);
+  const conflictOwners = useRef(new Set<string>());
   const pendingPush = useRef<Promise<void> | undefined>(undefined);
   const skipNextChange = useRef(false);
   const callbacks = useRef({ readFootprints, writeFootprints, onReloaded, onSignedOut });
@@ -109,15 +111,22 @@ export function useWorkspaceSync({ account, pausePush, changeKey, readFootprints
     setState("syncing");
     void (async () => {
       try {
- const result = await pull(user.id, false);
+        if (conflictOwners.current.has(user.id) || localStorage.getItem(conflictKey(user.id))) {
+          conflictOwners.current.add(user.id);
+          ready.current = true;
+          setReadyOwner(user.id);
+          setState("conflict");
+          return;
+        }
+        const result = await pull(user.id, false);
         if (!current) return;
- if (result.empty) setOfferMigration(guestDataWorthMigrating(localStorage, await callbacks.current.readFootprints(guestUser.id)));
+        if (result.empty) setOfferMigration(guestDataWorthMigrating(localStorage, await callbacks.current.readFootprints(guestUser.id)));
         ready.current = true;
         setReadyOwner(user.id);
         setState("idle");
       } catch (error) {
         if (!current) return;
- fail(error);
+        fail(error);
         // Offline: still show the cached copy of this account.
         if (!(error instanceof SignedOutError)) { ready.current = true; setReadyOwner(user.id); }
       }
@@ -126,23 +135,24 @@ export function useWorkspaceSync({ account, pausePush, changeKey, readFootprints
   }, [signedIn, user.id, pull, fail]);
 
   useEffect(() => {
-    if (!signedIn || !ready.current || pausePush) return;
+    if (!signedIn || !ready.current || pausePush || conflictOwners.current.has(user.id)) return;
     if (skipNextChange.current) { skipNextChange.current = false; return; }
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       const job = (pendingPush.current ?? Promise.resolve()).then(async () => {
-        if (controller.signal.aborted) return;
+        if (controller.signal.aborted || conflictOwners.current.has(user.id)) return;
         setState("syncing");
         try {
           const footprints = await callbacks.current.readFootprints(user.id);
           if (controller.signal.aborted) return;
           const result = await pushWorkspace(user, footprints, version.current);
-          if (currentAccount.current !== user.id) return;
           if ("conflict" in result) {
-            await pull(user.id, true);
-            setState("conflict");
+            conflictOwners.current.add(user.id);
+            try { localStorage.setItem(conflictKey(user.id), "1"); } catch { /* Keep the in-memory lock if storage is unavailable. */ }
+            if (currentAccount.current === user.id) setState("conflict");
             return;
           }
+          if (currentAccount.current !== user.id) return;
           version.current = result.version;
           setState("idle");
         } catch (error) { if (currentAccount.current === user.id) fail(error); }
@@ -152,7 +162,7 @@ export function useWorkspaceSync({ account, pausePush, changeKey, readFootprints
       if (pendingPush.current === job) pendingPush.current = undefined;
     }, 2000);
     return () => { controller.abort(); window.clearTimeout(timer); };
-  }, [signedIn, user, changeKey, pull, fail, pausePush]);
+  }, [signedIn, user, changeKey, fail, pausePush]);
 
   const migrateGuest = useCallback(async () => {
     if (!signedIn) return;
@@ -160,7 +170,7 @@ export function useWorkspaceSync({ account, pausePush, changeKey, readFootprints
     setState("syncing");
     try {
       const result = await migrateGuestWorkspace(user, await callbacks.current.readFootprints(guestUser.id));
-      if ("conflict" in result) { await pull(user.id, true); setState("conflict"); return; }
+      if ("conflict" in result) { await pull(user.id, true); setState("idle"); return; }
       await callbacks.current.writeFootprints(user.id, await callbacks.current.readFootprints(guestUser.id));
       version.current = result.version;
       skipNextChange.current = true;
@@ -169,10 +179,23 @@ export function useWorkspaceSync({ account, pausePush, changeKey, readFootprints
     } catch (error) { fail(error); }
   }, [signedIn, user, pull, fail]);
 
+  const useCloudVersion = useCallback(async () => {
+    if (!signedIn || !conflictOwners.current.has(user.id)) return;
+    setState("syncing");
+    try {
+      const result = await pull(user.id, false);
+      if (result.empty) throw new Error("没有可恢复的云端数据");
+      localStorage.removeItem(conflictKey(user.id));
+      conflictOwners.current.delete(user.id);
+      callbacks.current.onReloaded();
+    } catch {
+      if (currentAccount.current === user.id) setState("conflict");
+    }
+  }, [signedIn, user.id, pull]);
+
   return {
-    state, offerMigration, migrateGuest, readyOwner,
+    state, offerMigration, migrateGuest, readyOwner, useCloudVersion,
     dismissMigration: () => setOfferMigration(false),
-    acknowledgeConflict: () => setState(value => (value === "conflict" ? "idle" : value)),
   };
 }
 export type WorkspaceSync = ReturnType<typeof useWorkspaceSync>;

@@ -11,17 +11,17 @@ const scope='https://www.googleapis.com/auth/calendar.events.readonly https://ww
 function response(){return {status:200,headers:{} as Record<string,any>,body:'',headersSent:false,setHeader(k:string,v:any){this.headers[k]=v;},writeHead(status:number,headers:object={}){this.status=status;Object.assign(this.headers,headers);this.headersSent=true;},end(value=''){this.body=value;}};}
 const normal=(id='event',location='上海虹桥站')=>({id,iCalUID:id,summary:'客户会议',location,updated:'2026-10-29T01:00:00Z',start:{dateTime:'2026-10-30T09:00:00+08:00'},end:{dateTime:'2026-10-30T10:00:00+08:00'}});
 function setup(accountFor?: (request: {headers: {cookie?: string}}) => Promise<{id:string}|null>){
- let clock=Date.parse('2026-10-29T01:00:00Z'),pages:any[][]=[[normal()]],failurePage=-1,revoked=false,failSave=false;
+ let clock=Date.parse('2026-10-29T01:00:00Z'),pages:any[][]=[[normal()]],failurePage=-1,revoked=false,nullErrorBody=false,failSave=false;
  const store={data:{sessions:{},connections:{},flows:{}} as any,save:vi.fn(async()=>{if(failSave)throw new Error('disk');})};
  const fetcher=vi.fn(async(input:string,options:any={})=>{const url=new URL(input);const result=(data:any,status=200)=>({ok:status===200,status,json:async()=>data});
- if(url.hostname==='oauth2.googleapis.com'){if(revoked)return result({error:'invalid_grant'},400);return result({access_token:'PRIVATE_ACCESS',refresh_token:'PRIVATE_REFRESH',expires_in:3600,scope});}
+ if(url.hostname==='oauth2.googleapis.com'){if(nullErrorBody)return {ok:false,status:500,json:async()=>null};if(revoked)return result({error:'invalid_grant'},400);return result({access_token:'PRIVATE_ACCESS',refresh_token:'PRIVATE_REFRESH',expires_in:3600,scope});}
  if(url.pathname.endsWith('/calendarList'))return result({items:[{id:'primary@test',summary:'工作日历',primary:true,accessRole:'owner',timeZone:'Asia/Shanghai'},{id:'other@test',summary:'其他日历',accessRole:'reader'}]});
  const page=Number(url.searchParams.get('pageToken')||0);if(page===failurePage)return result({},503);return result({items:pages[page]||[],...(page+1<pages.length?{nextPageToken:String(page+1)}:{})});
  });
  const service=createGoogleCalendarService({env:{GOOGLE_CLIENT_ID:'test-id',GOOGLE_CLIENT_SECRET:'test-secret',PUBLIC_ORIGIN:'http://127.0.0.1:8787'},fetcher,now:()=>clock,openVault:async()=>store,accountFor});
  const call=async(path:string,method='GET',body:any=undefined,cookie='',origin='http://127.0.0.1:8787')=>{const req=Readable.from(body===undefined?[]:[JSON.stringify(body)]) as any;req.url='/api/calendar/google/'+path;req.method=method;req.headers={cookie,...(method==='POST'?{origin,'content-type':'application/json'}:{})};const res=response();await service.handle(req,res);return {...res,json:()=>JSON.parse(res.body)};};
  const authorize=async(owner='guest')=>{const connected=await call('connect?owner='+owner,'POST',{},'');const cookie=connected.headers['Set-Cookie'].split(';')[0];const auth=new URL(connected.json().url);const callback=await call('callback?state='+auth.searchParams.get('state')+'&code=code','GET',undefined,cookie);expect(callback.status).toBe(200);expect(callback.body).toContain('calendar=connected');return {cookie,auth};};
- return {store,fetcher,service,call,authorize,setPages:(value:any[][])=>{pages=value;},failPage:(value:number)=>{failurePage=value;},advance:(ms:number)=>{clock+=ms;},revoke:()=>{revoked=true;},failSave:(value:boolean)=>{failSave=value;}};
+ return {store,fetcher,service,call,authorize,setPages:(value:any[][])=>{pages=value;},failPage:(value:number)=>{failurePage=value;},advance:(ms:number)=>{clock+=ms;},revoke:()=>{revoked=true;},nullErrorBody:()=>{nullErrorBody=true;},failSave:(value:boolean)=>{failSave=value;}};
 }
 it('uses browser-bound state, PKCE and only read permissions; rejects state replay',async()=>{
  const s=setup();const {cookie,auth}=await s.authorize();expect(auth.searchParams.get('access_type')).toBe('offline');expect(auth.searchParams.get('scope')).toBe(scope);expect(auth.searchParams.get('code_challenge_method')).toBe('S256');
@@ -57,6 +57,9 @@ it('retains the old snapshot and selection when any page fails',async()=>{
 });
 it('refreshes expired access and reports revoked permission without deleting cached events',async()=>{
  const s=setup();const {cookie}=await s.authorize();await s.call('select?owner=guest','POST',{calendarIds:['primary@test']},cookie);s.advance(3600001);await s.service.tick();expect(s.fetcher.mock.calls.filter(([u])=>u.includes('oauth2')).length).toBe(2);s.revoke();s.advance(3600001);await s.service.tick();const state=(await s.call('status?owner=guest','GET',undefined,cookie)).json();expect(state.needsReconnect).toBe(true);expect(state.events).toHaveLength(1);
+});
+it('reports a clean 502 when Google answers an error with a non-object body',async()=>{
+ const s=setup();const {cookie}=await s.authorize();s.advance(3600001);s.nullErrorBody();const res=await s.call('select?owner=guest','POST',{calendarIds:['primary@test']},cookie);expect(res.status).toBe(502);expect(res.json().error).toBeTruthy();
 });
 it('stops background access on disconnect and cannot resurrect in a later tick',async()=>{
  const s=setup();const {cookie}=await s.authorize();await s.call('select?owner=guest','POST',{calendarIds:['primary@test']},cookie);await s.call('disconnect?owner=guest','POST',{},cookie);const count=s.fetcher.mock.calls.length;s.advance(3600001);await s.service.tick();expect(s.fetcher.mock.calls.length).toBe(count);expect((await s.call('status?owner=guest','GET',undefined,cookie)).json().connected).toBe(false);

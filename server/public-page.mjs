@@ -7,7 +7,9 @@ export function isPublicAddress(address) {
     return !(a === 0 || a === 10 || a === 127 || a >= 224 || a === 169 && b === 254 || a === 172 && b >= 16 && b <= 31 || a === 192 && (b === 168 || b === 0) || a === 100 && b >= 64 && b <= 127 || a === 198 && (b === 18 || b === 19));
   }
   // IPv6 global unicast only. Mapped IPv4, loopback and link-local are excluded.
-  return isIP(address) === 6 && /^[23][\da-f]{3}:/i.test(address) && !/^2001:db8:/i.test(address);
+  // 6to4 (2002::/16) and Teredo (2001:0::/32) embed an IPv4 address that may be private,
+  // and 2001:db8::/32 is documentation-only, so all three are rejected.
+  return isIP(address) === 6 && /^[23][\da-f]{3}:/i.test(address) && !/^2001:(?:db8|0{0,4}):|^2002:/i.test(address);
 }
 export async function readPublicPage(value, { resolveHost = lookup, requestImpl = request } = {}, redirects = 0) {
   const url = new URL(value);

@@ -210,3 +210,9 @@ it("interprets a stay of one night as a two-day trip without overriding explicit
  expect(parseQuickIntent("住八晚").unsupportedDays).toBe(true);
  expect(parseQuickIntent("晚上开会").days).toBe(null);
 });
+
+it.each([["下午3:30", "15:30"], ["晚上8:00", "20:00"], ["凌晨12:20", "00:20"], ["15:30", "15:30"]])(
+  "parses the period in %s without silently moving the meeting", (written, time) => {
+    expect(parseQuickIntent(`明天${written}开会`).time).toBe(time);
+  },
+);

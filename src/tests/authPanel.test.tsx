@@ -34,7 +34,7 @@ it('names each sync state in plain words', () => {
   const user = {id: 'google:abc', label: 'a@example.com', method: 'google' as const};
   expect(render({accountStatus: 'signed-in', user, syncState: 'offline'})).toContain('未同步（离线）');
   expect(render({accountStatus: 'signed-in', user, syncState: 'syncing'})).toContain('同步中');
-  expect(render({accountStatus: 'signed-in', user, syncState: 'conflict'})).toContain('已载入另一台设备的更新');
+  expect(render({accountStatus: 'signed-in', user, syncState: 'conflict'})).toContain('同步暂停 · 本机修改已保留');
 });
 
 it('lets a signed-in user return to their account from a restored local space', () => {

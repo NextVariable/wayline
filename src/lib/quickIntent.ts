@@ -31,6 +31,12 @@ function dateValue(year: number, month: number, day: number) {
     ? localDay(value)
     : null;
 }
+function clockHour(hour: number, period?: string) {
+  if (["下午", "晚上", "中午"].includes(period ?? "") && hour < 12) return hour + 12;
+  if (["上午", "早上", "凌晨"].includes(period ?? "") && hour === 12) return 0;
+  return hour;
+}
+
 export function parseQuickIntent(text: string, now = new Date()) {
   text = text
     .replace(/明早/g, "明天早上")
@@ -88,9 +94,9 @@ export function parseQuickIntent(text: string, now = new Date()) {
     );
     dates.push(localDay(value));
   }
-  for (const match of text.matchAll(/(?<!\d)(\d{1,2})[:：](\d{2})(?!\d)/g)) {
-    const hour = Number(match[1]),
-      minute = Number(match[2]);
+  for (const match of text.matchAll(/(?<!\d)(?:(上午|下午|晚上|中午|早上|凌晨)\s*)?(\d{1,2})[:：](\d{2})(?!\d)/g)) {
+    const hour = clockHour(Number(match[2]), match[1]),
+      minute = Number(match[3]);
     if (hour <= 23 && minute <= 59)
       times.push(
         `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
@@ -100,18 +106,17 @@ export function parseQuickIntent(text: string, now = new Date()) {
   for (const match of text.matchAll(
     /(?:(上午|下午|晚上|中午|早上|凌晨)\s*)?([零〇一二两三四五六七八九十\d]{1,3})[点时](?:(半|一刻|三刻)|([零〇一二两三四五六七八九十\d]{1,3})分?)?/g,
   )) {
-    let hour = number(match[2]);
+    const rawHour = number(match[2]);
     const minute = match[3]
       ? ({ 半: 30, 一刻: 15, 三刻: 45 }[match[3]] ?? 0)
       : match[4]
         ? number(match[4])
         : 0;
-    if (!match[1] && hour >= 1 && hour <= 12) {
+    if (!match[1] && rawHour >= 1 && rawHour <= 12) {
       warnings.push("请说明上午或下午，或用24小时制时间");
       continue;
     }
-    if (["下午", "晚上", "中午"].includes(match[1]) && hour < 12) hour += 12;
-    if (["上午", "早上", "凌晨"].includes(match[1]) && hour === 12) hour = 0;
+    const hour = clockHour(rawHour, match[1]);
     if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59)
       times.push(
         `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,

@@ -43,7 +43,9 @@ export function createGoogleCalendarService({env=process.env,fetcher=fetch,now=D
   async function jsonBody(req){let text='';for await(const part of req){text+=part;if(text.length>16000)failure(413,'日历请求过大');}try{return JSON.parse(text||'{}');}catch{failure(400,'日历请求无效');}}
   const jsonFetch=async(url,options={})=>{
     const response=await fetcher(url,{...options,signal:AbortSignal.timeout(15000)});let body;try{body=await response.json();}catch{failure(502,'Google 日历暂时不可用');}
-    if(!response.ok){if(body.error==='invalid_grant'||response.status===401)failure(401,'Google 授权已失效，请重新连接');if(response.status===403)failure(403,'Google 日历权限不足，请重新授权');failure(502,'Google 日历暂时无法同步，已保留上次结果');}return body;
+    if(!response.ok){if(body?.error==='invalid_grant'||response.status===401)failure(401,'Google 授权已失效，请重新连接');if(response.status===403)failure(403,'Google 日历权限不足，请重新授权');failure(502,'Google 日历暂时无法同步，已保留上次结果');}
+    if(!body||typeof body!=='object'||Array.isArray(body))failure(502,'Google 日历结果不完整，已保留上次结果');
+    return body;
   };
   async function tokenFor(connection) {
     if(connection.token.expiresAt>now()+60000)return connection.token.access;
