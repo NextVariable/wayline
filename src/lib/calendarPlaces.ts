@@ -12,7 +12,7 @@ export type ResolveResult =
   | { text: string; status: "none" }
   | { text: string; status: "unavailable" };
 
-const DAY = 86_400_000;
+
 /** Statuses that need the user, shown in the quiet corner hint. */
 const PENDING = new Set(["ask", "ambiguous", "none", "missing"]);
 
@@ -44,10 +44,11 @@ export function classifyLocation(text: string): "empty" | "online" | "text" {
 
 function windowOf(now: Date, days: number) {
   const start = new Date(now); start.setHours(0, 0, 0, 0);
-  return [start.getTime(), start.getTime() + days * DAY] as const;
+  const end = new Date(start); end.setDate(end.getDate() + days);
+  return [start.getTime(), end.getTime()] as const;
 }
 const inWindow = (e: CalendarEntry, [from, to]: readonly [number, number]) => {
-  const t = Date.parse(e.start);
+  const t = Date.parse(e.allDay && /^\d{4}-\d{2}-\d{2}$/.test(e.start) ? e.start + "T00:00:00" : e.start);
   return t >= from && t < to;
 };
 const resolved = (e: CalendarEntry, resolution: PlaceResolution, place?: Place): CalendarEntry => {
@@ -74,7 +75,9 @@ export function planResolution(events: CalendarEntry[], aliases: PlaceAliases, {
     const key = normalizeLocationText(e.location);
     const remembered = aliases[key];
     if (remembered) return resolved(e, { status: "ask", text: e.location, suggestion: remembered });
-    const text = e.location.trim(), searchCity = String(calendarSearchCity(text, fallback).name);
+    const text = e.location.trim();
+    if (text.length > 200 || !key) return resolved(e, { status: "none", text: e.location });
+    const searchCity = String(calendarSearchCity(text, fallback).name);
     const dedupe = key + "\u0000" + searchCity;
     if (!planned.has(dedupe) && planned.size < max) { planned.add(dedupe); lookups.push({ text, city: searchCity }); }
     return e;

@@ -17,7 +17,7 @@ export function GoogleCalendarConnection({ connection }: { connection: GoogleCal
   return <section className="google-calendar-connection" aria-label="Google 日历同步">
     <div className="calendar-import-heading">
       <strong><CalendarDays size={16} aria-hidden="true" />Google 日历</strong>
-      {!status?.connected
+      {!status && error ? <button type="button" className="text-action" onClick={connection.refresh}>重试连接</button> : !status?.connected
         ? <button type="button" className="text-action" disabled={busy || !status?.configured} onClick={() => void action("connect")}>{busy ? "正在连接…" : "连接"}</button>
         : <button type="button" className="text-action" aria-expanded={choosing} onClick={() => { setChoosing(!choosing); setConfirming(false); }}>{choosing ? "收起" : "管理"}</button>}
     </div>

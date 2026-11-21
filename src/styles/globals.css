@@ -4021,8 +4021,8 @@ select:not([multiple]):not([size]) {
 .today-mode-group button:hover, .today-navigation:hover { background: var(--surface-subtle); }
 .today-navigation { display:grid; place-items:center; width:34px; min-height:32px; margin-left:auto; color:var(--text-secondary); }
 @media (pointer: coarse) {
-  .today-mode-group button, .today-navigation { min-height:44px; }
-  .today-navigation { width:44px; }
+  .today-mode-group button, .today-leg-summary button, .today-navigation { min-height:44px; min-width:44px; }
+  .today-navigation { width:44px; flex-shrink:0; }
 }
 
 .gmail-rail-orders { margin-bottom: 14px; }

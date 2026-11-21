@@ -25,7 +25,7 @@ function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number) {
 
 /** Calendar addresses can belong to a different city than the open map. */
 export function calendarSearchCity(location: string, fallback: City): City {
-  const address = location.trim().replace(/^中国\s*/, "");
+  const address = location.trim().replace(/^中国\s*/, "").replace(/^[\u4e00-\u9fff]{2,8}?(?:省|自治区)\s*/, "");
   // Only a leading city is an address scope; city names inside a venue name
   // (for example 南京路) must not silently redirect the query.
   return cityCatalog.find(candidate => address.startsWith(candidate.name + "市"))

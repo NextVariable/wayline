@@ -89,3 +89,10 @@ it('shows a recovery page for an expired callback without echoing its authorizat
  expect(result.body).toContain('返回日程重新连接');expect(result.body).toContain('href="/?calendar=retry"');
  expect(result.body).not.toContain('PRIVATE_AUTHORIZATION_CODE');expect(result.headers['Referrer-Policy']).toBe('no-referrer');
 });
+
+it('preserves explicit offsets and rejects zone-free upstream times', () => {
+ const item = normal();
+ expect(normalizeGoogleEvent(item,'owner',{id:'work'}).start).toBe('2026-10-30T01:00:00.000Z');
+ item.start.dateTime='2026-10-30T09:00:00';
+ expect(() => normalizeGoogleEvent(item,'owner',{id:'work'})).toThrow('事件时间');
+});

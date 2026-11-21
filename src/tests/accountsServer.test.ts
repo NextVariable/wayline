@@ -95,9 +95,11 @@ it('signs in with Google using state and PKCE, then reports the account', async 
   expect(auth.searchParams.get('client_id')).toBe('test-id');
   expect(auth.searchParams.get('redirect_uri')).toBe(ORIGIN + '/api/auth/google/callback');
   expect(auth.searchParams.get('code_challenge_method')).toBe('S256');
-  expect(auth.searchParams.get('access_type')).toBe('offline');
+  expect(auth.searchParams.has('access_type')).toBe(false);
+  expect(auth.searchParams.has('prompt')).toBe(false);
+  expect(s.store.data.accounts[sha('g-123')]).not.toHaveProperty('token');
   const scopes = auth.searchParams.get('scope')!.split(' ');
-  expect(scopes).toEqual(expect.arrayContaining(['openid', 'email', 'profile', ...CALENDAR]));
+  expect(scopes).toEqual(['openid', 'email', 'profile']);
   expect(scopes.some(scope => scope.includes('gmail'))).toBe(false);
   expect(callback.status).toBe(303);
   expect(callback.headers.Location).toBe('/');

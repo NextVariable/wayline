@@ -120,3 +120,9 @@ it('agrees with the browser on which locations are online', async () => {
   const samples = ['', '上海虹桥站', 'https://meet.google.com/x', 'zoom.us/j/1', 'Zoom', 'ZOOM', '线上', '视频会议', '电话', '电话路12号', '腾讯会议', 'meeting.tencent.com/dm/x', '飞书会议 feishu.cn/x', '深圳湾科技生态园'];
   for (const text of samples) expect([text, isOnlineLocation(text)]).toEqual([text, classifyLocation(text) === 'online']);
 });
+
+it('asks before placing an exact name in a different city or a partial address', async () => {
+  const {resolver} = await setup({'会展中心': [poi('会展中心')], '人民路': [poi('营业部', '人民路88号')]});
+  const result = await resolver.resolve([{text:'会展中心',city:'深圳'}, {text:'人民路',city:'上海'}]);
+  expect(result.map((item: {status:string}) => item.status)).toEqual(['ambiguous','ambiguous']);
+});

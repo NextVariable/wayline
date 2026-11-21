@@ -123,16 +123,23 @@ export function createTravelServices({ fetchImpl = fetch, tiandituToken = '', am
         try { raw = await get('https://restapi.amap.com/v5/direction/' + (mode==='transit'?'transit/integrated':mode) + '?' + params); }
         catch { throw new Error('地图路线查询失败，请重试'); }
         const path = mode==='transit'?raw?.route?.transits?.[0]:raw?.route?.paths?.[0];
-        const distance = Number(path?.distance), duration = Number(path?.cost?.duration);
-        if (raw.status !== '1' || !path || path.distance == null || path.distance === '' || path.cost?.duration == null || path.cost.duration === '' || !Number.isFinite(distance) || !Number.isFinite(duration) || distance < 0 || duration < 0) throw new Error('地图未返回有效路线');
+        const numeric = value => {
+          if (typeof value !== 'number' && !(typeof value === 'string' && value.trim())) return null;
+          const number = Number(value);
+          return Number.isFinite(number) && number >= 0 ? number : null;
+        };
+        const distance = numeric(path?.distance), duration = numeric(path?.cost?.duration);
+        if (raw?.status !== '1' || distance === null || duration === null || (distance > 0 && duration === 0))
+          throw new Error('地图未返回有效路线');
         const steps = mode==='transit'?(path.segments || []).flatMap(segment=>[...(segment.walking?.steps || []),...(segment.bus?.buslines?.slice(0,1) || [])]):path.steps || [];
         const points = steps.flatMap(s => String(typeof s.polyline==='string'?s.polyline:s.polyline?.polyline || '').split(';').filter(Boolean).map(pair => {
-          const [longitude, latitude] = pair.split(',').map(Number);
+          const parts = pair.split(',');
+          if (parts.length !== 2 || parts.some(part => !part.trim())) throw new Error('地图未返回路线形状');
+          const [longitude, latitude] = parts.map(Number);
           coordinate(latitude, longitude);
           return { latitude, longitude };
         }));
-        if (!points.length) throw new Error('地图未返回路线形状');
-        const numeric = v => v !== null && v !== undefined && v !== '' && Number.isFinite(Number(v)) && Number(v)>=0 ? Number(v):null;
+        if (points.length < 2) throw new Error('地图未返回路线形状');
         const walkingParts=(path.segments || []).filter(segment=>segment.walking).map(segment=>numeric(segment.walking.cost?.duration));
         const walkingDuration=mode==='walking'?duration:mode==='transit' && walkingParts.length>0 && walkingParts.every(v=>v!==null)?walkingParts.reduce((sum,v)=>sum+v,0):null;
         const buses=(path.segments || []).filter(segment=>segment.bus?.buslines?.length).length;

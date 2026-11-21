@@ -10,7 +10,14 @@ class CalendarFailure extends Error {constructor(status,message){super(message);
 const failure=(status,message)=>{throw new CalendarFailure(status,message);};
 export function normalizeGoogleEvent(item,connectionId,calendar) {
   if(item.status==='cancelled')return null;
-  const start=item.start?.dateTime?new Date(item.start.dateTime).toISOString():item.start?.date,end=item.end?.dateTime?new Date(item.end.dateTime).toISOString():item.end?.date;
+  const timestamp = part => {
+    if (!part?.dateTime) return part?.date;
+    // The list request asks for UTC. Never interpret an ambiguous upstream value in the host timezone.
+    if (!/(?:Z|[+-]\d{2}:\d{2})$/i.test(part.dateTime) || !Number.isFinite(Date.parse(part.dateTime)))
+      failure(502,'Google 返回了无效事件时间，已保留上次同步');
+    return new Date(part.dateTime).toISOString();
+  };
+  const start=timestamp(item.start), end=timestamp(item.end);
   if(!item.id||!start||!end||!Number.isFinite(Date.parse(start))||!Number.isFinite(Date.parse(end))||Date.parse(end)<Date.parse(start))throw new Error('Google 返回了无效事件，已保留上次同步');
   const text=v=>String(v||'').slice(0,12000);
   return {id:`google:${connectionId}:${encodeURIComponent(calendar.id)}:${encodeURIComponent(item.id)}`,uid:text(item.iCalUID||item.id),title:text(item.summary||'未命名事件'),location:text(item.location),description:text(item.description),start,end,allDay:!!item.start.date,timezone:item.start.timeZone||calendar.timeZone||'UTC',calendar:text(calendar.summary||calendar.id),google:{connectionId,calendarId:calendar.id,eventId:item.id,updated:item.updated||'',originalStart:item.originalStartTime?.dateTime||item.originalStartTime?.date||null}};
@@ -58,7 +65,7 @@ export function createGoogleCalendarService({env=process.env,fetcher=fetch,now=D
   async function snapshot(connection,selected) {
     const from=new Date(now()-30*86400000).toISOString(),to=new Date(now()+180*86400000).toISOString(),rows=[];
     for(const calendarId of selected){const calendar=connection.calendars.find(c=>c.id===calendarId);if(!calendar)failure(400,'所选日历已不可用');let pageToken='';let complete=false;
-      for(let p=0;p<40;p++){const page=await google(connection,`/calendars/${encodeURIComponent(calendarId)}/events`,{singleEvents:'true',showDeleted:'true',timeMin:from,timeMax:to,maxResults:'250',...(pageToken?{pageToken}:{})});if(!Array.isArray(page.items))failure(502,'Google 日历结果不完整，已保留上次结果');for(const item of page.items){const normalized=normalizeGoogleEvent(item,connection.id,calendar);if(normalized)rows.push(normalized);}if(rows.length>5000)failure(422,'所选日历事件过多，请减少同步的日历');pageToken=page.nextPageToken||'';if(!pageToken){complete=true;break;}}
+      for(let p=0;p<40;p++){const page=await google(connection,`/calendars/${encodeURIComponent(calendarId)}/events`,{timeZone:'UTC',singleEvents:'true',showDeleted:'true',timeMin:from,timeMax:to,maxResults:'250',...(pageToken?{pageToken}:{})});if(!Array.isArray(page.items))failure(502,'Google 日历结果不完整，已保留上次结果');for(const item of page.items){const normalized=normalizeGoogleEvent(item,connection.id,calendar);if(normalized)rows.push(normalized);}if(rows.length>5000)failure(422,'所选日历事件过多，请减少同步的日历');pageToken=page.nextPageToken||'';if(!pageToken){complete=true;break;}}
       if(!complete)failure(502,'Google 日历未读取完整，已保留上次结果');
     }
     return rows.sort((a,b)=>a.id.localeCompare(b.id));

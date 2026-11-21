@@ -53,3 +53,8 @@ it("offers a retry for an unavailable route without inventing a time", () => {
   expect(unavailable).toContain('data-status="unknown"');
   expect(unavailable).not.toContain('data-status="late"');
 });
+
+it('shows when the selected route was observed', () => {
+  const markup=render('driving',false,options.map(route=>({...route,observedAt:Date.UTC(2026,10,13,9)})));
+  expect(markup).toContain('查询</small>');
+});

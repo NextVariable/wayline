@@ -49,3 +49,10 @@ it('preserves route notes across an unresolved address and later confirmation',(
 it('keeps a Google snapshot larger than the old file-import limit after refresh',()=>{
  const rows=Array.from({length:2100},(_,i)=>event({id:'event-'+i}));vi.stubGlobal('localStorage',{getItem:()=>JSON.stringify(rows)});try{expect(readCalendarEntries('guest')).toHaveLength(2100);}finally{vi.unstubAllGlobals();}
 });
+
+it('keeps the prior snapshot when the connected response omits events',()=>{
+ const previous=[event({place})];
+ for (const incomplete of [undefined,null,{}])
+   expect(()=>mergeGoogleSnapshot(previous,incomplete,'connection')).toThrow('结果不完整');
+ expect(previous[0].place).toEqual(place);
+});

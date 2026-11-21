@@ -4,9 +4,7 @@ import {resolve} from 'node:path';
 import {openCalendarVault} from './calendar-vault.mjs';
 import {createGmailOrders, GMAIL_READONLY} from './gmail-rail-orders.mjs';
 
-const SCOPES = ['openid', 'email', 'profile',
-  'https://www.googleapis.com/auth/calendar.events.readonly',
-  'https://www.googleapis.com/auth/calendar.calendarlist.readonly'];
+const SCOPES = ['openid', 'email', 'profile'];
 const DAY = 86400000;
 const SESSION_MS = 30 * DAY;
 const FLOW_MS = 600000;
@@ -106,8 +104,8 @@ export function createAccountService({env = process.env, fetcher = fetch, now = 
     auth.search = new URLSearchParams({
       client_id: env.GOOGLE_CLIENT_ID, redirect_uri: redirectUri, response_type: 'code',
       scope: (mailbox ? ['openid', 'email', GMAIL_READONLY] : SCOPES).join(' '),
-      state, access_type: 'offline', prompt: 'consent',
-      ...(mailbox && {include_granted_scopes: 'true', login_hint: account.email}),
+      state,
+      ...(mailbox && {access_type:'offline', prompt:'consent', include_granted_scopes: 'true', login_hint: account.email}),
       code_challenge: createHash('sha256').update(verifier).digest('base64url'), code_challenge_method: 'S256',
     }).toString();
     send(res, 200, {url: auth.href}, [`wayline_signin=${browser}; Path=/api/auth; HttpOnly; SameSite=Lax; Max-Age=600${secure}`]);
@@ -154,8 +152,7 @@ export function createAccountService({env = process.env, fetcher = fetch, now = 
     const previous = store.data.accounts[id];
     store.data.accounts[id] = {
       email: String(profile.email || '').slice(0, 320), name: String(profile.name || '').slice(0, 200),
-      token: {access: token.access_token, refresh: token.refresh_token || previous?.token?.refresh || '', expiresAt: now() + Number(token.expires_in || 3600) * 1000},
-      scopes: String(token.scope || '').split(' ').filter(Boolean), createdAt: previous?.createdAt ?? now(),
+      createdAt: previous?.createdAt ?? now(),
     };
     const sessionToken = random();
     store.data.sessions[hash(sessionToken)] = {account: id, until: now() + SESSION_MS};

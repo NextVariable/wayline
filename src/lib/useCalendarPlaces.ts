@@ -56,10 +56,10 @@ export function useCalendarPlaces({ owner, events, aliases, city, day, commit }:
   latestCommit.current = commit;
   useEffect(() => {
     const current = runner.current;
-    const timer = window.setTimeout(() => {
-      void current.run({ owner, events, aliases, city, commit: next => latestCommit.current(next) });
-    }, DEBOUNCE_MS);
-    // Any change of events, aliases, city or account makes an in-flight result stale; never let it overwrite newer data.
-    return () => { window.clearTimeout(timer); current.cancel(); };
+    const run = () => { void current.run({ owner, events, aliases, city, commit: next => latestCommit.current(next) }); };
+    const timer = window.setTimeout(run, DEBOUNCE_MS);
+    const reconnect = () => { window.clearTimeout(timer); run(); };
+    window.addEventListener("online", reconnect);
+    return () => { window.removeEventListener("online", reconnect); window.clearTimeout(timer); current.cancel(); };
   }, [owner, events, aliases, city, day]);
 }

@@ -149,3 +149,17 @@ it('leaves out unresolved, ignored and online events', () => {
   const asking = {...event(), placeResolution: {status: 'ask' as const, text: '公司', suggestion: office}};
   expect(calendarMapPlaces([unresolved, ignored, online, asking], {now})).toEqual([]);
 });
+
+it('isolates oversized location text without blocking ordinary meetings', () => {
+  const long = event({location: '会议室'.repeat(80)});
+  const good = event();
+  const {updated, lookups} = planResolution([long, good], {}, opts);
+  expect(updated[0].location).toBe(long.location);
+  expect(updated[0].placeResolution?.status).toBe('none');
+  expect(lookups.map(item => item.text)).toEqual([good.location]);
+});
+
+it('resolves an all-day event by its written date on the device calendar', () => {
+  const item = event({allDay:true, start:'2026-11-01', end:'2026-11-02'});
+  expect(planResolution([item], {}, {now:new Date(2026,10,1,12), windowDays:1, city:'北京'}).lookups).toHaveLength(1);
+});

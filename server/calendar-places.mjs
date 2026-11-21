@@ -43,7 +43,7 @@ export function createCalendarPlaceResolver({ searchPlaces, cacheFile }) {
     try {
       const rows = JSON.parse(readFileSync(cacheFile, 'utf8'));
       // Entries written before keys were account-scoped and secret are unreadable under the new key and simply dropped.
-      if (rows && rows.version === 2 && Array.isArray(rows.entries)) {
+      if (rows && rows.version === 3 && Array.isArray(rows.entries)) {
  for (const [key, value] of rows.entries.slice(-MAX_CACHE)) if (/^[a-f0-9]{64}$/.test(key) && value && typeof value.status === 'string') cache.set(key, value);
       }
     } catch { /* missing or unreadable cache starts empty */ }
@@ -54,7 +54,7 @@ export function createCalendarPlaceResolver({ searchPlaces, cacheFile }) {
     writing = writing.then(async () => {
       await mkdir(dirname(cacheFile), { recursive: true, mode: 0o700 });
       const tmp = cacheFile + '.' + process.pid + '.tmp';
-      await writeFile(tmp, JSON.stringify({ version: 2, entries: [...cache.entries()] }), { mode: 0o600 });
+      await writeFile(tmp, JSON.stringify({ version: 3, entries: [...cache.entries()] }), { mode: 0o600 });
       await chmod(tmp, 0o600);
       await rename(tmp, cacheFile);
     }).catch(() => { /* a failed write only costs a repeat lookup later */ });
@@ -70,8 +70,9 @@ export function createCalendarPlaceResolver({ searchPlaces, cacheFile }) {
     catch { return { status: 'unavailable' }; }
     const wanted = normalizeLocationText(text);
     const exact = rows.filter(p => normalizeLocationText(p.name) === wanted);
-    if (exact.length === 1) return { status: 'found', place: placeOf(exact[0]) };
-    if (rows.length === 1 && normalizeLocationText(rows[0].address).includes(wanted)) return { status: 'found', place: placeOf(rows[0]) };
+    const inCity = place => !city || place?.city?.replace(/市$/, '') === city.replace(/市$/, '');
+    if (exact.length === 1 && inCity(exact[0])) return { status: 'found', place: placeOf(exact[0]) };
+    if (rows.length === 1 && inCity(rows[0]) && wanted.length >= 4 && normalizeLocationText(rows[0].address) === wanted) return { status: 'found', place: placeOf(rows[0]) };
     if (!rows.length) return { status: 'none' };
     return { status: 'ambiguous', candidates: (exact.length ? exact : rows).slice(0, MAX_CANDIDATES).map(placeOf) };
   };

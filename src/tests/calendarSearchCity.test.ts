@@ -13,3 +13,7 @@ describe('calendar address city scope', () => {
     expect(calendarSearchCity('苏州园区上海公司', suzhou)).toBe(suzhou);
   });
 });
+
+it('uses the city after a province or autonomous region', () => {
+  expect(calendarSearchCity('中国 广东省深圳市南山区', suzhou).name).toBe('深圳');
+});

@@ -83,7 +83,7 @@ function TodayLeg({ segment, loading, focused, onChooseMode, onFocus, onRetry }:
       <div className="today-leg-summary" aria-live="polite">
         {pair.sameSpot ? <span>同一地点</span> : result ? (
           <button type="button" aria-pressed={focused} onClick={() => onFocus(pair.id)} title="在地图上查看这段路线">
-            {timing} <small>{result.source === "amap" ? mode === "driving" ? "高德 · 不含等车" : mode === "selfDrive" ? "高德 · 不含停车" : "高德" : "估算"}</small>
+            {timing} <small>{result.source === "amap" ? mode === "driving" ? "高德 · 不含等车" : mode === "selfDrive" ? "高德 · 不含停车" : "高德" : "估算"}{result.observedAt && result.observedAt > 0 ? ` · ${new Date(result.observedAt).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })} 查询` : ""}</small>
           </button>
         ) : <span>{timing}</span>}
         {!pair.sameSpot && !result && !loading && <button type="button" onClick={onRetry}>重试</button>}

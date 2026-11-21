@@ -2,8 +2,8 @@ import {samePlace} from './placeIdentity';
 import {isCalendarEntry,type CalendarEntry} from './calendarEvents';
 import type {Place} from '../types/place';
 /** One Google connection per workspace. Replace its managed cache, retaining file/manual events. */
-export function mergeGoogleSnapshot(previous:CalendarEntry[],incoming:unknown[],connectionId:string):CalendarEntry[]{
-  if(incoming.length>5000 || !incoming.every(e=>isCalendarEntry(e)&&e.google?.connectionId===connectionId))throw new Error('Google 日历结果不完整，保留原记录');
+export function mergeGoogleSnapshot(previous:CalendarEntry[],incoming:unknown,connectionId:string):CalendarEntry[]{
+  if(!Array.isArray(incoming) || incoming.length>5000 || !incoming.every(e=>isCalendarEntry(e)&&e.google?.connectionId===connectionId))throw new Error('Google 日历结果不完整，保留原记录');
   const byId=new Map(previous.map(e=>[e.id,e]));
   const next=(incoming as CalendarEntry[]).map(e=>{const old=byId.get(e.id);const same=old?.location===e.location;return {...e,place:same?old?.place:undefined,placeResolution:same?old?.placeResolution:undefined,routeIndex:old?.routeIndex,routeReason:old?.routeReason};});
   if(previous.filter(e=>!e.google).length+next.length>7000)throw new Error('日历事件过多，保留原记录');

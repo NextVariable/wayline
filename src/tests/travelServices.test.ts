@@ -91,3 +91,10 @@ it('keeps cross-city place results and discards entries with missing coordinates
   expect(new URL(fetchImpl.mock.calls[0][0]).searchParams.get('citylimit')).toBe('false');
   expect(result).toEqual([{name:'上海站',city:'上海市',lat:31.249,lng:121.455,address:'秣陵路'}]);
 });
+
+it.each(['   ', [], false, 0])('rejects invalid travel times for nonzero distances (%j)', async duration => {
+  const api = createTravelServices({amapKey:'test', fetchImpl:async () => ({
+    ok:true, json:async () => ({status:'1',route:{paths:[{distance:'2500',cost:{duration},steps:[{polyline:'121,31;121.1,31.1'}]}]}})
+  })});
+  await expect(api.route({places:[{lat:31,lng:121},{lat:31.1,lng:121.1}]})).rejects.toThrow('有效路线');
+});
