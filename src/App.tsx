@@ -22,7 +22,8 @@ import { localDateKey, type TodayLegPair, type TravelMode } from "./lib/todayMap
 import { useTodayLegs, type LegResult } from "./lib/useTodayLegs";
 import { BusinessTripsPanel } from "./components/BusinessTripsPanel";
 import { readBusinessTripSettings, tripPlaces, writeBusinessTripSettings, type BusinessTripSettings } from "./lib/businessTrips";
-import { DEMO_USER, DEMO_HOME, createDemoMailbox, demoLegResults, enterDemo, exitDemo, readDemoMode, resetDemo } from "./lib/demoWorkspace";
+import { DEMO_USER, DEMO_HOME, createDemoMailbox, demoDay, demoLegResults, enterDemo, exitDemo, readDemoMode, resetDemo } from "./lib/demoWorkspace";
+import { eventDay } from "./lib/tripDay";
 import { buildTripActions, type TripAction } from "./lib/actionItems";
 const calendarLayerKey = (owner: string) => `whatto.mapCalendarLayer.${owner}`;
 const readCalendarLayer = (owner: string) => { try { return localStorage.getItem(calendarLayerKey(owner)) !== "off"; } catch { return true; } };
@@ -297,6 +298,8 @@ export default function App() {
     if (activeUser.method === "google") setDataRevision(value => value + 1);
   };
   const [todayKey, setTodayKey] = useState(() => localDateKey(new Date()));
+  // 演示工作区固定按 Asia/Shanghai 生成与归组，避免宿主时区把同一天拆到不同的本地日期。
+  const effectiveTodayKey = demoActive ? demoDay(0, demoNow) : todayKey;
   useEffect(() => {
     const update = () => setTodayKey(localDateKey(new Date()));
     const timer = window.setInterval(update, 30_000);
@@ -481,8 +484,8 @@ export default function App() {
       setSelectedPlace({ ...selectedPlace, calendarEventIds: eventIds });
     }
   }, [calendarEvents, selectedPlace]);
-  const todayDate = useMemo(() => new Date(todayKey + "T00:00:00"), [todayKey]);
-  useCalendarPlaces({owner:activeUser.id,events:calendarEvents,aliases:placeAliases,city:String(city.name),day:todayKey,commit:events=>commitCalendarEvents(events)});
+  const todayDate = useMemo(() => new Date(`${effectiveTodayKey}T00:00:00`), [effectiveTodayKey]);
+  useCalendarPlaces({owner:activeUser.id,events:calendarEvents,aliases:placeAliases,city:String(city.name),day:effectiveTodayKey,commit:events=>commitCalendarEvents(events)});
   const pendingCalendarPlaces = useMemo(() => pendingPlaces(calendarEvents, { now: todayDate }), [calendarEvents, todayDate]);
   // Fixing a place writes the calendar and, when a phrase is remembered, the aliases; a failed write is reported, never hidden.
   const fixCalendarPlace = (update: (events: typeof calendarEvents) => { events: typeof calendarEvents; aliases?: PlaceAliases }) => {
@@ -621,8 +624,8 @@ export default function App() {
 
 
   const bookingCities = useMemo(() => allCities.map(city => city.name), [allCities]);
-  const model = useMemo(() => buildTravelWorkspace({events:calendarEvents,settings:businessSettings,day:todayDate,mailbox:mailbox?.singleSample ? undefined : mailbox,cities:bookingCities}),
-    [calendarEvents,businessSettings,todayDate,mailbox,bookingCities]);
+  const model = useMemo(() => buildTravelWorkspace({events:calendarEvents,settings:businessSettings,day:todayDate,mailbox:mailbox?.singleSample ? undefined : mailbox,cities:bookingCities,todayKey:effectiveTodayKey,dayOf:demoActive ? eventDay : undefined}),
+    [calendarEvents,businessSettings,todayDate,effectiveTodayKey,demoActive,mailbox,bookingCities]);
   const {today,stops:todayStops,pairs,trips:businessTrips,plans:bookingPlan} = model;
   const effectiveBusinessSettings = {...businessSettings,home:model.home};
   const [clockNow, setClockNow] = useState(Date.now);
@@ -671,13 +674,13 @@ export default function App() {
     const options = Object.values(todayLegResults[pair.id] ?? {});
     return {pair, mode, result:todayLegResults[pair.id]?.[mode], ...assessCommute(pair, options, mode, freshness)};
   }), [pairs, choices, todayLegResults, freshness]);
-  const todayConflicts = useMemo(() => calendarRisks(calendarEvents,freshness,today?.dateKey ?? todayKey)
+  const todayConflicts = useMemo(() => calendarRisks(calendarEvents,freshness,today?.dateKey ?? effectiveTodayKey)
     .filter(risk => risk.type === "overlap" && !todaySegments.some(({pair,verdict}) =>
       verdict.status === "overlap" && pair.from.event.id === risk.eventIds[0] && pair.to.event.id === risk.eventIds[1])),
-    [calendarEvents,freshness,today,todayKey,todaySegments]);
+    [calendarEvents,freshness,today,effectiveTodayKey,todaySegments]);
   const todayEventIds = useMemo(() => new Set(calendarEvents
-    .filter(event => localDateKey(event.start) === todayKey).map(event => event.id)),
-  [calendarEvents, todayKey]);
+    .filter(event => (demoActive ? eventDay(event) : localDateKey(event.start)) === effectiveTodayKey).map(event => event.id)),
+  [calendarEvents, effectiveTodayKey, demoActive]);
   // 今天的订单风险需要同时出现在 Today 与 Trips，避免两个入口结论不一致。
   const todayTripRisks = useMemo(() => {
     if (!todayEventIds.size) return [];
@@ -1610,7 +1613,7 @@ export default function App() {
           </p>}
           {(today || todayConflicts.length > 0) && <TodayPanel
           heading={!today ? "今天" : today.isToday ? `今天 · ${dayLabel.format(new Date(today.dateKey + "T00:00:00"))}`
-            : `${calendarEvents.some(event => !event.google?.stale && localDateKey(event.start) === todayKey)
+            : `${calendarEvents.some(event => !event.google?.stale && (demoActive ? eventDay(event) : localDateKey(event.start)) === effectiveTodayKey)
               ? "下一个有地点的日程" : "今天没有安排 · 下一天是"} ${today.nextLabel}`}
           onOpenSchedule={() => openWorkflow("schedule", () => {
             setScheduleOrigin(null);

@@ -8,6 +8,8 @@ export interface ActionEventRef {
   location: string;
 }
 
+export type ActionLifecycle = "imminent" | "upcoming" | "undated" | "expired";
+
 export interface TripAction {
   id: string;
   riskIds: string[];
@@ -24,10 +26,20 @@ export interface TripAction {
   uncertain: boolean;
   uncertainty?: string;
   dueAt?: number;
+  lifecycle: ActionLifecycle;
   stale: boolean;
 }
 
 const SEVERITY_WEIGHT: Record<TravelRisk["severity"], number> = { high: 0, medium: 1, info: 2 };
+const LIFECYCLE_WEIGHT: Record<ActionLifecycle, number> = { imminent: 0, upcoming: 1, undated: 2, expired: 3 };
+const IMMINENT_WINDOW_MS = 24 * 60 * 60_000;
+
+/** 把行动项分为即将发生、未来待处理、时间待定与已过期，避免过期项长期占据首位。 */
+export function lifecycleOf(action: Pick<TripAction, "dueAt">, now: number): ActionLifecycle {
+  if (action.dueAt === undefined) return "undated";
+  if (action.dueAt < now) return "expired";
+  return action.dueAt - now <= IMMINENT_WINDOW_MS ? "imminent" : "upcoming";
+}
 
 function eventRef(event: CalendarEvent): ActionEventRef {
   return { id: event.id, title: event.title, start: event.start, end: event.end, location: event.location };
@@ -55,6 +67,7 @@ export function buildTripActions({ risks, events, now }: {
   now?: number;
 }): TripAction[] {
   const byId = new Map(events.map(event => [event.id, event]));
+  const reference = now ?? Date.now();
   const seen = new Map<string, TripAction>();
   for (const risk of risks) {
     // 证据记录也参与去重：同一会议下不同订单的同类风险不能被合并。
@@ -84,10 +97,14 @@ export function buildTripActions({ risks, events, now }: {
       uncertain: !!uncertainty,
       uncertainty,
       dueAt,
+      lifecycle: lifecycleOf({ dueAt }, reference),
       stale: risk.stale,
     });
   }
   return [...seen.values()].sort((a, b) => {
+    // 先按行动价值分层：即将发生 > 未来待处理 > 时间待定 > 已过期。
+    const lifecycle = LIFECYCLE_WEIGHT[a.lifecycle] - LIFECYCLE_WEIGHT[b.lifecycle];
+    if (lifecycle) return lifecycle;
     const severity = SEVERITY_WEIGHT[a.severity] - SEVERITY_WEIGHT[b.severity];
     if (severity) return severity;
     const aDue = a.dueAt ?? Number.POSITIVE_INFINITY;

@@ -42,9 +42,10 @@ export function localDateKey(value: string | number | Date) {
 const onTimeline = (e: CalendarEntry) => !e.allDay && Number.isFinite(Date.parse(e.start)) && e.placeResolution?.status !== "ignored" && e.placeResolution?.status !== "online" && classifyLocation(e.location) !== "online";
 const hasPlace = (e: CalendarEntry): e is CalendarEntry & { place: Place } => !!e.place && !e.google?.stale;
 
-export function pickDay(events: CalendarEntry[], now: Date): { dateKey: string; isToday: boolean; nextLabel?: string } | null {
-  const today = localDateKey(now);
-  const days = [...new Set(events.filter(e => onTimeline(e) && hasPlace(e)).map(e => localDateKey(e.start)))].filter(k => k >= today).sort();
+export function pickDay(events: CalendarEntry[], now: Date, options: { todayKey?: string; dayOf?: (event: CalendarEntry) => string } = {}): { dateKey: string; isToday: boolean; nextLabel?: string } | null {
+  const dayOf = options.dayOf ?? ((event: CalendarEntry) => localDateKey(event.start));
+  const today = options.todayKey ?? localDateKey(now);
+  const days = [...new Set(events.filter(e => onTimeline(e) && hasPlace(e)).map(dayOf))].filter(k => k >= today).sort();
   if (!days.length) return null;
   const dateKey = days[0];
   if (dateKey === today) return { dateKey, isToday: true };

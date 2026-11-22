@@ -55,7 +55,7 @@ it("shows a risk once when unified actions already carry it", () => {
     id: "action-1", riskIds: ["risk-1"], type: "commute-time", severity: "info", status: "uncertain",
     title: "通勤时间待核实", problem: "尚无可用于判断的路线", evidence: [], eventIds: ["a"],
     events: [{ id: "a", title: "客户会议", start: first.start, end: first.end, location: first.location }],
-    nextStep: { kind: "review-route", label: "查询路线" }, uncertain: true, stale: false,
+    nextStep: { kind: "review-route", label: "查询路线" }, uncertain: true, lifecycle: "upcoming", stale: false,
   };
   const html = renderToStaticMarkup(<TodayPanel heading="今天" stops={[{ event: first, place }]}
     segments={[]} loading={false} focused={null} onSelectStop={noop} onChooseMode={noop}

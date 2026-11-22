@@ -4190,3 +4190,5 @@ select:not([multiple]):not([size]) {
 .today-action-next { flex-shrink: 0; color: var(--brand); font-size: var(--font-secondary); }
 .trip-action-events { color: var(--text-secondary); }
 .trip-action-uncertain { color: var(--text-secondary); font-style: italic; }
+.trip-action-lifecycle { color: var(--text-secondary); font-size: var(--font-secondary); font-weight: 500; }
+.trip-risk-list li[data-lifecycle="expired"] { opacity: 0.75; }

@@ -25,6 +25,8 @@ const events = [
   event("b", "2026-11-24T10:30:00+08:00", "2026-11-24T11:00:00+08:00"),
   event("c", "2026-11-24T15:00:00+08:00", "2026-11-24T16:00:00+08:00"),
 ];
+const past = event("d", "2026-11-23T09:00:00+08:00", "2026-11-23T10:00:00+08:00");
+const far = event("e", "2026-11-27T09:00:00+08:00", "2026-11-27T10:00:00+08:00");
 const now = Date.parse("2026-11-24T08:00:00+08:00");
 
 it("sorts by severity first, then by the earliest related schedule", () => {
@@ -103,4 +105,38 @@ it("keeps actions without a related schedule at the end of their severity group"
     risk({ id: "with-event", type: "missing-stay", severity: "medium", eventIds: ["c"] }),
   ], events, now });
   expect(actions.map(action => action.id)).toEqual(["with-event", "no-event"]);
+});
+
+it("ranks expired risks behind actionable work instead of pinning them first", () => {
+  const actions = buildTripActions({ risks: [
+    risk({ id: "old-high", type: "overlap", severity: "high", eventIds: ["d"] }),
+    risk({ id: "next-medium", type: "missing-stay", severity: "medium", eventIds: ["c"] }),
+  ], events: [...events, past], now });
+  expect(actions.map(action => action.id)).toEqual(["next-medium", "old-high"]);
+  expect(actions[1].lifecycle).toBe("expired");
+});
+
+it("orders imminent work ahead of future work and undated work ahead of expired", () => {
+  const actions = buildTripActions({ risks: [
+    risk({ id: "far", type: "overlap", severity: "medium", eventIds: ["e"] }),
+    risk({ id: "soon", type: "overlap", severity: "medium", eventIds: ["a"] }),
+    risk({ id: "undated", type: "missing-transport", severity: "medium", eventIds: [] }),
+  ], events: [...events, past, far], now });
+  expect(actions.map(action => action.id)).toEqual(["soon", "far", "undated"]);
+  expect(actions.map(action => action.lifecycle)).toEqual(["imminent", "upcoming", "undated"]);
+
+  const withExpired = buildTripActions({ risks: [
+    risk({ id: "expired", type: "overlap", severity: "high", eventIds: ["d"] }),
+    risk({ id: "undated", type: "missing-transport", severity: "medium", eventIds: [] }),
+  ], events: [...events, past], now });
+  expect(withExpired.map(action => action.id)).toEqual(["undated", "expired"]);
+});
+
+it("keeps stale and uncertainty markers on expired risks", () => {
+  const [expired] = buildTripActions({ risks: [
+    risk({ id: "stale-old", type: "missing-location", severity: "high", eventIds: ["d"], stale: true }),
+  ], events: [...events, past], now });
+  expect(expired.lifecycle).toBe("expired");
+  expect(expired.uncertain).toBe(true);
+  expect(expired.uncertainty).toContain("过期");
 });

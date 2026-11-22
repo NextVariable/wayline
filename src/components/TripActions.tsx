@@ -10,6 +10,11 @@ const SOURCE_LABEL: Record<string, string> = {
 
 const clock = new Intl.DateTimeFormat("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
 
+const LIFECYCLE_LABEL: Partial<Record<TripAction["lifecycle"], string>> = {
+  imminent: "即将发生",
+  expired: "已过期",
+};
+
 function evidenceLabel(action: TripAction): string {
   const sources = [...new Set(action.evidence.map(item => SOURCE_LABEL[item.source] ?? item.source))];
   const stale = action.evidence.some(item => item.stale);
@@ -37,10 +42,10 @@ export function TripActions({ actions, onAction, title, limit, compact }: Props)
           <small>{actions.length} 项待处理</small>
         </div>
         <ul>
-          {shown.map(action => <li key={action.id} data-severity={action.severity}>
+          {shown.map(action => <li key={action.id} data-severity={action.severity} data-lifecycle={action.lifecycle}>
             <button type="button" className="today-action-row" onClick={() => onAction(action)}>
               <span>
-                <strong>{action.title}</strong>
+                <strong>{LIFECYCLE_LABEL[action.lifecycle] && <small className="trip-action-lifecycle" role="note">{LIFECYCLE_LABEL[action.lifecycle]} · </small>}{action.title}</strong>
                 <small>{action.problem}</small>
               </span>
               <span className="today-action-next">{action.nextStep.label}</span>
@@ -55,8 +60,9 @@ export function TripActions({ actions, onAction, title, limit, compact }: Props)
     <details className="trip-risk-list trip-actions" open={high || undefined}>
       <summary>{summary} · {actions.length} 项</summary>
       <ul>
-        {shown.map(action => <li key={action.id} data-severity={action.severity} data-status={action.status}>
+        {shown.map(action => <li key={action.id} data-severity={action.severity} data-status={action.status} data-lifecycle={action.lifecycle}>
           <strong>{action.title}</strong>
+          {LIFECYCLE_LABEL[action.lifecycle] && <small className="trip-action-lifecycle" role="note">{LIFECYCLE_LABEL[action.lifecycle]}</small>}
           <span>{action.problem}</span>
           {action.events.length > 0 && <small className="trip-action-events">
             {action.events.map(event => `${event.title} · ${clock.format(new Date(event.start))}`).join("；")}

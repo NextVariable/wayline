@@ -28,11 +28,13 @@ function setDemoFlag(on: boolean) {
 }
 
 const pad = (value: number) => String(value).padStart(2, "0");
+const DEMO_UTC_OFFSET_MS = 8 * 60 * 60_000;
+const DAY_MS = 24 * 60 * 60_000;
+
+/** Demo dates always follow Asia/Shanghai, so hosts in other zones see the same scenario days. */
 export function demoDay(offset: number, now = Date.now()) {
-  const date = new Date(now);
-  date.setHours(0, 0, 0, 0);
-  date.setDate(date.getDate() + offset);
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  const date = new Date(now + DEMO_UTC_OFFSET_MS + offset * DAY_MS);
+  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`;
 }
 const at = (day: string, time: string) => `${day}T${time}:00+08:00`;
 
