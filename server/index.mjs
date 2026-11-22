@@ -44,7 +44,7 @@ travelServices.researchPublic = ({notes,places,publicEvents,purpose='venue'}) =>
 const host = process.env.HOST || '127.0.0.1';
 if (!['127.0.0.1', 'localhost', '::1'].includes(host) && !process.env.WEB_ACCESS_PASSWORD)
   throw new Error('Public hosting requires WEB_ACCESS_PASSWORD');
-const serveWeb = createWebHost({ password: process.env.WEB_ACCESS_PASSWORD || '', secure: process.env.PUBLIC_ORIGIN?.startsWith('https://') });
+const serveWeb = createWebHost({ password: process.env.WEB_ACCESS_PASSWORD || '', secure: process.env.PUBLIC_ORIGIN?.startsWith('https://'), publicOrigin: process.env.PUBLIC_ORIGIN });
 // The anonymous API routes spend the operator's map quota. Limit each caller, add a
 // stricter budget for routes that fetch outside pages, and cap the whole site.
 const positiveInt = (value, fallback) => Number.isInteger(Number(value)) && Number(value) > 0 ? Number(value) : fallback;

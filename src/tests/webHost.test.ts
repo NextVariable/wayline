@@ -41,11 +41,11 @@ describe('website hosting and private preview access', () => {
     const host = createWebHost({ root, password: 'private-preview', secret: 'test-signing-secret', secure: true });
     expect((await call(host, '/')).status).toBe(401);
     expect(await call(host, '/api/plan', 'POST')).toMatchObject({ status: 401, handled: true });
-    expect((await call(host, '/access', 'POST', {}, 'password=wrong')).body).toContain('密码不正确');
+    expect((await call(host, '/access', 'POST', { origin: 'https://travel.example' }, 'password=wrong')).body).toContain('密码不正确');
     const login = await call(host, '/access', 'POST', { origin: 'https://travel.example' }, 'password=private-preview');
     expect(login.status).toBe(303);
     const cookie = login.headers['Set-Cookie'];
-    expect(cookie).toContain('HttpOnly; SameSite=Strict');
+    expect(cookie).toContain('HttpOnly; SameSite=Lax');
     expect(cookie).toContain('; Secure');
     expect((await call(host, '/', 'GET', { cookie })).status).toBe(200);
     expect((await call(host, '/api/plan', 'POST', { cookie })).handled).toBe(false);
@@ -54,4 +54,13 @@ describe('website hosting and private preview access', () => {
   it.each(['https://other.example', 'invalid origin'])('rejects login from %s', async origin => {
     expect((await call(createWebHost({ root, password: 'secret' }), '/access', 'POST', { origin }, 'password=secret')).status).toBe(403);
   });
+});
+
+it('uses the configured public origin behind a TLS proxy and disables caching for rejected APIs', async () => {
+  const host=createWebHost({root, password:'preview', secure:true, publicOrigin:'https://travel.example'});
+  const headers={host:'127.0.0.1:8787',origin:'https://travel.example'};
+  expect((await call(host,'/access','POST',headers,'password=preview')).status).toBe(303);
+  expect((await call(host,'/access','POST',{...headers,origin:'http://travel.example'},'password=preview')).status).toBe(403);
+  expect((await call(host,'/access','POST',{host:headers.host},'password=preview')).status).toBe(403);
+  expect((await call(host,'/api/route')).headers['Cache-Control']).toBe('no-store');
 });

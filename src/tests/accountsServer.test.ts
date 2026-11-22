@@ -18,7 +18,7 @@ function response() {
 const cookiesOf = (res: {headers: Record<string, any>}) => ([] as string[]).concat(res.headers['Set-Cookie'] ?? []);
 const cookieValue = (res: {headers: Record<string, any>}, name: string) => cookiesOf(res).find(c => c.startsWith(name + '='))?.split(';')[0];
 
-function setup({configured = true, gmail = false, sub = 'g-123', email = 'a@example.com', name = 'Ada', maxWorkspaceBytes = undefined as number | undefined} = {}) {
+function setup({configured = true, gmail = false, sub = 'g-123', email = 'a@example.com', name = 'Ada', emailVerified = true, maxWorkspaceBytes = undefined as number | undefined} = {}) {
   let clock = Date.parse('2026-11-12T01:00:00Z'), failSave = false, user = {sub, email, name};
   const store = {data: {} as any, save: vi.fn(async () => { if (failSave) throw new Error('disk'); })};
   const openVault = vi.fn(async () => store);
@@ -26,7 +26,7 @@ function setup({configured = true, gmail = false, sub = 'g-123', email = 'a@exam
     const url = new URL(input);
     const result = (data: any, status = 200) => ({ok: status === 200, status, json: async () => data});
     if (url.hostname === 'oauth2.googleapis.com') return result({access_token: 'PRIVATE_ACCESS', refresh_token: 'PRIVATE_REFRESH', expires_in: 3600, scope: ['openid', 'email', 'profile', ...(options?.body?.get('code') === 'gmail-code' ? [GMAIL] : CALENDAR)].join(' ')});
-    if (url.hostname === 'openidconnect.googleapis.com') return result(user);
+    if (url.hostname === 'openidconnect.googleapis.com') return result({...user,email_verified:emailVerified});
     return result({}, 404);
   });
   const env = configured ? {GOOGLE_CLIENT_ID: 'test-id', GOOGLE_CLIENT_SECRET: 'test-secret', PUBLIC_ORIGIN: ORIGIN,
@@ -271,4 +271,17 @@ it('rolls back the version when saving fails', async () => {
   expect(failed.status).toBe(500);
   s.failSave(false);
   expect((await s.call('/api/workspace', {cookie: session})).json()).toMatchObject({version: 1, workspace: {name: '甲'}});
+});
+
+it('refuses a sign-in identity with an unverified email', async () => {
+ const s=setup({emailVerified:false});
+ const {callback,session}=await s.signIn();
+ expect(callback.status).toBe(403);
+ expect(session).toBeUndefined();
+ expect(s.store.data.accounts[sha('g-123')]).toBeUndefined();
+});
+
+it('rejects a sign-in callback configured with a fragment', () => {
+ expect(() => createAccountService({env:{GOOGLE_SIGNIN_REDIRECT_URI:
+   ORIGIN+'/api/auth/google/callback#fragment'}})).toThrow('回调地址');
 });

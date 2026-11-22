@@ -85,6 +85,12 @@ export function createTodayLegsRunner({ fetchImpl = fetch }: { fetchImpl?: Fetch
 export function useTodayLegs({ pairs, choices, owner, retryCount }: {
   pairs: TodayLegPair[]; choices: Record<string, TravelMode>; owner: string; retryCount: number;
 }) {
+  const [networkRevision, setNetworkRevision] = useState(0);
+  useEffect(() => {
+    const refresh = () => setNetworkRevision(value => value + 1);
+    window.addEventListener("online", refresh);
+    return () => window.removeEventListener("online", refresh);
+  }, []);
   const runner = useRef<{ owner: string; lookup: ReturnType<typeof createTodayLegsRunner> } | null>(null);
   const [result, setResult] = useState<{ signature: string; legs: Legs; pending: boolean }>();
   const signature = JSON.stringify([owner, pairs.map(p => [
@@ -113,7 +119,7 @@ export function useTodayLegs({ pairs, choices, owner, retryCount }: {
       if (live) setResult(old => old?.signature === signature ? { ...old, pending: false } : old);
     });
     return () => { live = false; current.cancel(); };
-  }, [signature, chosenModes, retryCount, owner, hasRoutes]);
+  }, [signature, chosenModes, retryCount, owner, hasRoutes, networkRevision]);
   return { legs: result?.signature === signature ? result.legs : emptyLegs,
     loading: hasRoutes && (result?.signature !== signature || result.pending) };
 }

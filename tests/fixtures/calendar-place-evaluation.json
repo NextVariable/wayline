@@ -1,0 +1,2320 @@
+[
+  {
+    "id": "loc-001",
+    "category": "标准地址",
+    "query": "上海市示例桐海路10号",
+    "scope": "上海",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例桐海楼0",
+        "city": "上海",
+        "address": "示例桐海路10号",
+        "lat": 30.0,
+        "lng": 110.0
+      },
+      {
+        "name": "示例桐海邻楼",
+        "city": "上海",
+        "address": "示例桐海路10号附1",
+        "lat": 30.1,
+        "lng": 110.0
+      }
+    ],
+    "answer": {
+      "name": "示例桐海楼0",
+      "city": "上海",
+      "address": "示例桐海路10号",
+      "lat": 30.0,
+      "lng": 110.0
+    }
+  },
+  {
+    "id": "loc-002",
+    "category": "标准地址",
+    "query": "深圳市示例砚河路11号",
+    "scope": "深圳",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例砚河楼1",
+        "city": "深圳",
+        "address": "示例砚河路11号",
+        "lat": 30.1,
+        "lng": 110.1
+      },
+      {
+        "name": "示例砚河邻楼",
+        "city": "深圳",
+        "address": "示例砚河路11号附1",
+        "lat": 30.2,
+        "lng": 110.1
+      }
+    ],
+    "answer": {
+      "name": "示例砚河楼1",
+      "city": "深圳",
+      "address": "示例砚河路11号",
+      "lat": 30.1,
+      "lng": 110.1
+    }
+  },
+  {
+    "id": "loc-003",
+    "category": "标准地址",
+    "query": "北京市示例圆杉路12号",
+    "scope": "北京",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例圆杉楼2",
+        "city": "北京",
+        "address": "示例圆杉路12号",
+        "lat": 30.2,
+        "lng": 110.2
+      },
+      {
+        "name": "示例圆杉邻楼",
+        "city": "北京",
+        "address": "示例圆杉路12号附1",
+        "lat": 30.3,
+        "lng": 110.2
+      }
+    ],
+    "answer": {
+      "name": "示例圆杉楼2",
+      "city": "北京",
+      "address": "示例圆杉路12号",
+      "lat": 30.2,
+      "lng": 110.2
+    }
+  },
+  {
+    "id": "loc-004",
+    "category": "标准地址",
+    "query": "苏州市示例汀屿路13号",
+    "scope": "苏州",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例汀屿楼3",
+        "city": "苏州",
+        "address": "示例汀屿路13号",
+        "lat": 30.3,
+        "lng": 110.3
+      },
+      {
+        "name": "示例汀屿邻楼",
+        "city": "苏州",
+        "address": "示例汀屿路13号附1",
+        "lat": 30.4,
+        "lng": 110.3
+      }
+    ],
+    "answer": {
+      "name": "示例汀屿楼3",
+      "city": "苏州",
+      "address": "示例汀屿路13号",
+      "lat": 30.3,
+      "lng": 110.3
+    }
+  },
+  {
+    "id": "loc-005",
+    "category": "标准地址",
+    "query": "杭州市示例棠岭路14号",
+    "scope": "杭州",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例棠岭楼4",
+        "city": "杭州",
+        "address": "示例棠岭路14号",
+        "lat": 30.4,
+        "lng": 110.4
+      },
+      {
+        "name": "示例棠岭邻楼",
+        "city": "杭州",
+        "address": "示例棠岭路14号附1",
+        "lat": 30.5,
+        "lng": 110.4
+      }
+    ],
+    "answer": {
+      "name": "示例棠岭楼4",
+      "city": "杭州",
+      "address": "示例棠岭路14号",
+      "lat": 30.4,
+      "lng": 110.4
+    }
+  },
+  {
+    "id": "loc-006",
+    "category": "标准地址",
+    "query": "成都市示例望舟路15号",
+    "scope": "成都",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例望舟楼5",
+        "city": "成都",
+        "address": "示例望舟路15号",
+        "lat": 30.5,
+        "lng": 110.5
+      },
+      {
+        "name": "示例望舟邻楼",
+        "city": "成都",
+        "address": "示例望舟路15号附1",
+        "lat": 30.6,
+        "lng": 110.5
+      }
+    ],
+    "answer": {
+      "name": "示例望舟楼5",
+      "city": "成都",
+      "address": "示例望舟路15号",
+      "lat": 30.5,
+      "lng": 110.5
+    }
+  },
+  {
+    "id": "loc-007",
+    "category": "标准地址",
+    "query": "武汉市示例云泽路16号",
+    "scope": "武汉",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例云泽楼6",
+        "city": "武汉",
+        "address": "示例云泽路16号",
+        "lat": 30.6,
+        "lng": 110.6
+      },
+      {
+        "name": "示例云泽邻楼",
+        "city": "武汉",
+        "address": "示例云泽路16号附1",
+        "lat": 30.7,
+        "lng": 110.6
+      }
+    ],
+    "answer": {
+      "name": "示例云泽楼6",
+      "city": "武汉",
+      "address": "示例云泽路16号",
+      "lat": 30.6,
+      "lng": 110.6
+    }
+  },
+  {
+    "id": "loc-008",
+    "category": "标准地址",
+    "query": "南京市示例平川路17号",
+    "scope": "南京",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例平川楼7",
+        "city": "南京",
+        "address": "示例平川路17号",
+        "lat": 30.7,
+        "lng": 110.7
+      },
+      {
+        "name": "示例平川邻楼",
+        "city": "南京",
+        "address": "示例平川路17号附1",
+        "lat": 30.8,
+        "lng": 110.7
+      }
+    ],
+    "answer": {
+      "name": "示例平川楼7",
+      "city": "南京",
+      "address": "示例平川路17号",
+      "lat": 30.7,
+      "lng": 110.7
+    }
+  },
+  {
+    "id": "loc-009",
+    "category": "标准地址",
+    "query": "广州市示例栖渡路18号",
+    "scope": "广州",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例栖渡楼8",
+        "city": "广州",
+        "address": "示例栖渡路18号",
+        "lat": 30.8,
+        "lng": 110.8
+      },
+      {
+        "name": "示例栖渡邻楼",
+        "city": "广州",
+        "address": "示例栖渡路18号附1",
+        "lat": 30.9,
+        "lng": 110.8
+      }
+    ],
+    "answer": {
+      "name": "示例栖渡楼8",
+      "city": "广州",
+      "address": "示例栖渡路18号",
+      "lat": 30.8,
+      "lng": 110.8
+    }
+  },
+  {
+    "id": "loc-010",
+    "category": "标准地址",
+    "query": "西安市示例澄礼路19号",
+    "scope": "西安",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例澄礼楼9",
+        "city": "西安",
+        "address": "示例澄礼路19号",
+        "lat": 30.9,
+        "lng": 110.9
+      },
+      {
+        "name": "示例澄礼邻楼",
+        "city": "西安",
+        "address": "示例澄礼路19号附1",
+        "lat": 31.0,
+        "lng": 110.9
+      }
+    ],
+    "answer": {
+      "name": "示例澄礼楼9",
+      "city": "西安",
+      "address": "示例澄礼路19号",
+      "lat": 30.9,
+      "lng": 110.9
+    }
+  },
+  {
+    "id": "loc-011",
+    "category": "标准地址",
+    "query": "示例桐海路20号",
+    "scope": "上海",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例桐海楼10",
+        "city": "上海",
+        "address": "示例桐海路20号",
+        "lat": 31.0,
+        "lng": 111.0
+      }
+    ],
+    "answer": {
+      "name": "示例桐海楼10",
+      "city": "上海",
+      "address": "示例桐海路20号",
+      "lat": 31.0,
+      "lng": 111.0
+    }
+  },
+  {
+    "id": "loc-012",
+    "category": "标准地址",
+    "query": "示例砚河路21号",
+    "scope": "深圳",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例砚河楼11",
+        "city": "深圳",
+        "address": "示例砚河路21号",
+        "lat": 31.1,
+        "lng": 111.1
+      }
+    ],
+    "answer": {
+      "name": "示例砚河楼11",
+      "city": "深圳",
+      "address": "示例砚河路21号",
+      "lat": 31.1,
+      "lng": 111.1
+    }
+  },
+  {
+    "id": "loc-013",
+    "category": "标准地址",
+    "query": "示例圆杉路22号",
+    "scope": "北京",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例圆杉楼12",
+        "city": "北京",
+        "address": "示例圆杉路22号",
+        "lat": 31.2,
+        "lng": 111.2
+      }
+    ],
+    "answer": {
+      "name": "示例圆杉楼12",
+      "city": "北京",
+      "address": "示例圆杉路22号",
+      "lat": 31.2,
+      "lng": 111.2
+    }
+  },
+  {
+    "id": "loc-014",
+    "category": "标准地址",
+    "query": "示例汀屿路23号",
+    "scope": "苏州",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例汀屿楼13",
+        "city": "苏州",
+        "address": "示例汀屿路23号",
+        "lat": 31.3,
+        "lng": 111.3
+      }
+    ],
+    "answer": {
+      "name": "示例汀屿楼13",
+      "city": "苏州",
+      "address": "示例汀屿路23号",
+      "lat": 31.3,
+      "lng": 111.3
+    }
+  },
+  {
+    "id": "loc-015",
+    "category": "标准地址",
+    "query": "示例棠岭路24号",
+    "scope": "杭州",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例棠岭楼14",
+        "city": "杭州",
+        "address": "示例棠岭路24号",
+        "lat": 31.4,
+        "lng": 111.4
+      }
+    ],
+    "answer": {
+      "name": "示例棠岭楼14",
+      "city": "杭州",
+      "address": "示例棠岭路24号",
+      "lat": 31.4,
+      "lng": 111.4
+    }
+  },
+  {
+    "id": "loc-016",
+    "category": "标准地址",
+    "query": "示例望舟路25号",
+    "scope": "成都",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例望舟楼15",
+        "city": "成都",
+        "address": "示例望舟路25号",
+        "lat": 31.5,
+        "lng": 111.5
+      }
+    ],
+    "answer": {
+      "name": "示例望舟楼15",
+      "city": "成都",
+      "address": "示例望舟路25号",
+      "lat": 31.5,
+      "lng": 111.5
+    }
+  },
+  {
+    "id": "loc-017",
+    "category": "标准地址",
+    "query": "示例云泽路26号",
+    "scope": "武汉",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例云泽楼16",
+        "city": "武汉",
+        "address": "示例云泽路26号",
+        "lat": 31.6,
+        "lng": 111.6
+      }
+    ],
+    "answer": {
+      "name": "示例云泽楼16",
+      "city": "武汉",
+      "address": "示例云泽路26号",
+      "lat": 31.6,
+      "lng": 111.6
+    }
+  },
+  {
+    "id": "loc-018",
+    "category": "标准地址",
+    "query": "示例平川路27号",
+    "scope": "南京",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例平川楼17",
+        "city": "南京",
+        "address": "示例平川路27号",
+        "lat": 31.7,
+        "lng": 111.7
+      }
+    ],
+    "answer": {
+      "name": "示例平川楼17",
+      "city": "南京",
+      "address": "示例平川路27号",
+      "lat": 31.7,
+      "lng": 111.7
+    }
+  },
+  {
+    "id": "loc-019",
+    "category": "标准地址",
+    "query": "示例栖渡路28号",
+    "scope": "广州",
+    "expected": "unavailable",
+    "candidates": null,
+    "answer": null
+  },
+  {
+    "id": "loc-020",
+    "category": "标准地址",
+    "query": "示例澄礼路29号",
+    "scope": "西安",
+    "expected": "unavailable",
+    "candidates": null,
+    "answer": null
+  },
+  {
+    "id": "loc-021",
+    "category": "公司和园区",
+    "query": "示例桐海科技有限公司",
+    "scope": "上海",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例桐海科技有限公司",
+        "city": "上海",
+        "address": "示例桐海科技有限公司路1号",
+        "lat": 30.0,
+        "lng": 110.0
+      }
+    ],
+    "answer": {
+      "name": "示例桐海科技有限公司",
+      "city": "上海",
+      "address": "示例桐海科技有限公司路1号",
+      "lat": 30.0,
+      "lng": 110.0
+    }
+  },
+  {
+    "id": "loc-022",
+    "category": "公司和园区",
+    "query": "示例砚河电子园区",
+    "scope": "深圳",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例砚河电子园区",
+        "city": "深圳",
+        "address": "示例砚河电子园区路1号",
+        "lat": 30.1,
+        "lng": 110.1
+      }
+    ],
+    "answer": {
+      "name": "示例砚河电子园区",
+      "city": "深圳",
+      "address": "示例砚河电子园区路1号",
+      "lat": 30.1,
+      "lng": 110.1
+    }
+  },
+  {
+    "id": "loc-023",
+    "category": "公司和园区",
+    "query": "示例圆杉科技有限公司",
+    "scope": "北京",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例圆杉科技有限公司",
+        "city": "北京",
+        "address": "示例圆杉科技有限公司路1号",
+        "lat": 30.2,
+        "lng": 110.2
+      }
+    ],
+    "answer": {
+      "name": "示例圆杉科技有限公司",
+      "city": "北京",
+      "address": "示例圆杉科技有限公司路1号",
+      "lat": 30.2,
+      "lng": 110.2
+    }
+  },
+  {
+    "id": "loc-024",
+    "category": "公司和园区",
+    "query": "示例汀屿电子园区",
+    "scope": "苏州",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例汀屿电子园区",
+        "city": "苏州",
+        "address": "示例汀屿电子园区路1号",
+        "lat": 30.3,
+        "lng": 110.3
+      }
+    ],
+    "answer": {
+      "name": "示例汀屿电子园区",
+      "city": "苏州",
+      "address": "示例汀屿电子园区路1号",
+      "lat": 30.3,
+      "lng": 110.3
+    }
+  },
+  {
+    "id": "loc-025",
+    "category": "公司和园区",
+    "query": "示例棠岭科技有限公司",
+    "scope": "杭州",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例棠岭科技有限公司",
+        "city": "杭州",
+        "address": "示例棠岭科技有限公司路1号",
+        "lat": 30.4,
+        "lng": 110.4
+      }
+    ],
+    "answer": {
+      "name": "示例棠岭科技有限公司",
+      "city": "杭州",
+      "address": "示例棠岭科技有限公司路1号",
+      "lat": 30.4,
+      "lng": 110.4
+    }
+  },
+  {
+    "id": "loc-026",
+    "category": "公司和园区",
+    "query": "示例望舟电子园区",
+    "scope": "成都",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例望舟电子园区",
+        "city": "成都",
+        "address": "示例望舟电子园区路1号",
+        "lat": 30.5,
+        "lng": 110.5
+      }
+    ],
+    "answer": {
+      "name": "示例望舟电子园区",
+      "city": "成都",
+      "address": "示例望舟电子园区路1号",
+      "lat": 30.5,
+      "lng": 110.5
+    }
+  },
+  {
+    "id": "loc-027",
+    "category": "公司和园区",
+    "query": "示例云泽科技有限公司",
+    "scope": "武汉",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例云泽科技有限公司",
+        "city": "武汉",
+        "address": "示例云泽科技有限公司路1号",
+        "lat": 30.6,
+        "lng": 110.6
+      }
+    ],
+    "answer": {
+      "name": "示例云泽科技有限公司",
+      "city": "武汉",
+      "address": "示例云泽科技有限公司路1号",
+      "lat": 30.6,
+      "lng": 110.6
+    }
+  },
+  {
+    "id": "loc-028",
+    "category": "公司和园区",
+    "query": "示例平川电子园区",
+    "scope": "南京",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例平川电子园区",
+        "city": "南京",
+        "address": "示例平川电子园区路1号",
+        "lat": 30.7,
+        "lng": 110.7
+      }
+    ],
+    "answer": {
+      "name": "示例平川电子园区",
+      "city": "南京",
+      "address": "示例平川电子园区路1号",
+      "lat": 30.7,
+      "lng": 110.7
+    }
+  },
+  {
+    "id": "loc-029",
+    "category": "公司和园区",
+    "query": "示例栖渡科技有限公司",
+    "scope": "广州",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例栖渡科技有限公司",
+        "city": "广州",
+        "address": "示例栖渡科技有限公司路1号",
+        "lat": 30.8,
+        "lng": 110.8
+      }
+    ],
+    "answer": {
+      "name": "示例栖渡科技有限公司",
+      "city": "广州",
+      "address": "示例栖渡科技有限公司路1号",
+      "lat": 30.8,
+      "lng": 110.8
+    }
+  },
+  {
+    "id": "loc-030",
+    "category": "公司和园区",
+    "query": "示例澄礼电子园区",
+    "scope": "西安",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例澄礼电子园区",
+        "city": "西安",
+        "address": "示例澄礼电子园区路1号",
+        "lat": 30.9,
+        "lng": 110.9
+      }
+    ],
+    "answer": {
+      "name": "示例澄礼电子园区",
+      "city": "西安",
+      "address": "示例澄礼电子园区路1号",
+      "lat": 30.9,
+      "lng": 110.9
+    }
+  },
+  {
+    "id": "loc-031",
+    "category": "公司和园区",
+    "query": "示例桐海科技有限公司",
+    "scope": "上海",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例桐海科技有限公司",
+        "city": "上海",
+        "address": "示例桐海科技有限公司路1号",
+        "lat": 31.0,
+        "lng": 111.0
+      }
+    ],
+    "answer": {
+      "name": "示例桐海科技有限公司",
+      "city": "上海",
+      "address": "示例桐海科技有限公司路1号",
+      "lat": 31.0,
+      "lng": 111.0
+    }
+  },
+  {
+    "id": "loc-032",
+    "category": "公司和园区",
+    "query": "示例砚河电子园区",
+    "scope": "深圳",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例砚河电子园区",
+        "city": "深圳",
+        "address": "示例砚河电子园区路1号",
+        "lat": 31.1,
+        "lng": 111.1
+      }
+    ],
+    "answer": {
+      "name": "示例砚河电子园区",
+      "city": "深圳",
+      "address": "示例砚河电子园区路1号",
+      "lat": 31.1,
+      "lng": 111.1
+    }
+  },
+  {
+    "id": "loc-033",
+    "category": "公司和园区",
+    "query": "示例圆杉科技有限公司",
+    "scope": "北京",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例圆杉科技有限公司",
+        "city": "北京",
+        "address": "示例圆杉科技有限公司路1号",
+        "lat": 31.2,
+        "lng": 111.2
+      }
+    ],
+    "answer": {
+      "name": "示例圆杉科技有限公司",
+      "city": "北京",
+      "address": "示例圆杉科技有限公司路1号",
+      "lat": 31.2,
+      "lng": 111.2
+    }
+  },
+  {
+    "id": "loc-034",
+    "category": "公司和园区",
+    "query": "示例汀屿电子园区",
+    "scope": "苏州",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例汀屿电子园区",
+        "city": "苏州",
+        "address": "示例汀屿电子园区路1号",
+        "lat": 31.3,
+        "lng": 111.3
+      }
+    ],
+    "answer": {
+      "name": "示例汀屿电子园区",
+      "city": "苏州",
+      "address": "示例汀屿电子园区路1号",
+      "lat": 31.3,
+      "lng": 111.3
+    }
+  },
+  {
+    "id": "loc-035",
+    "category": "公司和园区",
+    "query": "示例棠岭科技有限公司",
+    "scope": "杭州",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例棠岭科技有限公司",
+        "city": "杭州",
+        "address": "示例棠岭科技有限公司路1号",
+        "lat": 31.4,
+        "lng": 111.4
+      }
+    ],
+    "answer": {
+      "name": "示例棠岭科技有限公司",
+      "city": "杭州",
+      "address": "示例棠岭科技有限公司路1号",
+      "lat": 31.4,
+      "lng": 111.4
+    }
+  },
+  {
+    "id": "loc-036",
+    "category": "公司和园区",
+    "query": "示例望舟电子园区",
+    "scope": "成都",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "示例望舟电子园区",
+        "city": "成都",
+        "address": "示例望舟电子园区路1号",
+        "lat": 31.5,
+        "lng": 111.5
+      }
+    ],
+    "answer": {
+      "name": "示例望舟电子园区",
+      "city": "成都",
+      "address": "示例望舟电子园区路1号",
+      "lat": 31.5,
+      "lng": 111.5
+    }
+  },
+  {
+    "id": "loc-037",
+    "category": "公司和园区",
+    "query": "示例云泽科技有限公司",
+    "scope": "武汉",
+    "expected": "unavailable",
+    "candidates": null,
+    "answer": null
+  },
+  {
+    "id": "loc-038",
+    "category": "公司和园区",
+    "query": "示例平川电子园区",
+    "scope": "南京",
+    "expected": "unavailable",
+    "candidates": null,
+    "answer": null
+  },
+  {
+    "id": "loc-039",
+    "category": "公司和园区",
+    "query": "示例栖渡科技有限公司",
+    "scope": "广州",
+    "expected": "none",
+    "candidates": [],
+    "answer": null
+  },
+  {
+    "id": "loc-040",
+    "category": "公司和园区",
+    "query": "示例澄礼电子园区",
+    "scope": "西安",
+    "expected": "none",
+    "candidates": [],
+    "answer": null
+  },
+  {
+    "id": "loc-041",
+    "category": "重名地点",
+    "query": "示例桐海中心",
+    "scope": "上海",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "示例桐海中心",
+        "city": "上海",
+        "address": "示例路11号",
+        "lat": 30.0,
+        "lng": 110.0
+      },
+      {
+        "name": "示例桐海中心",
+        "city": "上海",
+        "address": "示例路22号",
+        "lat": 30.1,
+        "lng": 110.0
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-042",
+    "category": "重名地点",
+    "query": "示例砚河中心",
+    "scope": "深圳",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "示例砚河中心",
+        "city": "深圳",
+        "address": "示例路11号",
+        "lat": 30.1,
+        "lng": 110.1
+      },
+      {
+        "name": "示例砚河中心",
+        "city": "深圳",
+        "address": "示例路22号",
+        "lat": 30.2,
+        "lng": 110.1
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-043",
+    "category": "重名地点",
+    "query": "示例圆杉中心",
+    "scope": "北京",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "示例圆杉中心",
+        "city": "北京",
+        "address": "示例路11号",
+        "lat": 30.2,
+        "lng": 110.2
+      },
+      {
+        "name": "示例圆杉中心",
+        "city": "北京",
+        "address": "示例路22号",
+        "lat": 30.3,
+        "lng": 110.2
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-044",
+    "category": "重名地点",
+    "query": "示例汀屿中心",
+    "scope": "苏州",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "示例汀屿中心",
+        "city": "苏州",
+        "address": "示例路11号",
+        "lat": 30.3,
+        "lng": 110.3
+      },
+      {
+        "name": "示例汀屿中心",
+        "city": "苏州",
+        "address": "示例路22号",
+        "lat": 30.4,
+        "lng": 110.3
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-045",
+    "category": "重名地点",
+    "query": "示例棠岭中心",
+    "scope": "杭州",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "示例棠岭中心",
+        "city": "杭州",
+        "address": "示例路11号",
+        "lat": 30.4,
+        "lng": 110.4
+      },
+      {
+        "name": "示例棠岭中心",
+        "city": "杭州",
+        "address": "示例路22号",
+        "lat": 30.5,
+        "lng": 110.4
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-046",
+    "category": "重名地点",
+    "query": "示例望舟中心",
+    "scope": "成都",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "示例望舟中心",
+        "city": "成都",
+        "address": "示例路11号",
+        "lat": 30.5,
+        "lng": 110.5
+      },
+      {
+        "name": "示例望舟中心",
+        "city": "成都",
+        "address": "示例路22号",
+        "lat": 30.6,
+        "lng": 110.5
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-047",
+    "category": "重名地点",
+    "query": "示例云泽中心",
+    "scope": "武汉",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "示例云泽中心",
+        "city": "武汉",
+        "address": "示例路11号",
+        "lat": 30.6,
+        "lng": 110.6
+      },
+      {
+        "name": "示例云泽中心",
+        "city": "武汉",
+        "address": "示例路22号",
+        "lat": 30.7,
+        "lng": 110.6
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-048",
+    "category": "重名地点",
+    "query": "示例平川中心",
+    "scope": "南京",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "示例平川中心",
+        "city": "南京",
+        "address": "示例路11号",
+        "lat": 30.7,
+        "lng": 110.7
+      },
+      {
+        "name": "示例平川中心",
+        "city": "南京",
+        "address": "示例路22号",
+        "lat": 30.8,
+        "lng": 110.7
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-049",
+    "category": "重名地点",
+    "query": "示例栖渡中心",
+    "scope": "广州",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "示例栖渡中心",
+        "city": "广州",
+        "address": "示例路11号",
+        "lat": 30.8,
+        "lng": 110.8
+      },
+      {
+        "name": "示例栖渡中心",
+        "city": "广州",
+        "address": "示例路22号",
+        "lat": 30.9,
+        "lng": 110.8
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-050",
+    "category": "重名地点",
+    "query": "示例澄礼中心",
+    "scope": "西安",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "示例澄礼中心",
+        "city": "西安",
+        "address": "示例路11号",
+        "lat": 30.9,
+        "lng": 110.9
+      },
+      {
+        "name": "示例澄礼中心",
+        "city": "西安",
+        "address": "示例路22号",
+        "lat": 31.0,
+        "lng": 110.9
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-051",
+    "category": "重名地点",
+    "query": "示例桐海中心",
+    "scope": "上海",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "示例桐海中心",
+        "city": "上海",
+        "address": "示例路11号",
+        "lat": 31.0,
+        "lng": 111.0
+      },
+      {
+        "name": "示例桐海中心西区分部",
+        "city": "上海",
+        "address": "示例路22号",
+        "lat": 31.1,
+        "lng": 111.0
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-052",
+    "category": "重名地点",
+    "query": "示例砚河中心",
+    "scope": "深圳",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "示例砚河中心",
+        "city": "深圳",
+        "address": "示例路11号",
+        "lat": 31.1,
+        "lng": 111.1
+      },
+      {
+        "name": "示例砚河中心西区分部",
+        "city": "深圳",
+        "address": "示例路22号",
+        "lat": 31.2,
+        "lng": 111.1
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-053",
+    "category": "重名地点",
+    "query": "示例圆杉中心",
+    "scope": "北京",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "示例圆杉中心",
+        "city": "北京",
+        "address": "示例路11号",
+        "lat": 31.2,
+        "lng": 111.2
+      },
+      {
+        "name": "示例圆杉中心西区分部",
+        "city": "北京",
+        "address": "示例路22号",
+        "lat": 31.3,
+        "lng": 111.2
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-054",
+    "category": "重名地点",
+    "query": "示例汀屿中心",
+    "scope": "苏州",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "示例汀屿中心",
+        "city": "苏州",
+        "address": "示例路11号",
+        "lat": 31.3,
+        "lng": 111.3
+      },
+      {
+        "name": "示例汀屿中心西区分部",
+        "city": "苏州",
+        "address": "示例路22号",
+        "lat": 31.4,
+        "lng": 111.3
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-055",
+    "category": "重名地点",
+    "query": "示例棠岭中心",
+    "scope": "杭州",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "示例棠岭中心",
+        "city": "杭州",
+        "address": "示例路11号",
+        "lat": 31.4,
+        "lng": 111.4
+      },
+      {
+        "name": "示例棠岭中心西区分部",
+        "city": "杭州",
+        "address": "示例路22号",
+        "lat": 31.5,
+        "lng": 111.4
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-056",
+    "category": "重名地点",
+    "query": "示例望舟中心",
+    "scope": "成都",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "示例望舟中心",
+        "city": "成都",
+        "address": "示例路11号",
+        "lat": 31.5,
+        "lng": 111.5
+      },
+      {
+        "name": "示例望舟中心西区分部",
+        "city": "成都",
+        "address": "示例路22号",
+        "lat": 31.6,
+        "lng": 111.5
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-057",
+    "category": "重名地点",
+    "query": "示例云泽中心",
+    "scope": "武汉",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "示例云泽中心",
+        "city": "武汉",
+        "address": "示例路11号",
+        "lat": 31.6,
+        "lng": 111.6
+      },
+      {
+        "name": "示例云泽中心西区分部",
+        "city": "武汉",
+        "address": "示例路22号",
+        "lat": 31.7,
+        "lng": 111.6
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-058",
+    "category": "重名地点",
+    "query": "示例平川中心",
+    "scope": "南京",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "示例平川中心",
+        "city": "南京",
+        "address": "示例路11号",
+        "lat": 31.7,
+        "lng": 111.7
+      },
+      {
+        "name": "示例平川中心西区分部",
+        "city": "南京",
+        "address": "示例路22号",
+        "lat": 31.8,
+        "lng": 111.7
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-059",
+    "category": "重名地点",
+    "query": "示例栖渡中心",
+    "scope": "广州",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "示例栖渡中心",
+        "city": "广州",
+        "address": "示例路11号",
+        "lat": 31.8,
+        "lng": 111.8
+      },
+      {
+        "name": "示例栖渡中心西区分部",
+        "city": "广州",
+        "address": "示例路22号",
+        "lat": 31.9,
+        "lng": 111.8
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-060",
+    "category": "重名地点",
+    "query": "示例澄礼中心",
+    "scope": "西安",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "示例澄礼中心",
+        "city": "西安",
+        "address": "示例路11号",
+        "lat": 31.9,
+        "lng": 111.9
+      },
+      {
+        "name": "示例澄礼中心西区分部",
+        "city": "西安",
+        "address": "示例路22号",
+        "lat": 32.0,
+        "lng": 111.9
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-061",
+    "category": "跨城市地址",
+    "query": "上海示例桐海接待站0",
+    "scope": "深圳",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "上海示例桐海接待站0",
+        "city": "上海",
+        "address": "示例大道22号",
+        "lat": 30.0,
+        "lng": 110.0
+      }
+    ],
+    "answer": {
+      "name": "上海示例桐海接待站0",
+      "city": "上海",
+      "address": "示例大道22号",
+      "lat": 30.0,
+      "lng": 110.0
+    }
+  },
+  {
+    "id": "loc-062",
+    "category": "跨城市地址",
+    "query": "深圳示例砚河接待站1",
+    "scope": "北京",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "深圳示例砚河接待站1",
+        "city": "深圳",
+        "address": "示例大道22号",
+        "lat": 30.1,
+        "lng": 110.1
+      }
+    ],
+    "answer": {
+      "name": "深圳示例砚河接待站1",
+      "city": "深圳",
+      "address": "示例大道22号",
+      "lat": 30.1,
+      "lng": 110.1
+    }
+  },
+  {
+    "id": "loc-063",
+    "category": "跨城市地址",
+    "query": "北京示例圆杉接待站2",
+    "scope": "苏州",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "北京示例圆杉接待站2",
+        "city": "北京",
+        "address": "示例大道22号",
+        "lat": 30.2,
+        "lng": 110.2
+      }
+    ],
+    "answer": {
+      "name": "北京示例圆杉接待站2",
+      "city": "北京",
+      "address": "示例大道22号",
+      "lat": 30.2,
+      "lng": 110.2
+    }
+  },
+  {
+    "id": "loc-064",
+    "category": "跨城市地址",
+    "query": "苏州示例汀屿接待站3",
+    "scope": "杭州",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "苏州示例汀屿接待站3",
+        "city": "苏州",
+        "address": "示例大道22号",
+        "lat": 30.3,
+        "lng": 110.3
+      }
+    ],
+    "answer": {
+      "name": "苏州示例汀屿接待站3",
+      "city": "苏州",
+      "address": "示例大道22号",
+      "lat": 30.3,
+      "lng": 110.3
+    }
+  },
+  {
+    "id": "loc-065",
+    "category": "跨城市地址",
+    "query": "杭州示例棠岭接待站4",
+    "scope": "成都",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "杭州示例棠岭接待站4",
+        "city": "杭州",
+        "address": "示例大道22号",
+        "lat": 30.4,
+        "lng": 110.4
+      }
+    ],
+    "answer": {
+      "name": "杭州示例棠岭接待站4",
+      "city": "杭州",
+      "address": "示例大道22号",
+      "lat": 30.4,
+      "lng": 110.4
+    }
+  },
+  {
+    "id": "loc-066",
+    "category": "跨城市地址",
+    "query": "成都示例望舟接待站5",
+    "scope": "武汉",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "成都示例望舟接待站5",
+        "city": "成都",
+        "address": "示例大道22号",
+        "lat": 30.5,
+        "lng": 110.5
+      }
+    ],
+    "answer": {
+      "name": "成都示例望舟接待站5",
+      "city": "成都",
+      "address": "示例大道22号",
+      "lat": 30.5,
+      "lng": 110.5
+    }
+  },
+  {
+    "id": "loc-067",
+    "category": "跨城市地址",
+    "query": "武汉示例云泽接待站6",
+    "scope": "南京",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "武汉示例云泽接待站6",
+        "city": "武汉",
+        "address": "示例大道22号",
+        "lat": 30.6,
+        "lng": 110.6
+      }
+    ],
+    "answer": {
+      "name": "武汉示例云泽接待站6",
+      "city": "武汉",
+      "address": "示例大道22号",
+      "lat": 30.6,
+      "lng": 110.6
+    }
+  },
+  {
+    "id": "loc-068",
+    "category": "跨城市地址",
+    "query": "南京示例平川接待站7",
+    "scope": "广州",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "南京示例平川接待站7",
+        "city": "南京",
+        "address": "示例大道22号",
+        "lat": 30.7,
+        "lng": 110.7
+      }
+    ],
+    "answer": {
+      "name": "南京示例平川接待站7",
+      "city": "南京",
+      "address": "示例大道22号",
+      "lat": 30.7,
+      "lng": 110.7
+    }
+  },
+  {
+    "id": "loc-069",
+    "category": "跨城市地址",
+    "query": "广州示例栖渡接待站8",
+    "scope": "西安",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "广州示例栖渡接待站8",
+        "city": "广州",
+        "address": "示例大道22号",
+        "lat": 30.8,
+        "lng": 110.8
+      }
+    ],
+    "answer": {
+      "name": "广州示例栖渡接待站8",
+      "city": "广州",
+      "address": "示例大道22号",
+      "lat": 30.8,
+      "lng": 110.8
+    }
+  },
+  {
+    "id": "loc-070",
+    "category": "跨城市地址",
+    "query": "西安示例澄礼接待站9",
+    "scope": "上海",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "西安示例澄礼接待站9",
+        "city": "西安",
+        "address": "示例大道22号",
+        "lat": 30.9,
+        "lng": 110.9
+      }
+    ],
+    "answer": {
+      "name": "西安示例澄礼接待站9",
+      "city": "西安",
+      "address": "示例大道22号",
+      "lat": 30.9,
+      "lng": 110.9
+    }
+  },
+  {
+    "id": "loc-071",
+    "category": "跨城市地址",
+    "query": "上海示例桐海接待站10",
+    "scope": "深圳",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "上海示例桐海接待站10",
+        "city": "上海",
+        "address": "示例大道22号",
+        "lat": 31.0,
+        "lng": 111.0
+      }
+    ],
+    "answer": {
+      "name": "上海示例桐海接待站10",
+      "city": "上海",
+      "address": "示例大道22号",
+      "lat": 31.0,
+      "lng": 111.0
+    }
+  },
+  {
+    "id": "loc-072",
+    "category": "跨城市地址",
+    "query": "深圳示例砚河接待站11",
+    "scope": "北京",
+    "expected": "found",
+    "candidates": [
+      {
+        "name": "深圳示例砚河接待站11",
+        "city": "深圳",
+        "address": "示例大道22号",
+        "lat": 31.1,
+        "lng": 111.1
+      }
+    ],
+    "answer": {
+      "name": "深圳示例砚河接待站11",
+      "city": "深圳",
+      "address": "示例大道22号",
+      "lat": 31.1,
+      "lng": 111.1
+    }
+  },
+  {
+    "id": "loc-073",
+    "category": "跨城市地址",
+    "query": "北京示例圆杉接待站12",
+    "scope": "苏州",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "北京示例圆杉接待站12",
+        "city": "苏州",
+        "address": "其他路23号",
+        "lat": 31.2,
+        "lng": 111.2
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-074",
+    "category": "跨城市地址",
+    "query": "苏州示例汀屿接待站13",
+    "scope": "杭州",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "苏州示例汀屿接待站13",
+        "city": "杭州",
+        "address": "其他路23号",
+        "lat": 31.3,
+        "lng": 111.3
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-075",
+    "category": "跨城市地址",
+    "query": "杭州示例棠岭接待站14",
+    "scope": "成都",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "杭州示例棠岭接待站14",
+        "city": "成都",
+        "address": "其他路23号",
+        "lat": 31.4,
+        "lng": 111.4
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-076",
+    "category": "跨城市地址",
+    "query": "成都示例望舟接待站15",
+    "scope": "武汉",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "成都示例望舟接待站15",
+        "city": "武汉",
+        "address": "其他路23号",
+        "lat": 31.5,
+        "lng": 111.5
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-077",
+    "category": "跨城市地址",
+    "query": "武汉示例云泽接待站16",
+    "scope": "南京",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "武汉示例云泽接待站16",
+        "city": "南京",
+        "address": "其他路23号",
+        "lat": 31.6,
+        "lng": 111.6
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-078",
+    "category": "跨城市地址",
+    "query": "南京示例平川接待站17",
+    "scope": "广州",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "南京示例平川接待站17",
+        "city": "广州",
+        "address": "其他路23号",
+        "lat": 31.7,
+        "lng": 111.7
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-079",
+    "category": "跨城市地址",
+    "query": "广州示例栖渡接待站18",
+    "scope": "西安",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "广州示例栖渡接待站18",
+        "city": "西安",
+        "address": "其他路23号",
+        "lat": 31.8,
+        "lng": 111.8
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-080",
+    "category": "跨城市地址",
+    "query": "西安示例澄礼接待站19",
+    "scope": "上海",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "西安示例澄礼接待站19",
+        "city": "上海",
+        "address": "其他路23号",
+        "lat": 31.9,
+        "lng": 111.9
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-081",
+    "category": "模糊会议地点",
+    "query": "公司",
+    "scope": "上海",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "公司",
+        "city": "上海",
+        "address": "示例路33号",
+        "lat": 30.0,
+        "lng": 110.0
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-082",
+    "category": "模糊会议地点",
+    "query": "办公室",
+    "scope": "深圳",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "办公室",
+        "city": "深圳",
+        "address": "示例路33号",
+        "lat": 30.1,
+        "lng": 110.1
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-083",
+    "category": "模糊会议地点",
+    "query": "会议室",
+    "scope": "北京",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "会议室",
+        "city": "北京",
+        "address": "示例路33号",
+        "lat": 30.2,
+        "lng": 110.2
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-084",
+    "category": "模糊会议地点",
+    "query": "大会议室",
+    "scope": "苏州",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "大会议室",
+        "city": "苏州",
+        "address": "示例路33号",
+        "lat": 30.3,
+        "lng": 110.3
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-085",
+    "category": "模糊会议地点",
+    "query": "总部",
+    "scope": "杭州",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "总部",
+        "city": "杭州",
+        "address": "示例路33号",
+        "lat": 30.4,
+        "lng": 110.4
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-086",
+    "category": "模糊会议地点",
+    "query": "分公司",
+    "scope": "成都",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "分公司",
+        "city": "成都",
+        "address": "示例路33号",
+        "lat": 30.5,
+        "lng": 110.5
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-087",
+    "category": "模糊会议地点",
+    "query": "园区",
+    "scope": "武汉",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "园区",
+        "city": "武汉",
+        "address": "示例路33号",
+        "lat": 30.6,
+        "lng": 110.6
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-088",
+    "category": "模糊会议地点",
+    "query": "客户公司",
+    "scope": "南京",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "客户公司",
+        "city": "南京",
+        "address": "示例路33号",
+        "lat": 30.7,
+        "lng": 110.7
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-089",
+    "category": "模糊会议地点",
+    "query": "客户办公室",
+    "scope": "广州",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "客户办公室",
+        "city": "广州",
+        "address": "示例路33号",
+        "lat": 30.8,
+        "lng": 110.8
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-090",
+    "category": "模糊会议地点",
+    "query": "楼下",
+    "scope": "西安",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "楼下",
+        "city": "西安",
+        "address": "示例路33号",
+        "lat": 30.9,
+        "lng": 110.9
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-091",
+    "category": "模糊会议地点",
+    "query": "前台",
+    "scope": "上海",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "前台",
+        "city": "上海",
+        "address": "示例路33号",
+        "lat": 31.0,
+        "lng": 111.0
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-092",
+    "category": "模糊会议地点",
+    "query": "大厅",
+    "scope": "深圳",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "大厅",
+        "city": "深圳",
+        "address": "示例路33号",
+        "lat": 31.1,
+        "lng": 111.1
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-093",
+    "category": "模糊会议地点",
+    "query": "门口",
+    "scope": "北京",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "门口",
+        "city": "北京",
+        "address": "示例路33号",
+        "lat": 31.2,
+        "lng": 111.2
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-094",
+    "category": "模糊会议地点",
+    "query": "咖啡馆",
+    "scope": "苏州",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "咖啡馆",
+        "city": "苏州",
+        "address": "示例路33号",
+        "lat": 31.3,
+        "lng": 111.3
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-095",
+    "category": "模糊会议地点",
+    "query": "会展中心",
+    "scope": "杭州",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "会展中心",
+        "city": "杭州",
+        "address": "示例路33号",
+        "lat": 31.4,
+        "lng": 111.4
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-096",
+    "category": "模糊会议地点",
+    "query": "待定",
+    "scope": "成都",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "待定",
+        "city": "成都",
+        "address": "示例路33号",
+        "lat": 31.5,
+        "lng": 111.5
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-097",
+    "category": "模糊会议地点",
+    "query": "地点待定",
+    "scope": "武汉",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "地点待定",
+        "city": "武汉",
+        "address": "示例路33号",
+        "lat": 31.6,
+        "lng": 111.6
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-098",
+    "category": "模糊会议地点",
+    "query": "A会议室",
+    "scope": "南京",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "A会议室",
+        "city": "南京",
+        "address": "示例路33号",
+        "lat": 31.7,
+        "lng": 111.7
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-099",
+    "category": "模糊会议地点",
+    "query": "2号会议室",
+    "scope": "广州",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "2号会议室",
+        "city": "广州",
+        "address": "示例路33号",
+        "lat": 31.8,
+        "lng": 111.8
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-100",
+    "category": "模糊会议地点",
+    "query": "三号会议室",
+    "scope": "西安",
+    "expected": "ambiguous",
+    "candidates": [
+      {
+        "name": "三号会议室",
+        "city": "西安",
+        "address": "示例路33号",
+        "lat": 31.9,
+        "lng": 111.9
+      }
+    ],
+    "answer": null
+  },
+  {
+    "id": "loc-101",
+    "category": "线上和无地址",
+    "query": "线上",
+    "scope": "上海",
+    "expected": "online",
+    "candidates": [],
+    "answer": null
+  },
+  {
+    "id": "loc-102",
+    "category": "线上和无地址",
+    "query": "视频会议",
+    "scope": "深圳",
+    "expected": "online",
+    "candidates": [],
+    "answer": null
+  },
+  {
+    "id": "loc-103",
+    "category": "线上和无地址",
+    "query": "电话",
+    "scope": "北京",
+    "expected": "online",
+    "candidates": [],
+    "answer": null
+  },
+  {
+    "id": "loc-104",
+    "category": "线上和无地址",
+    "query": "腾讯会议",
+    "scope": "苏州",
+    "expected": "online",
+    "candidates": [],
+    "answer": null
+  },
+  {
+    "id": "loc-105",
+    "category": "线上和无地址",
+    "query": "Zoom",
+    "scope": "杭州",
+    "expected": "online",
+    "candidates": [],
+    "answer": null
+  },
+  {
+    "id": "loc-106",
+    "category": "线上和无地址",
+    "query": "https://meet.google.com/synthetic",
+    "scope": "成都",
+    "expected": "online",
+    "candidates": [],
+    "answer": null
+  },
+  {
+    "id": "loc-107",
+    "category": "线上和无地址",
+    "query": "zoom.us/j/123",
+    "scope": "武汉",
+    "expected": "online",
+    "candidates": [],
+    "answer": null
+  },
+  {
+    "id": "loc-108",
+    "category": "线上和无地址",
+    "query": "https://teams.microsoft.com/l/sample",
+    "scope": "南京",
+    "expected": "online",
+    "candidates": [],
+    "answer": null
+  },
+  {
+    "id": "loc-109",
+    "category": "线上和无地址",
+    "query": "飞书会议 feishu.cn/x",
+    "scope": "广州",
+    "expected": "online",
+    "candidates": [],
+    "answer": null
+  },
+  {
+    "id": "loc-110",
+    "category": "线上和无地址",
+    "query": "https://meeting.tencent.com/dm/test",
+    "scope": "西安",
+    "expected": "online",
+    "candidates": [],
+    "answer": null
+  },
+  {
+    "id": "loc-111",
+    "category": "线上和无地址",
+    "query": "",
+    "scope": "上海",
+    "expected": "missing",
+    "candidates": [],
+    "answer": null
+  },
+  {
+    "id": "loc-112",
+    "category": "线上和无地址",
+    "query": " ",
+    "scope": "深圳",
+    "expected": "missing",
+    "candidates": [],
+    "answer": null
+  },
+  {
+    "id": "loc-113",
+    "category": "线上和无地址",
+    "query": "  ",
+    "scope": "北京",
+    "expected": "missing",
+    "candidates": [],
+    "answer": null
+  },
+  {
+    "id": "loc-114",
+    "category": "线上和无地址",
+    "query": "   ",
+    "scope": "苏州",
+    "expected": "missing",
+    "candidates": [],
+    "answer": null
+  },
+  {
+    "id": "loc-115",
+    "category": "线上和无地址",
+    "query": "    ",
+    "scope": "杭州",
+    "expected": "missing",
+    "candidates": [],
+    "answer": null
+  },
+  {
+    "id": "loc-116",
+    "category": "线上和无地址",
+    "query": "     ",
+    "scope": "成都",
+    "expected": "missing",
+    "candidates": [],
+    "answer": null
+  },
+  {
+    "id": "loc-117",
+    "category": "线上和无地址",
+    "query": "      ",
+    "scope": "武汉",
+    "expected": "missing",
+    "candidates": [],
+    "answer": null
+  },
+  {
+    "id": "loc-118",
+    "category": "线上和无地址",
+    "query": "       ",
+    "scope": "南京",
+    "expected": "missing",
+    "candidates": [],
+    "answer": null
+  },
+  {
+    "id": "loc-119",
+    "category": "线上和无地址",
+    "query": "        ",
+    "scope": "广州",
+    "expected": "missing",
+    "candidates": [],
+    "answer": null
+  },
+  {
+    "id": "loc-120",
+    "category": "线上和无地址",
+    "query": "         ",
+    "scope": "西安",
+    "expected": "missing",
+    "candidates": [],
+    "answer": null
+  }
+]

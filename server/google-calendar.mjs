@@ -26,7 +26,7 @@ export function createGoogleCalendarService({env=process.env,fetcher=fetch,now=D
   const origin=env.PUBLIC_ORIGIN||`http://127.0.0.1:${env.PORT||8787}`;
   const base=new URL(origin);if(base.pathname!=='/'||base.search||base.hash||base.username||base.password||(!['127.0.0.1','localhost','[::1]'].includes(base.hostname)&&base.protocol!=='https:'))throw new Error('日历同步需要 HTTPS 或本机地址');
   const redirectUri=env.GOOGLE_REDIRECT_URI||`${base.origin}/api/calendar/google/callback`;
-  if(new URL(redirectUri).origin!==base.origin || new URL(redirectUri).pathname!=='/api/calendar/google/callback')throw new Error('Google 回调地址必须属于本站');
+  if(new URL(redirectUri).href!==`${base.origin}/api/calendar/google/callback`)throw new Error('Google 回调地址必须属于本站');
   const configured=!!(env.GOOGLE_CLIENT_ID&&env.GOOGLE_CLIENT_SECRET);
   let vaultPromise,timer;const locks=new Map();
   const vault=()=>vaultPromise??=openVault(env.CALENDAR_DATA_DIR||resolve('.wayline-private'));
@@ -51,7 +51,16 @@ export function createGoogleCalendarService({env=process.env,fetcher=fetch,now=D
   async function jsonBody(req){let text='';for await(const part of req){text+=part;if(text.length>16000)failure(413,'日历请求过大');}try{return JSON.parse(text||'{}');}catch{failure(400,'日历请求无效');}}
   const jsonFetch=async(url,options={})=>{
     const response=await fetcher(url,{...options,signal:AbortSignal.timeout(15000)});let body;try{body=await response.json();}catch{failure(502,'Google 日历暂时不可用');}
-    if(!response.ok){if(body?.error==='invalid_grant'||response.status===401)failure(401,'Google 授权已失效，请重新连接');if(response.status===403)failure(403,'Google 日历权限不足，请重新授权');failure(502,'Google 日历暂时无法同步，已保留上次结果');}
+    if (!response.ok) {
+      if (body?.error === 'invalid_grant' || response.status === 401)
+        failure(401,'Google 授权已失效，请重新连接');
+      const reasons = Array.isArray(body?.error?.errors) ? body.error.errors.map(item => item?.reason) : [];
+      if (response.status === 429 || (response.status === 403 && reasons.some(reason =>
+        ['rateLimitExceeded','userRateLimitExceeded','quotaExceeded','dailyLimitExceeded'].includes(reason))))
+        failure(429,'Google 日历暂时达到查询额度，已保留上次结果，请稍后重试');
+      if (response.status === 403) failure(403,'Google 日历权限不足，请重新授权');
+      failure(502,'Google 日历暂时无法同步，已保留上次结果');
+    }
     if(!body||typeof body!=='object'||Array.isArray(body))failure(502,'Google 日历结果不完整，已保留上次结果');
     return body;
   };
@@ -72,7 +81,7 @@ export function createGoogleCalendarService({env=process.env,fetcher=fetch,now=D
     return rows.sort((a,b)=>a.id.localeCompare(b.id));
   }
   function sync(key,selectedOverride) {
-    if(locks.has(key))return selectedOverride?locks.get(key).then(()=>sync(key,selectedOverride)):locks.get(key);
+    if(locks.has(key))return selectedOverride?locks.get(key).catch(()=>{}).then(()=>sync(key,selectedOverride)):locks.get(key);
     const job=(async()=>{const store=await vault(),connection=store.data.connections[key];if(!connection?.token)return;
       const selected=selectedOverride??connection.selected;if(!selected.length)return;
       connection.lastAttempt=now();
@@ -84,14 +93,16 @@ export function createGoogleCalendarService({env=process.env,fetcher=fetch,now=D
   }
   async function tick(){if(!configured)return;const store=await vault();for(const [key,c]of Object.entries(store.data.connections)){if(c.selected.length&&!c.reconnect&&store.data.sessions[c.session]?.until>now()&&now()-(c.lastAttempt||c.lastSync||0)>=intervalMs)await sync(key).catch(()=>{});}}
   function start(){if(configured&&!timer){timer=setInterval(()=>void tick().catch(()=>{}),Math.min(intervalMs,60000));timer.unref();}}
-  const stop=()=>clearInterval(timer);
+  const stop=()=>{clearInterval(timer);timer=undefined;};
   async function handle(req,res){const url=new URL(req.url,base);if(!url.pathname.startsWith('/api/calendar/google/'))return false;
     try{
       if(!configured){send(res,200,{configured:false,connected:false,events:[],error:'Google 日历连接尚未配置'});return true;}
-      if(url.pathname.endsWith('/callback')){
+      if(url.pathname==='/api/calendar/google/callback'){
+        if (req.method !== 'GET') failure(405,'不支持的日历请求');
         const store=await vault(),session=await sessionFor(req,res),state=url.searchParams.get('state'),flow=store.data.flows[hash(state||'')];
-        if(!session||!flow||!same(flow.session,session)||flow.until<now())failure(400,'授权链接已过期，请返回日程重新连接');
+        if(!session||!flow||!same(flow.session,session)||flow.until<=now())failure(400,'授权链接已过期，请返回日程重新连接');
         const account = await requireOwner(req, flow.owner);
+        if (store.data.flows[hash(state)] !== flow) failure(400,'授权链接已使用，请返回日程重新连接');
         delete store.data.flows[hash(state)];await store.save();if(url.searchParams.has('error')){res.writeHead(303,{Location:'/?calendar=denied','Cache-Control':'no-store','Referrer-Policy':'no-referrer'});res.end();return true;}
         const code=url.searchParams.get('code');if(!code)failure(400,'Google 未返回授权码');
         const token=await jsonFetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID,client_secret:env.GOOGLE_CLIENT_SECRET,code,code_verifier:flow.verifier,grant_type:'authorization_code',redirect_uri:redirectUri})});
@@ -128,7 +139,7 @@ export function createGoogleCalendarService({env=process.env,fetcher=fetch,now=D
       }
       if(wrongIdentity && !url.pathname.endsWith('/disconnect'))failure(403,'请重新连接与 Wayline 登录一致的 Google 日历');
       if(!connection)failure(401,'请先连接 Google 日历');
-      if(url.pathname.endsWith('/select')){const body=await jsonBody(req);if(!Array.isArray(body.calendarIds)||body.calendarIds.length<1||body.calendarIds.length>10||new Set(body.calendarIds).size!==body.calendarIds.length||body.calendarIds.some(id=>!connection.calendars.some(c=>c.id===id)))failure(400,'请选择 1 至 10 个可读取的日历');await sync(key,body.calendarIds);send(res,200,{ok:true});return true;}
+      if(url.pathname.endsWith('/select')){const body=await jsonBody(req);if(!Array.isArray(body?.calendarIds)||body.calendarIds.length<1||body.calendarIds.length>10||new Set(body.calendarIds).size!==body.calendarIds.length||body.calendarIds.some(id=>!connection.calendars.some(c=>c.id===id)))failure(400,'请选择 1 至 10 个可读取的日历');await sync(key,body.calendarIds);send(res,200,{ok:true});return true;}
       if(url.pathname.endsWith('/sync')){await sync(key);send(res,200,{ok:true});return true;}
       if(url.pathname.endsWith('/disconnect')){delete store.data.connections[key];try{await store.save();}catch(error){store.data.connections[key]=connection;throw error;}send(res,200,{ok:true});return true;}
       failure(404,'日历接口不存在');

@@ -18,6 +18,11 @@ export function BusinessTripCommute({ trip, onRoute, initialChoice, onNavigate }
   const latestRoute = useRef(onRoute);
   latestRoute.current = onRoute;
   useEffect(() => {
+    const retry = () => setSelection(current => current?.result === null ? {id:current.id,mode:current.mode} : current);
+    window.addEventListener("online", retry);
+    return () => window.removeEventListener("online", retry);
+  }, []);
+  useEffect(() => {
     if (!selection || selection.result !== undefined) return;
     const pair = trip.days.flatMap(day => legPairs(day.events, day.date)).find(pair => pair.id === selection.id);
     if (!pair) return;

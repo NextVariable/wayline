@@ -34,7 +34,7 @@ export function createAccountService({env = process.env, fetcher = fetch, now = 
   if (base.pathname !== '/' || base.search || base.hash || base.username || base.password || (!local && base.protocol !== 'https:')) throw new Error('登录需要 HTTPS 或本机地址');
   const redirectUri = env.GOOGLE_SIGNIN_REDIRECT_URI || `${base.origin}/api/auth/google/callback`;
   const redirect = new URL(redirectUri);
-  if (redirect.origin !== base.origin || redirect.pathname !== '/api/auth/google/callback') throw new Error('Google 登录回调地址必须属于本站');
+  if (redirect.href !== `${base.origin}/api/auth/google/callback`) throw new Error('Google 登录回调地址必须属于本站');
   const configured = !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
   const secure = base.protocol === 'https:' ? '; Secure' : '';
 
@@ -146,6 +146,8 @@ export function createAccountService({env = process.env, fetcher = fetch, now = 
       catch (error) { fail(error.status || 500, error.status ? error.message : 'Gmail 连接暂时无法保存'); }
       return goTo(res, '/?gmail=connected', [clearFlow]);
     }
+    if (profile.email_verified !== true || typeof profile.email !== 'string' || !profile.email.trim())
+      fail(403, '请使用已验证邮箱的 Google 账号登录');
     // Check capacity before touching the account so a rejected sign-in leaves no partial state.
     for (const [key, session] of Object.entries(store.data.sessions)) if (session.until <= now()) delete store.data.sessions[key];
     if (Object.keys(store.data.sessions).length >= MAX_SESSIONS) fail(503, '登录暂时繁忙，请稍后重试');

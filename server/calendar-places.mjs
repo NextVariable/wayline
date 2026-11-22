@@ -13,7 +13,7 @@ const ONLINE_LINK = /https?:\/\/|meeting\.tencent\.com|zoom\.us|teams\.microsoft
 const ONLINE_WORDS = new Set(['线上', '视频会议', '电话', '腾讯会议', 'zoom']);
 export const isOnlineLocation = text => { const value = String(text ?? '').trim(); return ONLINE_LINK.test(value) || ONLINE_WORDS.has(value.toLowerCase()); };
 const invalid = message => Object.assign(new Error(message), { status: 400 });
-const placeOf = p => ({ name: p.name, city: p.city, address: p.address, lat: p.lat, lng: p.lng });
+const placeOf = p => ({ name: p.name, city: p.city, address: typeof p.address === 'string' ? p.address : '', lat: p.lat, lng: p.lng });
 
 /** A random secret kept beside the cache (0600). Without it the cached keys cannot be matched against guessed text. */
 function cacheSecret(cacheFile) {
@@ -43,7 +43,7 @@ export function createCalendarPlaceResolver({ searchPlaces, cacheFile }) {
     try {
       const rows = JSON.parse(readFileSync(cacheFile, 'utf8'));
       // Entries written before keys were account-scoped and secret are unreadable under the new key and simply dropped.
-      if (rows && rows.version === 3 && Array.isArray(rows.entries)) {
+      if (rows && rows.version === 4 && Array.isArray(rows.entries)) {
  for (const [key, value] of rows.entries.slice(-MAX_CACHE)) if (/^[a-f0-9]{64}$/.test(key) && value && typeof value.status === 'string') cache.set(key, value);
       }
     } catch { /* missing or unreadable cache starts empty */ }
@@ -54,7 +54,7 @@ export function createCalendarPlaceResolver({ searchPlaces, cacheFile }) {
     writing = writing.then(async () => {
       await mkdir(dirname(cacheFile), { recursive: true, mode: 0o700 });
       const tmp = cacheFile + '.' + process.pid + '.tmp';
-      await writeFile(tmp, JSON.stringify({ version: 3, entries: [...cache.entries()] }), { mode: 0o600 });
+      await writeFile(tmp, JSON.stringify({ version: 4, entries: [...cache.entries()] }), { mode: 0o600 });
       await chmod(tmp, 0o600);
       await rename(tmp, cacheFile);
     }).catch(() => { /* a failed write only costs a repeat lookup later */ });
@@ -68,13 +68,29 @@ export function createCalendarPlaceResolver({ searchPlaces, cacheFile }) {
     let rows;
     try { rows = await searchPlaces({ keyword: text.trim(), city: city || '', count: 10 }); }
     catch { return { status: 'unavailable' }; }
+    if (!Array.isArray(rows)) return { status: 'unavailable' };
+    const valid = rows.filter(p => p && typeof p.name === 'string' && p.name.trim() &&
+      typeof p.city === 'string' && Number.isFinite(p.lat) && Math.abs(p.lat) <= 90 &&
+      Number.isFinite(p.lng) && Math.abs(p.lng) <= 180);
+    if (rows.length && !valid.length) return { status: 'unavailable' };
+    rows = valid;
     const wanted = normalizeLocationText(text);
+    const cityKey = value => normalizeLocationText(value).replace(/市$/, '');
+    const scope = cityKey(city);
+    const inCity = place => !!scope && cityKey(place.city) === scope;
     const exact = rows.filter(p => normalizeLocationText(p.name) === wanted);
-    const inCity = place => !city || place?.city?.replace(/市$/, '') === city.replace(/市$/, '');
-    if (exact.length === 1 && inCity(exact[0])) return { status: 'found', place: placeOf(exact[0]) };
-    if (rows.length === 1 && inCity(rows[0]) && wanted.length >= 4 && normalizeLocationText(rows[0].address) === wanted) return { status: 'found', place: placeOf(rows[0]) };
+    const localName = scope && wanted.startsWith(scope) ? wanted.slice(scope.length).replace(/^市/, '') : wanted;
+    const vague = /^(?:公司|办公室|会议室|大会议室|总部|分公司|园区|客户公司|客户办公室|楼下|前台|大厅|门口|咖啡馆|会展中心|待定|地点待定|[a-z0-9一二三四五六七八九]+号?会议室)$/u.test(localName);
+    const branch = rows.some(p => p !== exact[0] && normalizeLocationText(p.name).startsWith(wanted) &&
+      /(?:店|分公司|分部|校区|园区|院区|分中心)$/u.test(normalizeLocationText(p.name)));
+    if (!vague && !branch && exact.length === 1 && inCity(exact[0])) return { status: 'found', place: placeOf(exact[0]) };
+    const cityPrefix = scope ? new RegExp('^(?:[\u4e00-\u9fff]{2,8}?(?:省|自治区))?' + scope.replace(/[^\p{L}\d]/gu, '') + '市?') : null;
+    const localAddress = value => cityPrefix ? normalizeLocationText(value).replace(cityPrefix, '') : normalizeLocationText(value);
+    const matchingAddress = rows.filter(p => !vague && inCity(p) && /\d+号(?:$|楼|栋)/u.test(wanted) &&
+      localAddress(p.address) === localAddress(wanted));
+    if (matchingAddress.length === 1) return { status: 'found', place: placeOf(matchingAddress[0]) };
     if (!rows.length) return { status: 'none' };
-    return { status: 'ambiguous', candidates: (exact.length ? exact : rows).slice(0, MAX_CANDIDATES).map(placeOf) };
+    return { status: 'ambiguous', candidates: [...exact, ...rows.filter(p => !exact.includes(p))].slice(0, MAX_CANDIDATES).map(placeOf) };
   };
   return {
     /** owner: the signed-in account id; omitted for guests, whose lookups are never cached. */
