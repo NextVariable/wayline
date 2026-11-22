@@ -6,7 +6,7 @@ services:
         VITE_AMAP_KEY: ${VITE_AMAP_KEY:-}
         VITE_AMAP_SECURITY_CODE: ${VITE_AMAP_SECURITY_CODE:-}
         VITE_TIANDITU_TOKEN: ${VITE_TIANDITU_TOKEN:-}
-    image: wayline:${WAYLINE_IMAGE_TAG:-1.0.0-rc.3}
+    image: wayline:${WAYLINE_IMAGE_TAG:-1.0.0-rc.4}
     init: true
     read_only: true
     restart: unless-stopped

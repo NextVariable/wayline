@@ -1205,15 +1205,6 @@ export default function App() {
           })),
     [footprintVisit, footprintTrack, footprintSelection.date, footprints.snapshot.visits],
   );
-  const showFootprints = (fromLibrary = false) => openWorkflow("footprints", () => {
-    setWorkspaceCollapsed(false);
-    setLocationFocus(0);
-    auxiliaryOrigin.current = [];
-    setSelectedPlace(null);
-    setDetailOrigin(null);
-    setSettingsOpen(false);
-    setActiveOverlay("footprints");
-  }, fromLibrary ? "forward" : undefined);
   const requestCurrentLocation = () => {
     explicitLocation.current = true;
     currentLocation.request("manual");
@@ -1393,22 +1384,6 @@ export default function App() {
           onClick={showTrip}
         >
           行程
-        </button>
-        <button
-          className={footprintActive ? "is-active" : ""}
-          aria-current={footprintActive ? "page" : undefined}
-          onClick={() => showFootprints()}
-        >
-          足迹
-          {footprints.snapshot.tracks.some(
-            (t) =>
-              t.id === footprints.snapshot.activeId && t.status === "recording",
-          ) && (
-            <span
-              className="recording-dot is-recording"
-              aria-label="正在记录"
-            />
-          )}
         </button>
       </nav>
       <div className="workspace-map">
@@ -1656,7 +1631,6 @@ export default function App() {
         onNavigatePanel={presentWorkspace}
         openingEntry={loadingWorkflow}
         onOpenBusinessTrips={() => presentWorkspace(showTrip, "forward")}
-        onOpenFootprints={() => showFootprints(true)}
         onOpenSearch={showPlaces}
       />
       {activeOverlay === "business-trips" && <BusinessTripsPanel

@@ -16,7 +16,7 @@ const renderSidebar = (patch: Record<string, unknown>) => renderToStaticMarkup(<
   ownerId: "guest", activeCity: "深圳", selectedCities: ["深圳"], activeFilter: {kind: "status", value: "all", label: "全部地点"},
   detailOpen: false, overviewRequest: 0, userPlaces: [], visitedPlaces: [], onFilterChange: noop, onSelectPlace: noop, isOpen: true,
   onToggleOpen: noop, onSearchPlaces: async () => [], onCreatePlace: noop, onDeletePlace: noop, onEditPlace: noop, storageHealthy: true,
-  onAddToRoute: noop, routePlaces: [], onOpenPlanner: noop, onOpenFootprints: noop, onOpenSearch: noop, ...patch,
+  onAddToRoute: noop, routePlaces: [], onOpenPlanner: noop, onOpenSearch: noop, ...patch,
 } as any)} /></ToastProvider>);
 
 it("offers no user-made guide collections anywhere in the interface", () => {

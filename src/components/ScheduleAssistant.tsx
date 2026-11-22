@@ -8,12 +8,7 @@ import type { CalendarEntry } from "../lib/calendarEvents";
 import { ChevronLeft, MapPin, Plus } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CityName, Place } from "../types/place";
-import {
-  localDay,
-  parseQuickIntent,
-  matchIntentPlaces,
-  changedIntentFields,
-} from "../lib/quickIntent";
+import { localDay } from "../lib/quickIntent";
 import { routeCandidates } from "../lib/routeInteractions";
 import { usePanelFocus } from "../lib/usePanelFocus";
 
@@ -78,9 +73,6 @@ export function ScheduleAssistant({
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [quickField, setQuickField] = useState<
-    "date" | "time" | "place" | null
-  >(null);
   const [content, setContent] = useState("");
   const [query, setQuery] = useState("");
   const [candidates, setCandidates] = useState<Place[]>([]);
@@ -97,41 +89,15 @@ export function ScheduleAssistant({
     [places, activeCity],
   );
   const schedules = places.filter((place) => place.tags.includes("日程助手"));
-  const intent = useMemo(() => parseQuickIntent(content), [content]);
-  const knownMatches = useMemo(
-    () => matchIntentPlaces(content, [...contextPlaces, ...places]),
-    [content, contextPlaces, places],
-  );
-  const inferredPlace = knownMatches.length === 1 ? knownMatches[0] : null;
   const selected =
-    candidate ??
-    cityPlaces.find((place) => place.id === placeId) ??
-    (!query.trim() ? inferredPlace : null);
-  const effectiveDate = date || intent.date || localDay();
-  const effectiveTime = time || intent.time || "";
-  const effectiveQuery = query.trim() || (!selected ? intent.placeQuery : "");
+    candidate ?? cityPlaces.find((place) => place.id === placeId) ?? null;
+  const effectiveDate = date || localDay();
+  const effectiveTime = time;
+  const effectiveQuery = query.trim();
   const visibleCandidates = candidateFor === effectiveQuery ? candidates : [];
-  const dateIssue =
-    !date && intent.warnings.some((message) => message.includes("日期"));
-  const timeIssue =
-    type === "todo" &&
-    !time &&
-    intent.warnings.some((message) => !message.includes("日期"));
   const reveal = (id: string) => {
-    const field =
-      id === "schedule-date"
-        ? "date"
-        : id === "schedule-time"
-          ? "time"
-          : "place";
-    setQuickField(field);
-    requestAnimationFrame(() =>
-      document
-        .getElementById(
-          `quick-schedule-${field === "place" ? "search" : field}`,
-        )
-        ?.focus(),
-    );
+    setDetailsOpen(true);
+    requestAnimationFrame(() => document.getElementById(id)?.focus());
   };
   const suggestedPlaces = routeCandidates(
     [
@@ -186,7 +152,7 @@ export function ScheduleAssistant({
   currentDraft.current = { type, placeId, candidate, date, time, content, query, cityPlaces };
   useLayoutEffect(() => {
     (
-      document.getElementById("schedule-content") as HTMLTextAreaElement | null
+      document.getElementById("schedule-content") as HTMLInputElement | null
     )?.setCustomValidity("");
     if (!editSchedule) {
       if (editing.current && newDraft.current) {
@@ -268,7 +234,7 @@ export function ScheduleAssistant({
           if (!content.trim()) {
             const field = document.getElementById(
               "schedule-content",
-            ) as HTMLTextAreaElement | null;
+            ) as HTMLInputElement | null;
             field?.setCustomValidity("写下要安排的事即可");
             field?.reportValidity();
             return;
@@ -277,8 +243,8 @@ export function ScheduleAssistant({
             reveal(cityPlaces.length ? "schedule-place" : "schedule-search");
             return;
           }
-          if (dateIssue || timeIssue || (type === "todo" && !effectiveTime)) {
-            reveal(dateIssue ? "schedule-date" : "schedule-time");
+          if (type === "todo" && !effectiveTime) {
+            reveal("schedule-time");
             return;
           }
           const scheduleTime = `${effectiveDate}${effectiveTime ? " " + effectiveTime : ""}`;
@@ -304,7 +270,6 @@ export function ScheduleAssistant({
           setCandidate(null);
           setQuery("");
           setDetailsOpen(false);
-          setQuickField(null);
           if (!editSchedule) {
             setDate("");
             setTime("");
@@ -314,122 +279,19 @@ export function ScheduleAssistant({
           moveTo("agenda");
         }}
       >
-        <label className="sr-only" htmlFor="schedule-content">写下你的安排</label>
-        <textarea
+        <label htmlFor="schedule-content">安排名称</label>
+        <input
           id="schedule-content"
+          type="text"
           required
-          rows={2}
           value={content}
           onChange={(event) => {
             event.currentTarget.setCustomValidity("");
-            const next = event.target.value;
-            const changed = changedIntentFields(content, next);
-            if (changed.date) setDate("");
-            if (changed.time) setTime("");
-            const parsedNext = parseQuickIntent(next);
-            if (
-              (quickField === "time" && parsedNext.time) ||
-              (quickField === "date" && parsedNext.date)
-            )
-              setQuickField(null);
-            const nextPlaces = matchIntentPlaces(next, [
-              ...contextPlaces,
-              ...places,
-            ]);
-            if (
-              changed.place ||
-              nextPlaces.map((place) => place.city + place.name).join("|") !==
-                knownMatches.map((place) => place.city + place.name).join("|")
-            ) {
-              setPlaceId("");
-              setCandidate(null);
-              setQuery("");
-            }
-            if (quickField === "place" && nextPlaces.length === 1)
-              setQuickField(null);
-            setContent(next);
+            setContent(event.target.value);
           }}
-          placeholder="明天下午三点去海上世界见客户"
+          placeholder="例如：客户拜访"
         />
-        {(content.trim() || editSchedule) && (
-          <div className="intent-preview" aria-label="本条安排的信息">
-            <button type="button" onClick={() => reveal("schedule-date")}>
-              {dateIssue
-                ? "确认日期"
-                : effectiveDate === localDay()
-                  ? "今天"
-                  : effectiveDate}
-            </button>
-            <button type="button" onClick={() => reveal("schedule-time")}>
-              {timeIssue
-                ? "确认时间"
-                : effectiveTime || (type === "memo" ? "时间不限" : "补充时间")}
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                reveal(cityPlaces.length ? "schedule-place" : "schedule-search")
-              }
-            >
-              <MapPin size={13} />
-              {selected?.name ??
-                (knownMatches.length > 1 ? "选择本条地点" : "补充地点")}
-            </button>
-          </div>
-        )}
-        {content.trim() && (dateIssue || timeIssue) && (
-          <p className="field-help" role="status">
-            {intent.warnings.join("；")}
-          </p>
-        )}
-        {quickField === "date" && (
-          <label htmlFor="quick-schedule-date">
-            确认日期
-            <input
-              id="quick-schedule-date"
-              type="date"
-              value={effectiveDate}
-              onChange={(event) => setDate(event.target.value)}
-            />
-          </label>
-        )}
-        {quickField === "date" && dateIssue && (
-          <button
-            type="button"
-            className="text-action"
-            onClick={() => setDate(effectiveDate)}
-          >
-            使用{effectiveDate}
-          </button>
-        )}
-        {quickField === "time" && (
-          <label htmlFor="quick-schedule-time">
-            这条安排几点开始？
-            <input
-              id="quick-schedule-time"
-              type="time"
-              value={effectiveTime}
-              onChange={(event) => setTime(event.target.value)}
-            />
-          </label>
-        )}
-        {quickField === "place" && (
-          <label htmlFor="quick-schedule-search">
-            选择或搜索地点
-            <input
-              id="quick-schedule-search"
-              value={query}
-              placeholder="输入名称，或点选下方地点"
-              onChange={(event) => {
-                setQuery(event.target.value);
-                setPlaceId("");
-                setCandidate(null);
-              }}
-            />
-          </label>
-        )}
-        {((effectiveQuery.length >= 2 && !selected) ||
-          quickField === "place") && (
+        {effectiveQuery.length >= 2 && !selected && (
           <div className="schedule-candidates" aria-label="日程地点搜索结果">
             <p className="field-help" role="status">
               {searching
@@ -448,7 +310,6 @@ export function ScheduleAssistant({
                   setCandidate(place);
                   setPlaceId("");
                   setQuery("");
-                  setQuickField(null);
                 }}
               >
                 <MapPin size={15} />
@@ -463,8 +324,7 @@ export function ScheduleAssistant({
         <button className="primary-action" disabled={!content.trim()}>
           {content.trim() && !selected
             ? "选择地点"
-            : content.trim() &&
-                (dateIssue || timeIssue || (type === "todo" && !effectiveTime))
+            : content.trim() && type === "todo" && !effectiveTime
               ? "补充时间信息"
               : editSchedule
                 ? "保存修改"
@@ -536,15 +396,6 @@ export function ScheduleAssistant({
                 />
               </label>
             </div>
-            {dateIssue && (
-              <button
-                type="button"
-                className="text-action"
-                onClick={() => setDate(effectiveDate)}
-              >
-                使用{effectiveDate}
-              </button>
-            )}
             <fieldset>
               <legend>类型</legend>
               <div className="segmented-control">
