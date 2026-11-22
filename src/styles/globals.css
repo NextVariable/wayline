@@ -4160,6 +4160,17 @@ select:not([multiple]):not([size]) {
   .demo-banner-actions button { min-height: 44px; padding: 8px 14px; }
 }
 
+/* Demo exit stays reachable while a mobile overlay panel covers the sidebar. */
+.demo-exit-chip {
+  flex: 0 0 auto; min-height: 32px; padding: 4px 10px;
+  border: 1px solid var(--border-light); border-radius: 8px;
+  background: var(--brand-tint); color: var(--text-primary);
+  font: inherit; font-size: var(--font-secondary); white-space: nowrap;
+}
+@media (max-width: 700px) {
+  .demo-exit-chip { min-height: 44px; padding: 8px 12px; }
+}
+
 /* RC.4 unified action items */
 .today-actions { margin: 4px 8px 8px; }
 .today-actions-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }

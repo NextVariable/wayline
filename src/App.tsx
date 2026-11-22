@@ -1361,7 +1361,16 @@ export default function App() {
             onLocate={requestCurrentLocation}
           />
         )}
-
+        {demoActive && compactLayout && activeOverlay && (
+          <button
+            type="button"
+            className="demo-exit-chip"
+            onClick={leaveDemoWorkspace}
+            aria-label="退出演示工作区"
+          >
+            退出演示
+          </button>
+        )}
       </header>
       <nav className="workspace-nav" aria-label="工作区">
         <button
