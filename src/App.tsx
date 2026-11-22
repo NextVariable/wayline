@@ -17,6 +17,7 @@ import { calendarMapPlaces, pendingPlaces, confirmPlace, acceptSuggestion, rejec
 import { GoogleCalendarConnection } from "./components/GoogleCalendarConnection";
 import { CalendarPlaceHint } from "./components/CalendarPlaceHint";
 import { TodayPanel, type TodaySegment } from "./components/TodayPanel";
+import { OfflineNotice } from "./components/OfflineNotice";
 import { localDateKey, type TodayLegPair, type TravelMode } from "./lib/todayMap";
 import { useTodayLegs, type LegResult } from "./lib/useTodayLegs";
 import { BusinessTripsPanel } from "./components/BusinessTripsPanel";
@@ -1180,6 +1181,7 @@ export default function App() {
         {workspaceCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
       </button>
       <div className="workspace-rail-surface" aria-hidden="true" />
+      <OfflineNotice />
       <header className="workspace-header">
         {loadingWorkflow && <span className="workspace-loading-indicator" role="status"><span className="sr-only">正在打开页面</span></span>}
         <a

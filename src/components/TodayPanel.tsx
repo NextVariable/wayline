@@ -43,7 +43,8 @@ export function TodayPanel({ heading, stops, segments, loading, focused, onSelec
         {onOpenSchedule && <button type="button" className="text-action" onClick={onOpenSchedule}>查看日程</button>}
       </div>
       {syncWarning && <p className="field-help" role="status">日历待同步，暂不判断能否准时</p>}
-      {conflicts.length > 0 && <p className="field-help">
+      {conflicts.length > 0 && <p className="field-help" role="status">
+        {conflicts.some(conflict => conflict.status === "uncertain") && "待确认 · "}
         {conflicts[0].title} · {conflicts[0].basis}{conflicts.length>1 && ` 等 ${conflicts.length} 项`}
       </p>}
       <ol className="today-stops">
@@ -87,18 +88,19 @@ function TodayLeg({ segment, loading, focused, onChooseMode, onFocus, onRetry, o
   const { pair, mode, result, verdict, risk } = segment;
   const late = verdict.status === "late" || verdict.status === "overlap";
   const navigation = !pair.sameSpot ? routeMapLink(pair.from.place, pair.to.place, mode) : null;
-  const timing = result ? `${modeName(mode)} ${result.minutes} 分钟` : loading ? "正在查路线…" : "暂未查到路线";
+  const failed = !pair.sameSpot && !result && !loading;
+  const timing = result ? `${modeName(mode)} ${result.minutes} 分钟` : loading ? "正在查路线…" : failed ? "路线暂不可用" : "暂未查到路线";
   const status = verdict.status === "overlap" ? "两个日程时间重叠"
     : verdict.status === "late" ? `差 ${verdict.shortBy} 分钟` : "";
   return (
-    <div className={`today-leg${late ? " is-late" : ""}`} data-status={verdict.status}>
+    <div className={`today-leg${late ? " is-late" : ""}`} data-status={verdict.status} aria-busy={loading}>
       <div className="today-leg-summary" aria-live="polite">
         {pair.sameSpot ? <span>同一地点</span> : result ? (
           <button type="button" aria-pressed={focused} onClick={() => onFocus(pair.id)} title="在地图上查看这段路线">
             {timing} <small>{result.source === "amap" ? mode === "driving" ? "高德 · 不含等车" : mode === "selfDrive" ? "高德 · 不含停车" : "高德" : "估算"}{result.observedAt && result.observedAt > 0 ? ` · ${new Date(result.observedAt).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })} 查询` : ""}</small>
           </button>
         ) : <span>{timing}</span>}
-        {!pair.sameSpot && !result && !loading && <button type="button" onClick={onRetry}>重试</button>}
+        {failed && <button type="button" onClick={onRetry} title="重新查询这段路线">重试路线</button>}
         {status && <strong>{status}</strong>}
       </div>
       {risk?.stale && result && <button type="button" className="text-action" onClick={onRetry}>更新路线参考</button>}

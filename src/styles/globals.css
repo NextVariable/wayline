@@ -4025,6 +4025,18 @@ select:not([multiple]):not([size]) {
   .today-navigation { width:44px; flex-shrink:0; }
 }
 
+.offline-notice {
+  position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+  z-index: 900; max-width: min(92vw, 460px); padding: 8px 14px;
+  border: 1px solid var(--border-light); border-radius: 999px;
+  background: var(--warning-bg); color: var(--warning);
+  box-shadow: 0 8px 24px #00000022;
+  font-size: var(--font-secondary); text-align: center;
+}
+.trip-order-state[data-state="cancelled"] { color: var(--today-late, #b12639); }
+.theme-business .trip-order-state[data-state="cancelled"] { color: #ff909c; }
+.trip-order-state[data-state="changed"], .trip-order-state[data-state="review"] { color: var(--warning); }
+
 .gmail-rail-orders { margin-bottom: 14px; }
 .gmail-rail-orders .calendar-import-heading > strong { display: inline-flex; align-items: center; gap: 7px; font-size: var(--font-body); font-weight: 500; }
 .gmail-rail-list { padding: 0; margin: 4px 0 10px; list-style: none; }

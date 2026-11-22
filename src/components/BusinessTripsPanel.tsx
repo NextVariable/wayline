@@ -92,10 +92,10 @@ export function BusinessTripsPanel({ home, cities, trips, selected, selectedEven
                 const order=row.booking;
                 const state=order.state === "cancelled" ? "收到取消通知" : order.state === "changed" ? "收到改签通知" :
                   order.state === "review" ? "待核对" : !!order.end && Date.parse(order.end)<now ? "时段已过" : order.source === "日历" ? "日历安排" : "订单记录";
-                return <li key={`booking:${order.id}`} className="business-trip-event trip-order-row">
+                return <li key={`booking:${order.id}`} className="business-trip-event trip-order-row" data-state={order.state ?? "confirmed"}>
                   <span>{order.start.length === 10 ? "住宿" : timeLabel.format(new Date(order.start))}</span>
                   <span><strong>{[order.number,order.from?.name,order.to.name].filter(Boolean).join(" · ")}</strong>
-                    <small>{state} · {order.provenance?.some(item=>item.source === "gmail") && order.provenance.some(item=>item.source !== "gmail") ? "日历 / Gmail" : order.source}</small></span>
+                    <small className="trip-order-state" data-state={order.state ?? "confirmed"}>{state} · {order.provenance?.some(item=>item.source === "gmail") && order.provenance.some(item=>item.source !== "gmail") ? "日历 / Gmail" : order.source}</small></span>
                 </li>;
               }
               const event=row.event;
