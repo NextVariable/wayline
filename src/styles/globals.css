@@ -4100,3 +4100,4 @@ select:not([multiple]):not([size]) {
 .saved-place-aliases li { display:flex; justify-content:space-between; align-items:center; gap:8px; overflow-wrap:anywhere; }
 .saved-place-aliases .text-action { min-height:44px; flex-shrink:0; }
 .trip-risk-list .text-action { min-height:44px; justify-self:start; text-align:start; }
+.trip-transfer-lookup .text-action { min-height:44px; }

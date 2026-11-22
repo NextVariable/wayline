@@ -43,7 +43,7 @@ export function createCalendarPlaceResolver({ searchPlaces, cacheFile }) {
     try {
       const rows = JSON.parse(readFileSync(cacheFile, 'utf8'));
       // Entries written before keys were account-scoped and secret are unreadable under the new key and simply dropped.
-      if (rows && rows.version === 4 && Array.isArray(rows.entries)) {
+      if (rows && rows.version === 5 && Array.isArray(rows.entries)) {
  for (const [key, value] of rows.entries.slice(-MAX_CACHE)) if (/^[a-f0-9]{64}$/.test(key) && value && typeof value.status === 'string') cache.set(key, value);
       }
     } catch { /* missing or unreadable cache starts empty */ }
@@ -54,7 +54,7 @@ export function createCalendarPlaceResolver({ searchPlaces, cacheFile }) {
     writing = writing.then(async () => {
       await mkdir(dirname(cacheFile), { recursive: true, mode: 0o700 });
       const tmp = cacheFile + '.' + process.pid + '.tmp';
-      await writeFile(tmp, JSON.stringify({ version: 4, entries: [...cache.entries()] }), { mode: 0o600 });
+      await writeFile(tmp, JSON.stringify({ version: 5, entries: [...cache.entries()] }), { mode: 0o600 });
       await chmod(tmp, 0o600);
       await rename(tmp, cacheFile);
     }).catch(() => { /* a failed write only costs a repeat lookup later */ });
@@ -80,14 +80,18 @@ export function createCalendarPlaceResolver({ searchPlaces, cacheFile }) {
     const inCity = place => !!scope && cityKey(place.city) === scope;
     const exact = rows.filter(p => normalizeLocationText(p.name) === wanted);
     const localName = scope && wanted.startsWith(scope) ? wanted.slice(scope.length).replace(/^市/, '') : wanted;
-    const vague = /^(?:公司|办公室|会议室|大会议室|总部|分公司|园区|客户公司|客户办公室|楼下|前台|大厅|门口|咖啡馆|会展中心|待定|地点待定|[a-z0-9一二三四五六七八九]+号?会议室)$/u.test(localName);
+    const vague = localName.length < 3 || /^(?:公司|办公室|会议室|大会议室|总部|分公司|园区|客户公司|客户办公室|楼下|前台|大厅|门口|咖啡馆|会展|会展中心|待定|地点待定|[a-z0-9一二三四五六七八九]+号?会议室)$/u.test(localName);
     const branch = rows.some(p => p !== exact[0] && normalizeLocationText(p.name).startsWith(wanted) &&
       /(?:店|分公司|分部|校区|园区|院区|分中心)$/u.test(normalizeLocationText(p.name)));
     if (!vague && !branch && exact.length === 1 && inCity(exact[0])) return { status: 'found', place: placeOf(exact[0]) };
     const cityPrefix = scope ? new RegExp('^(?:[\u4e00-\u9fff]{2,8}?(?:省|自治区))?' + scope.replace(/[^\p{L}\d]/gu, '') + '市?') : null;
     const localAddress = value => cityPrefix ? normalizeLocationText(value).replace(cityPrefix, '') : normalizeLocationText(value);
-    const matchingAddress = rows.filter(p => !vague && inCity(p) && /\d+号(?:$|楼|栋)/u.test(wanted) &&
-      localAddress(p.address) === localAddress(wanted));
+    const matchingAddress = rows.filter(p => {
+      if (vague || !inCity(p) || !/\d+号(?:$|[a-zA-Z0-9一二三四五六七八九]+[楼栋幢座])/u.test(wanted)) return false;
+      const district=normalizeLocationText(p.district);
+      const stripDistrict = value => district && value.startsWith(district) ? value.slice(district.length) : value;
+      return stripDistrict(localAddress(p.address)) === stripDistrict(localAddress(wanted));
+    });
     if (matchingAddress.length === 1) return { status: 'found', place: placeOf(matchingAddress[0]) };
     if (!rows.length) return { status: 'none' };
     return { status: 'ambiguous', candidates: [...exact, ...rows.filter(p => !exact.includes(p))].slice(0, MAX_CANDIDATES).map(placeOf) };

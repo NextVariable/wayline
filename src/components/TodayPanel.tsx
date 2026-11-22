@@ -53,7 +53,7 @@ export function TodayPanel({ heading, stops, segments, loading, focused, onSelec
           const subtitle = [place.name !== event.title ? place.name : "", event.google?.stale ? "待同步" : ""].filter(Boolean).join(" · ");
           return (
             <li className="today-stop" key={event.id} aria-current={event.id === nextStopId ? "step" : undefined}>
-              <button className="today-stop-button" onClick={() => onSelectStop(stop)}>
+              <button className="today-stop-button" data-calendar-stop={event.id} onClick={() => onSelectStop(stop)}>
                 <span className="today-stop-time" title="日历时间">
                   <time dateTime={event.start}>{clock.format(new Date(event.start))}</time>
                   <time dateTime={event.end}>{clock.format(new Date(event.end))}</time>

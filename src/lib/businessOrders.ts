@@ -38,6 +38,9 @@ stationCities.set("香港西九龙", ["香港"]);
 export function bookingPoint(value: string, kind: BookingKind, cities: string[]): OrderPoint {
   const raw = orderText(value);
   let name = Object.hasOwn(aliases,raw.toUpperCase()) ? aliases[raw.toUpperCase()] : Object.hasOwn(aliases,raw) ? aliases[raw] : raw;
+  const terminal = kind === "flight" ? /^([A-Z]{3})\s*[-（(]?\s*(T[1-9])(?:号?航站楼)?[）)]?$/i.exec(raw) : null;
+  if (terminal && Object.hasOwn(aliases,terminal[1].toUpperCase()))
+    name=aliases[terminal[1].toUpperCase()] + terminal[2].toUpperCase();
   if (kind === "rail" && name && !name.endsWith("站")) name += "站";
   const known = kind === "rail" ? stationCities.get(name.replace(/站$/, "")) : undefined;
   const city = known?.length === 1 ? known[0] : [...new Set(cities)].sort((a,b) => b.length-a.length)
@@ -111,9 +114,13 @@ export function collectTripBookings(events: CalendarEntry[], railOrders: RailOrd
       match.provenance = [...(match.provenance ?? []), ...item.provenance];
       if (item.state) match.state = item.state;
       if (item.source === "Gmail" && !item.state) {
-        if (match.end && item.end && Date.parse(match.end) !== Date.parse(item.end)) match.state = "review";
+        if ((!match.state || match.state === "confirmed") && match.end && item.end && Date.parse(match.end) !== Date.parse(item.end)) match.state = "review";
         match.end ??= item.end;
-      } else match.end ??= item.end;
+      } else {
+        if (item.kind === "stay" && (!match.state || match.state === "confirmed") &&
+            match.end && item.end && chinaDate(match.end) !== chinaDate(item.end)) match.state = "review";
+        match.end ??= item.end;
+      }
       if (!match.to.city && item.to.city) match.to = { ...item.to, ...match.to, city:item.to.city };
       continue;
     }

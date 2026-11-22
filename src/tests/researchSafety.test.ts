@@ -55,3 +55,8 @@ it('shares identical concurrent queries and retries after a shared failure',asyn
  const retry=cacheTravelServices({route:failing});const failed=await Promise.allSettled([retry.route(input),retry.route(input)]);
  expect(failed.every(r=>r.status==='rejected')).toBe(true);await retry.route(input);expect(failing).toHaveBeenCalledTimes(2);
 });
+
+it("returns a generic message for raw provider errors and classifies oversized bodies",()=>{
+  expect(apiError(new Error("No geocode result for QA private venue"))).toEqual({status:503,error:"查询暂时无法完成，请稍后重试"});
+  expect(apiError(new Error("Request body too large")).status).toBe(413);
+});

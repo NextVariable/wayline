@@ -1,7 +1,8 @@
 import { BusinessTripCommute, type CommuteChoice } from "./components/BusinessTripCommute";
 import { BusinessTripConnections } from "./components/BusinessTripConnections";
+import { tripTransfers } from "./lib/tripTransfers";
 import { buildTravelWorkspace } from "./lib/tripIntelligence";
-import { assessCommute, assessTrip, calendarRisks } from "./lib/tripFeasibility";
+import { assessCommute, assessTrip, calendarRisks, isCurrentRoute } from "./lib/tripFeasibility";
 import { useBookingPlaces, bookingPlaceKey } from "./lib/useBookingPlaces";
 import { useTripMailbox } from "./lib/useTripMailbox";
 import {storedPlaceCity} from "./lib/placeCity";
@@ -633,12 +634,13 @@ export default function App() {
     return {pair, mode, result:todayLegResults[pair.id]?.[mode], ...assessCommute(pair, options, mode, freshness)};
   }), [pairs, choices, todayLegResults, freshness]);
   const todayConflicts = useMemo(() => calendarRisks(calendarEvents,freshness,today?.dateKey ?? todayKey)
-    .filter(risk => risk.type === "overlap" && !pairs.some(pair => pair.from.event.id === risk.eventIds[0] && pair.to.event.id === risk.eventIds[1])),
-    [calendarEvents,freshness,today,todayKey,pairs]);
+    .filter(risk => risk.type === "overlap" && !todaySegments.some(({pair,verdict}) =>
+      verdict.status === "overlap" && pair.from.event.id === risk.eventIds[0] && pair.to.event.id === risk.eventIds[1])),
+    [calendarEvents,freshness,today,todayKey,todaySegments]);
   const showTodayOnMap = todayVisible && calendarLayer && todayStops.length > 0;
   const todayRoutes = useMemo(() => showTodayOnMap ? todaySegments.flatMap(({ pair, result, verdict }) =>
-    result ? [{ id: pair.id, points: result.points, late: verdict.status === "late" || verdict.status === "overlap" }] : []
-  ) : undefined, [showTodayOnMap, todaySegments]);
+    result && isCurrentRoute(result,clockNow) ? [{ id: pair.id, points: result.points, late: verdict.status === "late" || verdict.status === "overlap" }] : []
+  ) : undefined, [showTodayOnMap, todaySegments, clockNow]);
   const todayPlaces = useMemo(() => showTodayOnMap ? todayStops
     .filter((stop, index, stops) => stops.findIndex(item => samePlace(item.place, stop.place)) === index)
     .map(stop => ({ ...stop.place, calendarEventIds: todayStops.filter(item => samePlace(item.place, stop.place)).map(item => item.event.id) })) : [], [showTodayOnMap, todayStops]);
@@ -668,7 +670,6 @@ export default function App() {
   const selectedBusinessTrip = businessSelection?.owner === activeUser.id
     ? businessTrips.find(item => item.id === businessSelection.id) : undefined;
   const selectedModel = selectedBusinessTrip && model.tripModels.get(selectedBusinessTrip.id);
-  const tripRisks = useMemo(() => selectedModel ? assessTrip(selectedModel,freshness) : [],[selectedModel,freshness]);
   const selectedPlan = selectedBusinessTrip && bookingPlan.get(selectedBusinessTrip.id);
   const bookingPoints = useMemo(() => [...(selectedPlan?.legs ?? []), ...(selectedPlan?.nights ?? [])]
         .flatMap(entry => entry.orders.filter(order => (!order.state || order.state === "confirmed") &&
@@ -676,6 +677,19 @@ export default function App() {
         freshness.calendarCurrent || (freshness.mailboxCurrent && order.provenance?.some(item=>item.source==="gmail"))))
       .flatMap(order => order.from ? [order.from, order.to] : [order.to])), [selectedPlan,freshness.calendarCurrent,freshness.mailboxCurrent]);
   const bookingLocations = useBookingPlaces(activeOverlay === "business-trips" ? bookingPoints : [], activeUser.id);
+  const transfers = useMemo(() => selectedModel ? tripTransfers(selectedModel,bookingLocations) : [],[selectedModel,bookingLocations]);
+  const [transferState,setTransferState] = useState<{owner:string;routes:Record<string,LegResult>}>();
+  const tripRisks = useMemo(() => selectedModel ? assessTrip(selectedModel,freshness,transfers,
+    transferState?.owner===activeUser.id?transferState.routes:{}) : [],
+    [selectedModel,freshness,transfers,transferState,activeUser.id]);
+  const storeTransfer = (key:string,route:LegResult|null) => {
+    setTransferState(previous => {
+      const routes = previous?.owner===activeUser.id ? {...previous.routes} : {};
+      delete routes[key];
+      if (route) routes[key]=route;
+      return {owner:activeUser.id,routes:Object.fromEntries(Object.entries(routes).slice(-32))};
+    });
+  };
   const businessRevision = selectedBusinessTrip ? JSON.stringify(selectedBusinessTrip.days.map(day =>
     day.events.map(event => [event.id,event.start,event.end,event.place.lat,event.place.lng]))) : "";
   const stayRevision = JSON.stringify([businessRevision, selectedPlan?.nights, bookingLocations]);
@@ -1527,8 +1541,9 @@ export default function App() {
               try { sessionStorage.setItem(businessNavKey, JSON.stringify({tripId:selectedModel.id, choice})); } catch { /* retain the current view */ }
             }}
             onRoute={route => setBusinessRoad(route ? { revision:businessRevision, route } : null)} />
-          <BusinessTripConnections
+          <BusinessTripConnections key={activeUser.id}
           trip={selectedModel} legs={selectedPlan.legs} nights={selectedPlan.nights} places={bookingLocations}
+          transfers={transfers} onTransfer={storeTransfer}
           onPlace={selectBusinessPlace}
           onArea={place => { setStayArea({ revision:stayRevision, place }); selectBusinessPlace(place, true); }} /></>}
         cities={uniqueCities([city, ...calendarEvents.flatMap(event => event.place ? [{

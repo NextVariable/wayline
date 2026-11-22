@@ -4,7 +4,7 @@ import type { OrderPoint } from "./businessOrders";
 import { cityKey } from "./citySelection";
 
 export const bookingPlaceKey = (point: OrderPoint) => JSON.stringify([point.city, point.name]);
-const nameKey = (name: string) => name.normalize("NFKC").replace(/\s|[（(]?T[1-9](?:号?航站楼)?[）)]?$|火车站$|站$/gi, "");
+const nameKey = (name: string) => name.normalize("NFKC").replace(/[\s（）()]/g, "").replace(/(T[1-9])(?:号?航站楼)?$/i, "$1").replace(/火车站$|站$/g, "").toUpperCase();
 export function useBookingPlaces(points: OrderPoint[], owner: string) {
   const queries = JSON.stringify([...new Set(points.filter(point => !point.place && point.city).map(bookingPlaceKey))].sort());
   const [view, setView] = useState<{ owner: string; queries: string; places: Record<string, Place> }>();

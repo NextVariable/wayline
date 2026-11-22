@@ -12,7 +12,7 @@ const page=await context.newPage();page.setDefaultTimeout(7000);
 const day=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const events=['会场甲','会场乙'].map((location,i)=>({id:'g'+i,uid:'u'+i,title:'测试会议'+i,location,description:'',start:day+(i?'T10:20:00+08:00':'T09:00:00+08:00'),end:day+(i?'T11:00:00+08:00':'T10:00:00+08:00'),allDay:false,timezone:'Asia/Shanghai',calendar:'测试',google:{connectionId:'test',eventId:String(i),calendarId:'work',updated:'',originalStart:null}}));
 const calendars=[{id:'work',summary:'工作',primary:true},{id:'shared',summary:'共享'}];
-let signedIn=false, connected=false, denyCalendar=true, selected=[], selectionFailed=true, routeFailed=true, payload=[], syncError='';
+let signedIn=false, connected=false, denyCalendar=true, selected=[], selectionFailed=true, routeFailed=true, payload=[], syncError='', bookingPhase='confirmed';
 await context.route('**/*',async r=>{
  const u=new URL(r.request().url());
  if(u.hostname==='accounts.google.com'){
@@ -24,11 +24,19 @@ await context.route('**/*',async r=>{
  if(u.hostname!=='127.0.0.1')return r.abort();
  if(u.pathname==='/api/auth/me')return r.fulfill({json:{configured:true,signedIn,account:{id:'owner',email:'qa@example.test',name:'QA'}}});
  if(u.pathname==='/api/auth/google/start')return r.fulfill({json:{url:'https://accounts.google.com/test-login'}});
- if(u.pathname==='/api/auth/gmail/status')return r.fulfill({json:{enabled:true,connected:true,lastSync:Date.now(),orders:[
-   {id:'inbound',train:'G102',origin:'苏州站',destination:'上海虹桥站',departAt:day+'T08:00:00+08:00',arriveAt:day+'T09:08:00+08:00'},
- ],changes:[
-   {id:'cancelled',kind:'rail',state:'cancelled',number:'G298',from:'上海虹桥站',to:'苏州站',start:day+'T17:00:00+08:00',observedAt:Date.now()},
- ]}});
+ if(u.pathname==='/api/auth/gmail/status'){
+   const old={id:'inbound',train:'G102',origin:'苏州站',destination:'上海虹桥站',departAt:day+'T08:00:00+08:00',arriveAt:day+'T09:08:00+08:00'};
+   const replacement={...old,id:'new-inbound',train:'G103',arriveAt:day+'T08:50:00+08:00'};
+   const history={id:'cancelled',kind:'rail',state:'cancelled',number:'G298',from:'上海虹桥站',to:'苏州站',start:day+'T17:00:00+08:00',observedAt:Date.now()};
+   const inboundCancellation={id:old.id,kind:'rail',state:'cancelled',number:old.train,from:old.origin,to:old.destination,start:old.departAt,end:old.arriveAt,observedAt:Date.now()};
+   return r.fulfill({json:{enabled:true,connected:true,lastSync:Date.now(),
+     orders:bookingPhase==='confirmed'?[old]:bookingPhase==='replacement'?[replacement]:[],
+     changes:bookingPhase==='confirmed'?[history]:[history,inboundCancellation]}});
+ }
+ if(u.pathname==='/api/suggest'){
+   const {keyword,city}=r.request().postDataJSON();
+   return r.fulfill({json:[{name:keyword,city,lat:31.19,lng:121.31,address:'合成站点',isMatched:true,coordinateSystem:'GCJ02'}]});
+ }
  if(u.pathname==='/api/workspace')return r.fulfill({json:{version:0,workspace:null}});
  if(u.pathname==='/api/calendar/google/connect')return r.fulfill({json:{url:'https://accounts.google.com/test-calendar'}});
  if(u.pathname==='/api/calendar/google/status')return r.fulfill({json:{configured:true,connected:connected&&u.searchParams.get('owner')==='google:owner',connectionId:'test',selected,calendars,lastSync:selected.length?Date.now():null,events:payload,error:syncError}});
@@ -112,6 +120,27 @@ syncError='';payload=[];await page.reload();await page.getByText('已同步 · �
   await commuteButton.waitFor();
   assert.equal(await commuteButton.getAttribute('aria-pressed'),'true');
   await page.locator('.business-commute-navigation').waitFor();
+  const openRisks=async()=>{
+    const risks=page.locator('details.trip-risk-list');
+    if (await risks.getAttribute('open')===null) await risks.locator('summary').click();
+  };
+  const inboundMissing=page.locator('.trip-risk-list li').filter({hasText:'未见已订交通'}).filter({hasText:'苏州 → 上海'});
+  bookingPhase='cancelled';
+  await page.evaluate(()=>window.dispatchEvent(new Event('wayline:gmail-change')));
+  await page.locator('.trip-order-row').filter({hasText:'G102'}).getByText(/收到取消通知/).waitFor();
+  await openRisks();
+  await inboundMissing.waitFor();
+  assert.equal(await page.getByText('订单与会议时间冲突',{exact:true}).count(),0);
+  bookingPhase='replacement';
+  await page.evaluate(()=>window.dispatchEvent(new Event('wayline:gmail-change')));
+  await page.locator('.trip-order-row').filter({hasText:'G103'}).waitFor();
+  assert.equal(await inboundMissing.count(),0);
+  const details=page.locator('details.trip-connections');
+  if (await details.getAttribute('open')===null) await details.locator('summary').click();
+  await page.getByRole('button',{name:'查到站后接驳'}).click();
+  await openRisks();
+  await page.getByText('按查询耗时，城际接驳时间不足',{exact:true}).waitFor();
+  await page.getByText(/可用 10 分钟.*差 5 分钟/).waitFor();
   const tripPanel=page.locator('.business-trips-panel');
   await tripPanel.getByRole('button',{name:'行程',exact:true}).click();
   await tripPanel.getByRole('button',{name:'地点',exact:true}).click();

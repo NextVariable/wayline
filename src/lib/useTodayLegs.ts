@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { apiEndpoint } from "./apiEndpoint";
 import { ROUTE_MAX_AGE } from "./tripFeasibility";
-import type { RouteEvidence } from "./tripDomain";
+import type { Place, RouteEvidence } from "./tripDomain";
 import { normalizeRouteEvidence } from "./plannerEvidence";
 import { judgeLeg, routeProviderMode, type TodayLegPair, type TravelMode } from "./todayMap";
 
@@ -15,13 +15,20 @@ export const ALL_MODES: TravelMode[] = ["walking", "transit", "driving"];
  * One leg, one mode. Public transport needs a departure time, so it leaves when the previous event ends.
  * A failure of any kind is null: the leg stays "not looked up" and is never shown as late.
  */
-export async function fetchLeg(pair: TodayLegPair, mode: TravelMode, { fetchImpl = fetch, signal }: { fetchImpl?: FetchLike; signal?: AbortSignal } = {}): Promise<LegResult | null> {
+type LookupOptions = {fetchImpl?:FetchLike; signal?:AbortSignal};
+
+export function fetchLeg(pair: TodayLegPair, mode: TravelMode, options?:LookupOptions) {
+  return fetchRoute([pair.from.place,pair.to.place],mode,pair.departure ?? pair.from.event.end,options);
+}
+
+export async function fetchRoute(places:[Place,Place], mode:TravelMode, departure?:string,
+  {fetchImpl=fetch,signal}:LookupOptions = {}):Promise<LegResult|null> {
   try {
     const response = await fetchImpl(apiEndpoint("route"), {
       method: "POST", headers: { "Content-Type": "application/json" }, signal,
       body: JSON.stringify({
-        places: [pair.from.place, pair.to.place].map(({ id, name, lat, lng }) => ({ id, name, lat, lng })),
-        mode: routeProviderMode(mode), ...(mode === "transit" ? { departure: pair.departure ?? pair.from.event.end } : {}),
+        places: places.map(({ id, name, lat, lng }) => ({ id, name, lat, lng })),
+        mode: routeProviderMode(mode), ...(mode === "transit" ? { departure } : {}),
       }),
     });
     if (!response.ok) return null;

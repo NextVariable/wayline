@@ -1,0 +1,31 @@
+services:
+  wayline:
+    build:
+      context: ..
+      args:
+        VITE_AMAP_KEY: ${VITE_AMAP_KEY:-}
+        VITE_AMAP_SECURITY_CODE: ${VITE_AMAP_SECURITY_CODE:-}
+        VITE_TIANDITU_TOKEN: ${VITE_TIANDITU_TOKEN:-}
+    image: wayline:${WAYLINE_IMAGE_TAG:-1.0.0-rc.2}
+    init: true
+    read_only: true
+    restart: unless-stopped
+    env_file:
+      - ${WAYLINE_RC_ENV_FILE:?Set a private staging env file}
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 8787
+      TRUST_PROXY: "1"
+    ports:
+      - "127.0.0.1:${WAYLINE_RC_PORT:-8787}:8787"
+    volumes:
+      - wayline-data:/app/.wayline-private
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+volumes:
+  wayline-data:

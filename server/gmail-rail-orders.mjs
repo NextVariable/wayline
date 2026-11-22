@@ -180,7 +180,8 @@ export function collectBookingChanges(messages, now) {
     }));
     for (const booking of historical) {
       if (Date.parse(booking.end ?? booking.start) < now - DAY) continue;
-      const matchingReference = !!notice.reference && notice.reference === row.reference;
+      const matchingReference = !!notice.reference && notice.reference === row.reference &&
+        (row.kind !== 'confirmed' || row.journeys.length === 1);
       const state = matchingReference ? notice.state ?? 'review' : 'review';
       const known = affected.get(booking.id);
       if (!known || known.observedAt < notice.receivedAt)
@@ -260,7 +261,7 @@ export function createGmailOrders({ vault, fetcher, now, env }) {
           grant_type: 'refresh_token', refresh_token: token.refresh }),
       });
       if (!refreshed.access_token) throw error(401, 'Gmail 授权已失效，请重新连接');
-      token = { ...token, access: refreshed.access_token, expiresAt: now() + Number(refreshed.expires_in || 3600) * 1000 };
+      token = { ...token, refresh:refreshed.refresh_token || token.refresh, access: refreshed.access_token, expiresAt: now() + Number(refreshed.expires_in || 3600) * 1000 };
     }
 
     const headers = { Authorization: `Bearer ${token.access}` };
@@ -274,7 +275,11 @@ export function createGmailOrders({ vault, fetcher, now, env }) {
       const params = new URLSearchParams({ q: query, maxResults: singleSample ? '1' : '50',
         fields: 'messages/id,nextPageToken,resultSizeEstimate', ...(pageToken ? { pageToken } : {}) });
       const result = await request(gmailRoot + '?' + params, { headers });
-      for (const row of result.messages ?? []) if (typeof row.id === 'string' && /^[a-zA-Z0-9_-]{1,80}$/.test(row.id)) ids.add(row.id);
+      const empty = result?.resultSizeEstimate === 0 && !result.nextPageToken && result.messages === undefined;
+      if (!empty && (!Array.isArray(result?.messages) ||
+          result.messages.some(row => typeof row?.id !== 'string' || !/^[a-zA-Z0-9_-]{1,80}$/.test(row.id))))
+        throw error(502, 'Gmail 返回的订单列表不完整，已保留上次结果');
+      for (const row of result.messages ?? []) ids.add(row.id);
       pageToken = typeof result.nextPageToken === 'string' ? result.nextPageToken : '';
       if (!pageToken) break;
     }

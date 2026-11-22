@@ -1,0 +1,250 @@
+[
+  {
+    "id": "public-01",
+    "category": "行政区门牌",
+    "query": "上海市青浦区崧泽大道333号",
+    "city": "上海",
+    "source": "https://www.neccsh.com/cecsh/connectus.jspx",
+    "expected": "found",
+    "acceptableName": "国家会展中心",
+    "street": "崧泽大道333号",
+    "simulated": [
+      {
+        "name": "国家会展中心",
+        "city": "上海",
+        "address": "崧泽大道333号",
+        "district": "青浦区",
+        "lat": 30.0,
+        "lng": 120.0
+      }
+    ]
+  },
+  {
+    "id": "public-02",
+    "category": "行政区门牌",
+    "query": "上海市浦东新区银城中路501号",
+    "city": "上海",
+    "source": "https://www.shanghaitower.com/office.html",
+    "expected": "found",
+    "acceptableName": "上海中心大厦",
+    "street": "银城中路501号",
+    "simulated": [
+      {
+        "name": "上海中心大厦",
+        "city": "上海",
+        "address": "银城中路501号",
+        "district": "浦东新区",
+        "lat": 30.1,
+        "lng": 120.1
+      }
+    ]
+  },
+  {
+    "id": "public-03",
+    "category": "行政区门牌",
+    "query": "广东省深圳市宝安区展城路1号",
+    "city": "深圳",
+    "source": "https://www.shenzhen-world.com/about-us/sz-world-ex/index.html",
+    "expected": "found",
+    "acceptableName": "深圳国际会展中心",
+    "street": "展城路1号",
+    "simulated": [
+      {
+        "name": "深圳国际会展中心",
+        "city": "深圳",
+        "address": "展城路1号",
+        "district": "宝安区",
+        "lat": 30.2,
+        "lng": 120.2
+      }
+    ]
+  },
+  {
+    "id": "public-04",
+    "category": "行政区门牌",
+    "query": "深圳市南山区海天二路33号",
+    "city": "深圳",
+    "source": "https://www.tencent.com/zh-cn/contact/",
+    "expected": "found",
+    "acceptableName": "腾讯滨海大厦",
+    "street": "海天二路33号",
+    "simulated": [
+      {
+        "name": "腾讯滨海大厦",
+        "city": "深圳",
+        "address": "海天二路33号",
+        "district": "南山区",
+        "lat": 30.3,
+        "lng": 120.3
+      }
+    ]
+  },
+  {
+    "id": "public-05",
+    "category": "跨城明确地名",
+    "query": "上海中心大厦",
+    "city": "上海",
+    "source": "https://www.shanghaitower.com/office.html",
+    "expected": "found",
+    "acceptableName": "上海中心大厦",
+    "street": "银城中路501号",
+    "simulated": [
+      {
+        "name": "上海中心大厦",
+        "city": "上海",
+        "address": "银城中路501号",
+        "district": "浦东新区",
+        "lat": 30.4,
+        "lng": 120.4
+      }
+    ]
+  },
+  {
+    "id": "public-06",
+    "category": "跨城明确地名",
+    "query": "深圳国际会展中心",
+    "city": "深圳",
+    "source": "https://www.shenzhen-world.com/about-us/sz-world-ex/index.html",
+    "expected": "found",
+    "acceptableName": "深圳国际会展中心",
+    "street": "展城路1号",
+    "simulated": [
+      {
+        "name": "深圳国际会展中心",
+        "city": "深圳",
+        "address": "展城路1号",
+        "district": "宝安区",
+        "lat": 30.5,
+        "lng": 120.5
+      }
+    ]
+  },
+  {
+    "id": "public-07",
+    "category": "园区楼栋",
+    "query": "上海市青浦区诸光路1988号A0办公楼",
+    "city": "上海",
+    "source": "https://www.neccsh.com/cecsh/connectus.jspx",
+    "expected": "ambiguous",
+    "acceptableName": "国家会展中心A0办公楼",
+    "street": "诸光路1988号",
+    "simulated": [
+      {
+        "name": "国家会展中心A0办公楼",
+        "city": "上海",
+        "address": "诸光路1988号",
+        "district": "青浦区",
+        "lat": 30.6,
+        "lng": 120.6
+      }
+    ]
+  },
+  {
+    "id": "public-08",
+    "category": "园区楼栋",
+    "query": "上海市青浦区诸光路1988号",
+    "city": "上海",
+    "source": "https://www.neccsh.com/cecsh/connectus.jspx",
+    "expected": "found",
+    "acceptableName": "国家会展中心办公楼A幢",
+    "street": "诸光路1988号",
+    "simulated": [
+      {
+        "name": "国家会展中心办公楼A幢",
+        "city": "上海",
+        "address": "诸光路1988号",
+        "district": "青浦区",
+        "lat": 30.7,
+        "lng": 120.7
+      }
+    ]
+  },
+  {
+    "id": "public-09",
+    "category": "同名地点",
+    "query": "会展中心",
+    "city": "深圳",
+    "source": "https://www.szcec.com/szcec/cn-brief/facilities/index.html",
+    "expected": "ambiguous",
+    "acceptableName": "深圳会展中心",
+    "street": "福华三路",
+    "simulated": [
+      {
+        "name": "深圳会展中心",
+        "city": "深圳",
+        "address": "福华三路",
+        "district": "福田区",
+        "lat": 30.8,
+        "lng": 120.8
+      },
+      {
+        "name": "深圳国际会展中心",
+        "city": "深圳",
+        "address": "展城路1号",
+        "district": "宝安区",
+        "lat": 32,
+        "lng": 122
+      }
+    ]
+  },
+  {
+    "id": "public-10",
+    "category": "同名地点",
+    "query": "深圳会展",
+    "city": "深圳",
+    "source": "https://www.szcec.com/szcec/cn-brief/facilities/index.html",
+    "expected": "ambiguous",
+    "acceptableName": "深圳会展",
+    "street": "福华三路",
+    "simulated": [
+      {
+        "name": "深圳会展",
+        "city": "深圳",
+        "address": "福华三路",
+        "district": "福田区",
+        "lat": 30.9,
+        "lng": 120.9
+      }
+    ]
+  },
+  {
+    "id": "public-11",
+    "category": "公司简称",
+    "query": "腾讯",
+    "city": "深圳",
+    "source": "https://www.tencent.com/zh-cn/contact/",
+    "expected": "ambiguous",
+    "acceptableName": "腾讯",
+    "street": "海天二路33号",
+    "simulated": [
+      {
+        "name": "腾讯",
+        "city": "深圳",
+        "address": "海天二路33号",
+        "district": "南山区",
+        "lat": 31.0,
+        "lng": 121.0
+      }
+    ]
+  },
+  {
+    "id": "public-12",
+    "category": "公司地点全名",
+    "query": "腾讯滨海大厦",
+    "city": "深圳",
+    "source": "https://www.tencent.com/zh-cn/contact/",
+    "expected": "found",
+    "acceptableName": "腾讯滨海大厦",
+    "street": "海天二路33号",
+    "simulated": [
+      {
+        "name": "腾讯滨海大厦",
+        "city": "深圳",
+        "address": "海天二路33号",
+        "district": "南山区",
+        "lat": 31.1,
+        "lng": 121.1
+      }
+    ]
+  }
+]

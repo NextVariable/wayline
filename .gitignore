@@ -28,3 +28,6 @@ skills-lock.json
 # Editor recovery files.
 *.swp
 *.swo
+
+# Real release environment files live outside Git.
+/deploy/*.env

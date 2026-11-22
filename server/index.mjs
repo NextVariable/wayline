@@ -42,13 +42,17 @@ travelServices.researchPublic = ({notes,places,publicEvents,purpose='venue'}) =>
   return publicResearchCache.lookup(key,()=>researchPublicEvents(notes,{places,publicEvents,purpose,search:travelServices.searchPublic,readPage}),{kind:'public'});
 };
 const host = process.env.HOST || '127.0.0.1';
-if (!['127.0.0.1', 'localhost', '::1'].includes(host) && !process.env.WEB_ACCESS_PASSWORD)
+const loopback = ['127.0.0.1','localhost','::1'].includes(host);
+if (!loopback && !process.env.WEB_ACCESS_PASSWORD)
   throw new Error('Public hosting requires WEB_ACCESS_PASSWORD');
+if (!loopback && process.env.NODE_ENV === 'production' && !process.env.PUBLIC_ORIGIN?.startsWith('https://'))
+  throw new Error('Public production hosting requires an HTTPS PUBLIC_ORIGIN');
 const serveWeb = createWebHost({ password: process.env.WEB_ACCESS_PASSWORD || '', secure: process.env.PUBLIC_ORIGIN?.startsWith('https://'), publicOrigin: process.env.PUBLIC_ORIGIN });
 // The anonymous API routes spend the operator's map quota. Limit each caller, add a
 // stricter budget for routes that fetch outside pages, and cap the whole site.
 const positiveInt = (value, fallback) => Number.isInteger(Number(value)) && Number(value) > 0 ? Number(value) : fallback;
 const trustProxy = process.env.TRUST_PROXY === '1';
+const authLimiter = createRateLimiter({ limit:60 });
 const callerLimiter = createRateLimiter({ limit: positiveInt(process.env.API_RATE_LIMIT_PER_MINUTE, 90) });
 const fetchLimiter = createRateLimiter({ limit: positiveInt(process.env.API_FETCH_LIMIT_PER_MINUTE, 10) });
 const siteLimiter = createRateLimiter({ limit: positiveInt(process.env.API_SITE_LIMIT_PER_MINUTE, 1500), maxKeys: 1 });
@@ -66,7 +70,7 @@ const cityResources = createCityResourceLookup(async query => {
   }
 });
 const businessTripOptions = createBusinessTripOptions({ services: travelServices, resources: cityResources });
-const calendarPlaces = createCalendarPlaceResolver({ searchPlaces: query => travelServices.searchPlaces(query), cacheFile: (process.env.CALENDAR_PLACES_DIR || '.wayline-private') + '/calendar-places.json' });
+const calendarPlaces = createCalendarPlaceResolver({ searchPlaces: query => travelServices.searchPlaces({...query,includeDistrict:true}), cacheFile: (process.env.CALENDAR_PLACES_DIR || '.wayline-private') + '/calendar-places.json' });
 const accounts = createAccountService();
 const googleCalendar=createGoogleCalendarService({accountFor:accounts.accountFor});
 googleCalendar.start();
@@ -74,17 +78,24 @@ googleCalendar.start();
 
 function readJson(request) {
   return new Promise((resolve, reject) => {
-    let body = "";
-    request.on("data", (chunk) => {
-      body += chunk;
-      if (body.length > 1_000_000) {
-        request.destroy();
+    const chunks = [];
+    let bytes = 0;
+    let oversized = false;
+    request.on("data", chunk => {
+      if (oversized) return;
+      bytes+=chunk.length;
+      if (bytes>1_000_000) {
+        oversized=true;
+        chunks.length=0;
         reject(new Error("Request body too large"));
+        return;
       }
+      chunks.push(chunk);
     });
     request.on("end", () => {
+      if (oversized) return;
       try {
-        resolve(body ? JSON.parse(body) : {});
+        resolve(bytes ? JSON.parse(Buffer.concat(chunks,bytes).toString('utf8')) : {});
       } catch {
         reject(new Error("Invalid JSON"));
       }
@@ -93,7 +104,10 @@ function readJson(request) {
   });
 }
 
-const corsOrigin = process.env.WEB_ORIGIN || "http://127.0.0.1:3000";
+const publicOrigin = new URL(process.env.PUBLIC_ORIGIN || `http://127.0.0.1:${port}`).origin;
+const corsOrigin = process.env.WEB_ORIGIN || (loopback && !process.env.PUBLIC_ORIGIN ? 'http://127.0.0.1:3000' : publicOrigin);
+const allowedOrigins = new Set([corsOrigin,publicOrigin]);
+if (loopback && !process.env.PUBLIC_ORIGIN) allowedOrigins.add(`http://localhost:${port}`);
 
 function send(response, status, payload) {
   response.writeHead(status, {
@@ -101,6 +115,8 @@ function send(response, status, payload) {
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
     "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store",
+    "X-Content-Type-Options": "nosniff",
   });
   response.end(JSON.stringify(payload));
 }
@@ -352,6 +368,26 @@ async function handleSearch(body) {
 }
 
 const server = http.createServer(async (request, response) => {
+  const route = (request.url || '').split('?')[0];
+  if (route === '/healthz' && request.method === 'GET') {
+    send(response,200,{ok:true});
+    return;
+  }
+  const origin=request.headers.origin;
+  if (route.startsWith('/api/') && ['POST','OPTIONS'].includes(request.method) && origin &&
+      !allowedOrigins.has(origin)) {
+    send(response,403,{error:'请从 Wayline 页面发起请求'});
+    return;
+  }
+  const caller=callerKey(request,{trustProxy});
+  if ((route === '/access' && request.method === 'POST') || route.startsWith('/api/auth/') || route.startsWith('/api/calendar/google/')) {
+    const admission=authLimiter.take(caller);
+    if (!admission.allowed) {
+      response.setHeader('Retry-After',String(admission.retryAfterSeconds));
+      send(response,429,{error:'请求较频繁，请稍后重试'});
+      return;
+    }
+  }
   try {
     // This callback authenticates its own browser-bound, single-use OAuth state.
     if (request.url?.startsWith("/api/calendar/google/callback?") && await googleCalendar.handle(request,response)) return;
@@ -374,8 +410,10 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
-  const route = (request.url || '').split('?')[0];
-  const caller = callerKey(request, { trustProxy });
+  if (!/^application\/json(?:\s*;|$)/i.test(request.headers['content-type'] || '')) {
+    send(response,415,{error:'请求应使用 JSON'});
+    return;
+  }
   const verdict = admit([[callerLimiter, caller], [siteLimiter, 'site'], ...(fetchRoutes.has(route) ? [[fetchLimiter, caller]] : [])]);
   if (!verdict.allowed) {
     response.setHeader('Retry-After', String(verdict.retryAfterSeconds));

@@ -16,7 +16,7 @@ export function createTravelServices({ fetchImpl = fetch, tiandituToken = '', am
     if (![lat, lng].every(Number.isFinite) || Math.abs(lat) > 90 || Math.abs(lng) > 180) throw new Error('定位坐标无效');
   };
   const services = {
-    async searchPlaces({ keyword, city, count, types, cityLimit = false, requestIntervalMs }) {
+    async searchPlaces({ keyword, city, count, types, cityLimit = false, includeDistrict = false, requestIntervalMs }) {
       if (!amapKey) throw new Error('地点查询暂不可用');
       const params = new URLSearchParams({key:amapKey, keywords:keyword, city, citylimit:String(cityLimit),
         offset:String(count), page:'1', extensions:'base', output:'JSON'});
@@ -34,7 +34,7 @@ export function createTravelServices({ fetchImpl = fetch, tiandituToken = '', am
         try { coordinate(lat,lng); } catch { return []; }
         const text = value => typeof value === 'string' ? value : '';
         return [{name:poi.name, city:text(poi.cityname)||text(poi.pname), address:text(poi.address)||poi.name, lat, lng,
-          ...(types ? { id:text(poi.id), typecode:text(poi.typecode), district:text(poi.adname) } : {})}];
+          ...(types ? { id:text(poi.id), typecode:text(poi.typecode), district:text(poi.adname) } : includeDistrict ? {district:text(poi.adname)} : {})}];
       });
     },
     async findStations({ city }) {

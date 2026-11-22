@@ -1,4 +1,4 @@
-import { readFile, stat } from 'node:fs/promises';
+import { readFile, realpath, stat } from 'node:fs/promises';
 import { resolve, sep } from 'node:path';
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 const equal = (a, b) => timingSafeEqual(createHash('sha256').update(String(a)).digest(), createHash('sha256').update(String(b)).digest());
@@ -49,12 +49,19 @@ export function createWebHost({ root = resolve('dist'), password = '', secret = 
         if (pathname.split('/').at(-1).includes('.')) { response.writeHead(404); response.end(); return true; }
         file = resolve(root, 'index.html'); info = await stat(file);
       }
+      const actualRoot = await realpath(root);
+      const actualFile = await realpath(file);
+      if (!actualFile.startsWith(actualRoot + sep)) {
+        response.writeHead(404);
+        response.end();
+        return true;
+      }
       const ext = file.split('.').at(-1);
       const mime = { html:'text/html; charset=utf-8',js:'text/javascript; charset=utf-8',css:'text/css; charset=utf-8',json:'application/json',png:'image/png',svg:'image/svg+xml',woff2:'font/woff2',ico:'image/x-icon' }[ext] || 'application/octet-stream';
       const tag = `"${info.size}-${Math.round(info.mtimeMs)}"`;
       const headers = { 'Content-Type':mime, 'X-Content-Type-Options':'nosniff', 'Cache-Control':pathname.startsWith('/assets/')?'public,max-age=31536000,immutable':'no-cache', ETag:tag };
       response.writeHead(request.headers['if-none-match'] === tag ? 304 : 200, headers);
-      response.end(request.method === 'HEAD' || request.headers['if-none-match'] === tag ? undefined : await readFile(file));
+      response.end(request.method === 'HEAD' || request.headers['if-none-match'] === tag ? undefined : await readFile(actualFile));
     } catch { response.writeHead(404); response.end('页面暂不可用，请先构建网站'); }
     return true;
   };

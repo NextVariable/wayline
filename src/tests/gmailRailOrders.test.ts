@@ -181,3 +181,22 @@ it("keeps the last orders with a reauthorization flag after Gmail revokes access
   await expect(service.sync("test")).rejects.toMatchObject({status:401});
   expect(fetcher.mock.calls).toHaveLength(previous);
 });
+
+it("preserves an existing inbox snapshot on incomplete list data and accepts a genuine empty result",async()=>{
+  const {service,fetcher,advance}=setup();
+  await service.connect("test",{access_token:"fixture",refresh_token:"fixture"});
+  await service.sync("test");
+  advance(61_000);
+  fetcher.mockResolvedValueOnce(Response.json({nextPageToken:"unusable"}));
+  await expect(service.sync("test")).rejects.toMatchObject({status:502});
+  expect(await service.status("test")).toMatchObject({orders:[{train:"G123"}]});
+  fetcher.mockResolvedValueOnce(Response.json({resultSizeEstimate:0}));
+  expect(await service.sync("test")).toMatchObject({orders:[]});
+});
+
+it("does not mark every rail leg in a shared reference as definitely cancelled",()=>{
+  const single=parseRailMessage(mail());
+  const confirmation={...single,journeys:[single.journeys[0],{...single.journeys[0],id:"second"}]};
+  const refund=parseRailMessage(mail("订单号 E123456789",{subject:"12306退票成功",timestamp:now}));
+  expect(collectBookingChanges([confirmation,refund],now).map((row:{state:string})=>row.state)).toEqual(["review","review"]);
+});

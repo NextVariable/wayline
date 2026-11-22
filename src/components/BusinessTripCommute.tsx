@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Trip } from "../lib/tripDomain";
-import { assessCommute, type Freshness } from "../lib/tripFeasibility";
+import { assessCommute, isCurrentRoute, type Freshness } from "../lib/tripFeasibility";
 import { fetchLeg, type LegResult } from "../lib/useTodayLegs";
 import { modeName, type TravelMode } from "../lib/todayMap";
 import { routeMapLink } from "../lib/navigationLinks";
@@ -31,8 +31,8 @@ export function BusinessTripCommute({ trip, onRoute, initialChoice, onNavigate, 
   const activeId = pair?.id;
   const late = risk?.severity === "high";
   useEffect(() => {
-    latestRoute.current(result && activeId ? {id:activeId,points:result.points,late} : null);
-  }, [result, activeId, late]);
+    latestRoute.current(result && activeId && isCurrentRoute(result,freshness.now) ? {id:activeId,points:result.points,late} : null);
+  }, [result, activeId, late, freshness.now]);
   useEffect(() => {
     if (!pair || !selection || selection.result !== undefined) return;
     const controller = new AbortController();

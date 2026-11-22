@@ -231,3 +231,14 @@ it('falls back to a bounded full scan when the provider rejects the delta query'
  expect(requests.map(url=>url.searchParams.has('updatedMin'))).toEqual([true,false]);
  expect(requests.every(url=>url.searchParams.has('timeMin') && url.searchParams.has('timeMax'))).toBe(true);
 });
+
+it('keeps a later event when an older cancellation is replayed in an overlapping delta', async()=>{
+ const s=setup();
+ const {cookie}=await s.authorize();
+ s.setPages([[{...normal('meeting'),updated:'2026-10-29T00:50:00Z'}]]);
+ await s.call('select?owner=guest','POST',{calendarIds:['primary@test']},cookie);
+ s.setPages([[{id:'meeting',status:'cancelled',updated:'2026-10-29T00:40:00Z'}]]);
+ s.advance(120001);
+ await s.service.tick();
+ expect((await s.call('status?owner=guest','GET',undefined,cookie)).json().events).toHaveLength(1);
+});

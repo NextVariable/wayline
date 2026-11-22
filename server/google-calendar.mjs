@@ -97,10 +97,10 @@ export function createGoogleCalendarService({env=process.env,fetcher=fetch,now=D
         for (const item of page.items) {
           if (typeof item?.id !== 'string' || !item.id) failure(502,'Google 返回了没有标识的日程');
           const id=eventKey(connection.id,calendarId,item.id);
+          const previous=rows.get(id);
+          if (previous && Date.parse(previous.google.updated)>Date.parse(item.updated)) continue;
           if (item.status==='cancelled') { rows.delete(id); continue; }
           const event=normalizeGoogleEvent(item,connection.id,calendar);
-          const previous=rows.get(id);
-          if (previous && Date.parse(previous.google.updated)>Date.parse(event.google.updated)) continue;
           rows.set(id,event);
         }
         if (rows.size>5000) failure(422,'所选日历事件过多，请减少同步的日历');

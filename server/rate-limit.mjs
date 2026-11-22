@@ -1,3 +1,5 @@
+import { isIP } from 'node:net';
+
 /**
  * Fixed-window request limiter keyed by caller, with a bounded key table.
  * The public API routes spend the operator's paid map quota, so each caller gets
@@ -56,7 +58,8 @@ export function admit(checks) {
 export function callerKey(request, { trustProxy = false } = {}) {
   if (trustProxy) {
     const forwarded = String(request.headers['x-forwarded-for'] || '').split(',').map(part => part.trim()).filter(Boolean);
-    if (forwarded.length) return forwarded[forwarded.length - 1];
+    const client=forwarded.at(-1);
+    if (client && isIP(client)) return client;
   }
   return request.socket?.remoteAddress || 'unknown';
 }

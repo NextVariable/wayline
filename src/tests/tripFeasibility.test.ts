@@ -2,6 +2,9 @@ import { expect, it } from "vitest";
 import { buildTravelWorkspace } from "../lib/tripIntelligence";
 import { assessCommute, assessTrip, calendarRisks } from "../lib/tripFeasibility";
 import type { CalendarEntry } from "../lib/calendarEvents";
+import type { RailOrder } from "../lib/businessOrders";
+import { tripTransfers } from "../lib/tripTransfers";
+import { bookingPlaceKey } from "../lib/useBookingPlaces";
 import type { RouteEvidence } from "../lib/tripDomain";
 import { legPairs, localDateKey } from "../lib/todayMap";
 import { initialUserPlaces } from "./fixtures/userPlaces";
@@ -102,4 +105,52 @@ it("recomputes timing and matching when a committed calendar event moves",()=>{
   const next=testModel([relocated],mailbox).tripModels.get("A")!;
   expect(next.timeline.map(row=>row.kind)).toEqual(["event"]);
   expect(assessTrip(next,freshness).some(r=>r.type==="missing-transport")).toBe(true);
+});
+
+it("flags missing transport when the only order is cancelled and clears the gap on replacement",()=>{
+  const meeting=event("A",at(20,"10:00"),at(20,"11:00"),"上海");
+  const changes=[{id:"old",kind:"rail" as const,number:"G102",state:"cancelled" as const,from:"苏州站",to:"上海虹桥站",
+    start:at(20,"09:00"),end:at(20,"09:25"),observedAt:+today}];
+  const assess=(orders:RailOrder[])=>
+    assessTrip(testModel([meeting],{changes,lastSync:+today,orders}).tripModels.get("A")!,freshness);
+  const missing=({type,basis}:{type:string;basis:string})=>type==="missing-transport"&&basis.includes("苏州 → 上海");
+  expect(assess([]).some(missing)).toBe(true);
+  const replacement=assess([{id:"new",train:"G103",origin:"苏州站",destination:"上海虹桥站",
+    departAt:at(20,"09:15"),arriveAt:at(20,"09:50")}]);
+  expect(replacement.some(missing)).toBe(false);
+  expect(replacement.filter(r=>r.type==="booking-change")).toHaveLength(1);
+});
+
+it("reports a cancelled stay once but marks every uncovered night",()=>{
+  const first=event("A",at(20,"10:00"),at(20,"11:00"),"上海");
+  const last=event("B",at(22,"09:00"),at(22,"10:00"),"上海");
+  const trip=testModel([first,last],{orders:[],lastSync:+today,changes:[
+    {id:"cancelled-hotel",kind:"stay",state:"cancelled",observedAt:+today,to:"示例酒店",city:"上海",
+      start:"2026-11-20",end:"2026-11-22"},
+  ]}).tripModels.get("A")!;
+  const risks=assessTrip(trip,freshness);
+  expect(risks.filter(r=>r.type==="booking-change")).toHaveLength(1);
+  expect(risks.filter(r=>r.type==="missing-stay")).toHaveLength(2);
+});
+
+it("uses a dated route for station-to-meeting timing, degrades stale data and invalidates moved coordinates",()=>{
+  const meeting=event("A",at(20,"10:00"),at(20,"11:00"),"上海");
+  const mailbox={lastSync:+today,orders:[{id:"new",train:"G105",origin:"苏州站",destination:"上海虹桥站",
+    departAt:at(20,"09:00"),arriveAt:at(20,"09:50")}]};
+  const trip=testModel([meeting],mailbox).tripModels.get("A")!;
+  const terminal=cityPlace("上海","虹桥",1);
+  const locations={[bookingPlaceKey({name:"上海虹桥站",city:"上海"})]:terminal};
+  const transfers=tripTransfers(trip,locations);
+  expect(transfers).toHaveLength(1);
+  expect(transfers[0]).toMatchObject({availableMinutes:10});
+  const route:RouteEvidence={mode:"driving",source:"amap",minutes:15,points:[],observedAt:freshness.now};
+  const routes={[transfers[0].key]:route};
+  const get=(status=freshness)=>assessTrip(trip,status,transfers,routes).find(r=>r.type==="intercity");
+  expect(get()).toMatchObject({severity:"high",status:"confirmed",basis:expect.stringContaining("差 5 分钟")});
+  expect(get({...freshness,mailboxCurrent:false})).toMatchObject({severity:"info",status:"uncertain",stale:true});
+  expect(get({...freshness,now:freshness.now+31*60_000})).toMatchObject({severity:"info",status:"uncertain",stale:true});
+  const moved={...meeting,place:cityPlace("上海","新会场",5)};
+  const newTrip=testModel([moved],mailbox).tripModels.get("A")!;
+  expect(assessTrip(newTrip,freshness,tripTransfers(newTrip,locations),routes).find(r=>r.type==="intercity"))
+    .toMatchObject({status:"uncertain",severity:"info"});
 });

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { MapPin } from "lucide-react";
 import type { CalendarEntry } from "../lib/calendarEvents";
 import type { Place } from "../types/place";
@@ -49,9 +49,20 @@ function SearchPlace({ event, onSearch, onConfirm }: { event: CalendarEntry; onS
 /** A quiet corner note: the count only, opened on demand. No popups, no explanations. */
 export function CalendarPlaceHint({ pending, onConfirm, onAccept, onReject, onIgnore, onSearch, initiallyOpen = false }: Props) {
   const [open, setOpen] = useState(initiallyOpen);
+  const toggle=useRef<HTMLButtonElement>(null);
+  const complete=(id:string,action:()=>void)=>{
+    action();
+    requestAnimationFrame(()=>{
+      if (toggle.current) { toggle.current.focus({preventScroll:true}); return; }
+      const stop=Array.from(document.querySelectorAll<HTMLButtonElement>("[data-calendar-stop]"))
+        .find(button=>button.dataset.calendarStop===id);
+      (stop ?? document.querySelector<HTMLButtonElement>(".today-panel .text-action"))?.focus({preventScroll:true});
+    });
+  };
   if (!pending.length) return null;
-  return <section className={`calendar-place-hint${open ? " is-open" : ""}`} aria-label="没有地点的日程">
-    <button type="button" className="calendar-hint-toggle" aria-expanded={open} onClick={() => setOpen(v => !v)}>
+  return <section className={`calendar-place-hint${open ? " is-open" : ""}`} aria-label="没有地点的日程"
+      onKeyDown={event=>{ if (event.key==="Escape" && open) { event.stopPropagation(); setOpen(false); toggle.current?.focus(); } }}>
+    <button type="button" ref={toggle} className="calendar-hint-toggle" aria-expanded={open} onClick={() => setOpen(v => !v)}>
       <MapPin size={15} aria-hidden="true" />{pending.length} 个日程没有地点
     </button>
     {open && <ul className="calendar-hint-list">
@@ -65,15 +76,15 @@ export function CalendarPlaceHint({ pending, onConfirm, onAccept, onReject, onIg
    {r?.status === "ask" && r.suggestion && <div className="calendar-hint-ask">
      <span>还是那里吗？{r.suggestion.name}</span>
             <div className="calendar-hint-choices">
-<button type="button" onClick={() => onAccept(e.id)}>是</button>
+<button type="button" onClick={() => complete(e.id,()=>onAccept(e.id))}>是</button>
        <button type="button" onClick={() => onReject(e.id)}>不是</button>
      </div>
           </div>}
    {r?.status === "ambiguous" && <div className="calendar-hint-choices">
-     {(r.candidates ?? []).map(place => <button key={place.id} type="button" onClick={() => onConfirm(e.id, place)}>{place.name}{(place.address || place.city) && <small>{[place.city, place.address].filter(Boolean).join(" · ")}</small>}</button>)}
+     {(r.candidates ?? []).map(place => <button key={place.id} type="button" onClick={() => complete(e.id,()=>onConfirm(e.id,place))}>{place.name}{(place.address || place.city) && <small>{[place.city, place.address].filter(Boolean).join(" · ")}</small>}</button>)}
           </div>}
-          {(!r || r.status === "none" || r?.status === "missing" || r?.status === "ambiguous") && <SearchPlace event={e} onSearch={onSearch} onConfirm={onConfirm} />}
-   <button type="button" className="calendar-hint-ignore" onClick={() => onIgnore(e.id)}>忽略</button>
+          {(!r || r.status === "none" || r?.status === "missing" || r?.status === "ambiguous") && <SearchPlace event={e} onSearch={onSearch} onConfirm={(id,place)=>complete(id,()=>onConfirm(id,place))} />}
+   <button type="button" className="calendar-hint-ignore" onClick={() => complete(e.id,()=>onIgnore(e.id))}>忽略</button>
  </li>;
       })}
     </ul>}

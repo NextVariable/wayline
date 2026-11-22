@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { safeExternalUrl } from "../lib/externalUrl";
 import { cityKey } from "../lib/citySelection";
 import type { Place } from "../types/place";
 import { bookingPlaceKey } from "../lib/useBookingPlaces";
 import type { OrderPoint, StayNight, TravelGap, TripBooking } from "../lib/businessOrders";
 import type { BusinessTrip } from "../lib/businessTrips";
+import { fetchRoute, type LegResult } from "../lib/useTodayLegs";
+import type { TripTransfer } from "../lib/tripTransfers";
 import { localDateKey } from "../lib/todayMap";
 
 interface Option { kind:"rail"|"flight"; number:string; from:string; to:string; departure:string; arrival:string; source:string; checkedAt:string; bookingUrl:string|null }
@@ -74,8 +76,35 @@ function TransportOptions({ leg }: {leg: TravelGap}) {
     </RecommendationAction>
   </>;
 }
-export function BusinessTripConnections({ trip, legs, nights, places, onPlace, onArea }: {
+function TransferLookup({ transfer, onTransfer }: {transfer:TripTransfer; onTransfer:(key:string,route:LegResult|null)=>void}) {
+  const pending=useRef<AbortController|null>(null);
+  const [state,setState]=useState<"ready"|"loading"|"failed"|"found">("ready");
+  useEffect(()=>()=>pending.current?.abort(),[]);
+  const run=async()=>{
+    if (pending.current) return;
+    const request=new AbortController();
+    pending.current=request;
+    setState("loading");
+    onTransfer(transfer.key,null);
+    const route=await fetchRoute([transfer.from,transfer.to],"driving",undefined,{signal:request.signal});
+    if (request.signal.aborted) return;
+    pending.current=null;
+    onTransfer(transfer.key,route);
+    setState(route?"found":"failed");
+  };
+  const label=transfer.kind==="arrive-before"?"查到站后接驳":"查出发前接驳";
+  return <div className="trip-transfer-lookup">
+    <button type="button" className="text-action" disabled={state==="loading"} onClick={()=>void run()}>
+      {state==="loading"?"正在查接驳…":state==="failed"?"重试接驳查询":state==="found"?"更新接驳参考":label}
+    </button>
+    {state==="failed" && <small role="status">高德暂未返回有效路线</small>}
+    {state==="found" && <small role="status">接驳参考已更新，见行程待确认</small>}
+  </div>;
+}
+
+export function BusinessTripConnections({ trip, legs, nights, places, onPlace, onArea, transfers = [], onTransfer }: {
   trip: BusinessTrip; legs: TravelGap[]; nights: StayNight[]; places: Record<string, Place>;
+  transfers?:TripTransfer[]; onTransfer:(key:string,route:LegResult|null)=>void;
   onPlace: (place: Place) => void; onArea: (place: Place) => void;
 }) {
   const renderPoint = (point: OrderPoint) => {
@@ -95,6 +124,8 @@ export function BusinessTripConnections({ trip, legs, nights, places, onPlace, o
       return <section key={leg.id} data-trip-segment={leg.id} className="business-trip-day">
         <header><h3>{routeLabel(leg)}</h3><small>{date(leg.date)} · {status}{active ? "已有安排" : leg.orders.length ? "待核对" : "未定"}</small></header>
         {leg.orders.length > 0 && <ul>{leg.orders.map(orderRow)}</ul>}
+        {transfers.filter(transfer=>transfer.segmentId===leg.id).map(transfer=>
+          <TransferLookup key={transfer.key} transfer={transfer} onTransfer={onTransfer} />)}
         {!active && leg.date >= localDateKey(new Date()) && <TransportOptions key={JSON.stringify([leg.date,leg.before,leg.after])} leg={leg} />}
       </section>;
     })}
@@ -108,7 +139,8 @@ export function BusinessTripConnections({ trip, legs, nights, places, onPlace, o
       const anchors = candidates.filter((place, index) => candidates.findIndex(item => item.lat === place.lat && item.lng === place.lng) === index).slice(0,3);
       return <section key={night.date} data-trip-segment={`stay:${night.date}:${night.city}`} className="business-trip-day">
         <header><h3>{date(night.date)} · {night.city}</h3><small>{night.orders.some(order => !order.state || order.state === "confirmed") ? "已有住宿安排" : night.orders.length ? "住宿待核对" : "住宿未定"}</small></header>
-        {night.orders.length ? <ul>{night.orders.map(orderRow)}</ul> : night.date >= localDateKey(new Date()) && anchors.length > 0 &&
+        {night.orders.length > 0 && <ul>{night.orders.map(orderRow)}</ul>}
+        {!night.orders.some(order => !order.state || order.state === "confirmed") && night.date >= localDateKey(new Date()) && anchors.length > 0 &&
           <RecommendationAction key={JSON.stringify(anchors.map(p=>[p.id,p.lat,p.lng]))} label="看住哪一带" input={{kind:"stay", city:night.city, anchors}}>
             {value => value.area ? <div>
               <button type="button" className="text-action" onClick={() => onArea(value.area!.place)}>{value.area.place.name}附近 · 地图</button>

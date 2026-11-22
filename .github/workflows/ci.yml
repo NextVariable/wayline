@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'codex/v1.0-rc.*']
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -35,3 +35,13 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      - name: Check isolated release process
+        run: |
+          PORT=18949 HOST=127.0.0.1 node server/index.mjs > "$RUNNER_TEMP/wayline-preflight.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in 1 2 3 4 5; do
+            if curl -fsS http://127.0.0.1:18949/healthz > /dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/rc-preflight.mjs http://127.0.0.1:18949
