@@ -25,6 +25,7 @@ export function AuthPanel({
   onSignIn,
   onSignOut,
   onReturnToAccount,
+  onDemo,
 }: {
   accountStatus: AccountState["status"];
   accountEmail?: string;
@@ -33,6 +34,7 @@ export function AuthPanel({
   onSignIn: () => void;
   onSignOut: () => void;
   onReturnToAccount?: () => void;
+  onDemo?: () => void;
   user: AppUser;
   onLogin: (user: AppUser) => boolean | void;
   open: boolean;
@@ -93,7 +95,8 @@ export function AuthPanel({
           <button type="button" className="text-action account-sign-out" onClick={onSignOut}><LogOut size={15} />退出</button>
  </> : accountStatus === "loading" ? <p className="field-help" role="status">正在确认登录…</p> : <>
           <button type="button" className="primary-action" disabled={accountStatus === "unavailable"} onClick={onSignIn}>{accountStatus === "unavailable" ? "登录暂不可用" : "用 Google 登录"}</button>
-          <p className="field-help">登录后可跨设备恢复资料，并在日历来源中连接 Google 日历。</p>
+          {onDemo && <button type="button" className="secondary-action" onClick={() => { onDemo(); onClose(); }}>体验演示工作区</button>}
+          <p className="field-help">登录后可跨设备恢复资料，并在日历来源中连接 Google 日历。演示工作区无需登录，全部为合成数据。</p>
         </>}
       </div>
       {user.method === "google" && syncState === "conflict" && onUseCloudVersion &&

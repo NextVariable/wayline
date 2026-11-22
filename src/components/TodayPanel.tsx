@@ -1,8 +1,10 @@
 import type { TravelRisk } from "../lib/tripDomain";
+import type { TripAction } from "../lib/actionItems";
 import { Navigation } from "lucide-react";
 import { routeMapLink } from "../lib/navigationLinks";
 import { modeName, type LegVerdict, type TodayLegPair, type TodayStop, type TravelMode } from "../lib/todayMap";
 import type { LegResult } from "../lib/useTodayLegs";
+import { TripActions } from "./TripActions";
 
 export const todayModes: TravelMode[] = ["walking", "transit", "driving", "selfDrive"];
 
@@ -28,12 +30,14 @@ interface Props {
   onNavigate?: (id: string) => void;
   syncWarning?: boolean;
   conflicts?: TravelRisk[];
+  actions?: TripAction[];
+  onAction?: (action: TripAction) => void;
   nextStopId?: string;
 }
 
 const clock = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false });
 
-export function TodayPanel({ heading, stops, segments, loading, focused, onSelectStop, onChooseMode, onFocus, onRetry, onOpenSchedule, onNavigate, syncWarning, conflicts = [], nextStopId }: Props) {
+export function TodayPanel({ heading, stops, segments, loading, focused, onSelectStop, onChooseMode, onFocus, onRetry, onOpenSchedule, onNavigate, syncWarning, conflicts = [], actions = [], onAction, nextStopId }: Props) {
   if (!stops.length && !conflicts.length) return null;
   const fromEvent = new Map(segments.map(segment => [segment.pair.from.event.id, segment]));
   return (
@@ -47,6 +51,7 @@ export function TodayPanel({ heading, stops, segments, loading, focused, onSelec
         {conflicts.some(conflict => conflict.status === "uncertain") && "待确认 · "}
         {conflicts[0].title} · {conflicts[0].basis}{conflicts.length>1 && ` 等 ${conflicts.length} 项`}
       </p>}
+      {onAction && <TripActions compact actions={actions} limit={2} onAction={onAction} />}
       <ol className="today-stops">
         {stops.map(stop => {
           const { event, place } = stop;

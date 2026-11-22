@@ -22,6 +22,8 @@ import { localDateKey, type TodayLegPair, type TravelMode } from "./lib/todayMap
 import { useTodayLegs, type LegResult } from "./lib/useTodayLegs";
 import { BusinessTripsPanel } from "./components/BusinessTripsPanel";
 import { readBusinessTripSettings, tripPlaces, writeBusinessTripSettings, type BusinessTripSettings } from "./lib/businessTrips";
+import { DEMO_USER, DEMO_HOME, createDemoMailbox, demoLegResults, enterDemo, exitDemo, readDemoMode, resetDemo } from "./lib/demoWorkspace";
+import { buildTripActions, type TripAction } from "./lib/actionItems";
 const calendarLayerKey = (owner: string) => `whatto.mapCalendarLayer.${owner}`;
 const readCalendarLayer = (owner: string) => { try { return localStorage.getItem(calendarLayerKey(owner)) !== "off"; } catch { return true; } };
 const placePairKey = (pair: TodayLegPair) => JSON.stringify([pair.from.place.id, pair.to.place.id]);
@@ -237,6 +239,8 @@ export default function App() {
   const account = useAccount();
   const [localUser, setActiveUser] = useState<AppUser>(() => loadActiveUser());
   const [showLocalSpace, setShowLocalSpace] = useState(false);
+  const [demoActive, setDemoActive] = useState(() => readDemoMode());
+  const [demoNow, setDemoNow] = useState(() => Date.now());
   // Signed in → the account's own owner; otherwise the local space or guest (never a stale account).
   const accountKey = account.status === "signed-in" ? account.account.id : "";
   const accountEmail = account.status === "signed-in" ? account.account.email : "";
@@ -246,7 +250,7 @@ export default function App() {
   const [dataRevision, setDataRevision] = useState(0);
   const workspaceSync = useWorkspaceSync({
     account: signedInUser,
-    pausePush: showLocalSpace,
+    pausePush: showLocalSpace || demoActive,
     changeKey: String(dataRevision),
     readFootprints: async owner => { const store = await openFootprintStore(owner); try { return await store.load(); } finally { store.close(); } },
     writeFootprints: async (owner, data) => { const store = await openFootprintStore(owner); try { await store.importData(data); } finally { store.close(); } },
@@ -255,10 +259,14 @@ export default function App() {
   });
   // The account becomes the shown owner only once its cloud copy is in local storage.
   const accountReady = !!signedInUser && workspaceSync.readyOwner === signedInUser.id;
-  const activeUser = accountReady && !showLocalSpace && signedInUser
-    ? signedInUser
-    : chooseActiveUser({status: "loading"}, localUser);
-  const mailbox = useTripMailbox(activeUser.method === "google" ? accountKey : undefined);
+  const activeUser = demoActive
+    ? DEMO_USER
+    : accountReady && !showLocalSpace && signedInUser
+      ? signedInUser
+      : chooseActiveUser({status: "loading"}, localUser);
+  const liveMailbox = useTripMailbox(!demoActive && activeUser.method === "google" ? accountKey : undefined);
+  const demoMailbox = useMemo(() => demoActive ? createDemoMailbox(demoNow) : undefined, [demoActive, demoNow]);
+  const mailbox = demoActive ? demoMailbox : liveMailbox;
   const [calendarState, setCalendarState] = useState(() => ({ owner:activeUser.id, events:readCalendarEntries(activeUser.id) }));
   const calendarEvents = useMemo(() => calendarState.owner === activeUser.id
     ? calendarState.events : readCalendarEntries(activeUser.id), [calendarState, activeUser.id]);
@@ -620,15 +628,22 @@ export default function App() {
     try { localStorage.setItem(legModeKey, JSON.stringify(values)); } catch { /* retain the selection for this session */ }
   };
   const todayVisible = !activeOverlay && !tripActive;
-  const { legs: todayLegResults, loading: todayLoading } = useTodayLegs({
-    pairs: todayVisible ? pairs : [], choices, owner: activeUser.id, retryCount: retryTodayRoutes,
+  const { legs: liveTodayLegs, loading: todayLoading } = useTodayLegs({
+    pairs: todayVisible && !demoActive ? pairs : [], choices, owner: activeUser.id, retryCount: retryTodayRoutes,
   });
-  const freshness = useMemo(() => ({
-    calendarCurrent: !!googleCalendar.status?.connected && !!googleCalendar.status.lastSync &&
-      clockNow - googleCalendar.status.lastSync < 10 * 60_000 && !googleCalendar.error,
-    mailboxCurrent: !!mailbox?.lastSync && clockNow-mailbox.lastSync < 30 * 60_000 && !mailbox.uncertain && !mailbox.needsReconnect && !mailbox.partial && !mailbox.singleSample,
-    now:clockNow,
-  }), [clockNow,googleCalendar.status,googleCalendar.error,mailbox]);
+  const demoTodayLegs = useMemo(() => demoActive && todayVisible ? demoLegResults(pairs, demoNow) : {},
+    [demoActive, todayVisible, pairs, demoNow]);
+  const todayLegResults = demoActive ? demoTodayLegs : liveTodayLegs;
+  const freshness = useMemo(() => {
+    // 演示工作区使用合成数据，不声称连接了真实 Google/Gmail。
+    if (demoActive) return { calendarCurrent: true, mailboxCurrent: true, now: demoNow };
+    return {
+      calendarCurrent: !!googleCalendar.status?.connected && !!googleCalendar.status.lastSync &&
+        clockNow - googleCalendar.status.lastSync < 10 * 60_000 && !googleCalendar.error,
+      mailboxCurrent: !!mailbox?.lastSync && clockNow-mailbox.lastSync < 30 * 60_000 && !mailbox.uncertain && !mailbox.needsReconnect && !mailbox.partial && !mailbox.singleSample,
+      now:clockNow,
+    };
+  }, [demoActive,demoNow,clockNow,googleCalendar.status,googleCalendar.error,mailbox]);
   const todaySegments = useMemo<TodaySegment[]>(() => pairs.map(pair => {
     const mode = choices[pair.id];
     const options = Object.values(todayLegResults[pair.id] ?? {});
@@ -638,6 +653,14 @@ export default function App() {
     .filter(risk => risk.type === "overlap" && !todaySegments.some(({pair,verdict}) =>
       verdict.status === "overlap" && pair.from.event.id === risk.eventIds[0] && pair.to.event.id === risk.eventIds[1])),
     [calendarEvents,freshness,today,todayKey,todaySegments]);
+  const todayActions = useMemo(() => buildTripActions({
+    risks: [
+      ...todayConflicts,
+      ...todaySegments.flatMap(segment => segment.risk ? [segment.risk] : []),
+    ],
+    events: calendarEvents,
+    now: clockNow,
+  }), [todayConflicts, todaySegments, calendarEvents, clockNow]);
   const showTodayOnMap = todayVisible && calendarLayer && todayStops.length > 0;
   const todayRoutes = useMemo(() => showTodayOnMap ? todaySegments.flatMap(({ pair, result, verdict }) =>
     result && isCurrentRoute(result,clockNow) ? [{ id: pair.id, points: result.points, late: verdict.status === "late" || verdict.status === "overlap" }] : []
@@ -683,6 +706,8 @@ export default function App() {
   const tripRisks = useMemo(() => selectedModel ? assessTrip(selectedModel,freshness,transfers,
     transferState?.owner===activeUser.id?transferState.routes:{}) : [],
     [selectedModel,freshness,transfers,transferState,activeUser.id]);
+  const tripActions = useMemo(() => buildTripActions({ risks: tripRisks, events: calendarEvents, now: clockNow }),
+    [tripRisks, calendarEvents, clockNow]);
   const storeTransfer = (key:string,route:LegResult|null) => {
     setTransferState(previous => {
       const routes = previous?.owner===activeUser.id ? {...previous.routes} : {};
@@ -855,7 +880,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    saveActiveUser(activeUser);
+    if (!demoActive) saveActiveUser(activeUser);
     setEditPlace(null);
     setScheduleEdit(null);
     skipNextPersist.current = true;
@@ -866,15 +891,16 @@ export default function App() {
     setPlaceLayers({ saved: true, visited: false, booked: true });
     setSelectedPlace(null);
     setActiveFilter(defaultFilter);
-  }, [activeUser]);
+  }, [activeUser, demoActive]);
 
   useEffect(() => {
     if (skipNextPersist.current) {
       skipNextPersist.current = false;
       return;
     }
+    if (demoActive) return;
     setStorageHealthy(saveUserPlaces(activeUser, userPlaces));
-  }, [activeUser, userPlaces]);
+  }, [activeUser, userPlaces, demoActive]);
 
   const changeCity = (nextCity: CityName) => {
     explicitLocation.current = false;
@@ -1059,6 +1085,46 @@ export default function App() {
     setSettingsOpen(false);
     setSidebarOpen(true);
   };
+  const enterDemoWorkspace = (fresh = false) => {
+    const now = Date.now();
+    if (fresh) resetDemo(now); else enterDemo(now);
+    setDemoNow(now);
+    setDemoActive(true);
+    setShowLocalSpace(false);
+    setBusinessSelection(null);
+    setSelectedPlace(null);
+    setDetailOrigin(null);
+    setSettingsOpen(false);
+    setActiveOverlay(null);
+    setActiveCity(DEMO_HOME);
+    setCityScope("current");
+    setLocationFocus(0);
+  };
+  const leaveDemoWorkspace = () => {
+    exitDemo();
+    setDemoActive(false);
+    setBusinessSelection(null);
+    setSelectedPlace(null);
+    setDetailOrigin(null);
+    setSettingsOpen(false);
+    setActiveOverlay(null);
+  };
+  const runAction = (action: TripAction) => {
+    const kind = action.nextStep.kind;
+    if (kind === "review-calendar" || kind === "confirm-place") {
+      openWorkflow("schedule", () => {
+        setScheduleOrigin(activeOverlay === "business-trips" ? "business-trips" : null);
+        setActiveOverlay("schedule");
+      }, "forward");
+      return;
+    }
+    if (kind === "review-route") {
+      setRetryTodayRoutes(count => count + 1);
+      if (action.segmentId) rememberLegFocus(action.segmentId);
+      return;
+    }
+    if (activeOverlay !== "business-trips") presentWorkspace(showTrip, "forward");
+  };
   const footprintActive =
     activeOverlay === "footprints" ||
     (activeOverlay === "account" && auxiliaryOrigin.current.some((o) => o.overlay === "footprints"));
@@ -1182,6 +1248,13 @@ export default function App() {
       </button>
       <div className="workspace-rail-surface" aria-hidden="true" />
       <OfflineNotice />
+      {demoActive && <div className="demo-banner" role="status">
+        <span><strong>演示工作区</strong> 全部为合成数据，不连接 Google、Gmail 或地图供应服务。</span>
+        <div className="demo-banner-actions">
+          <button type="button" onClick={() => enterDemoWorkspace(true)}>重置演示</button>
+          <button type="button" onClick={leaveDemoWorkspace}>退出演示</button>
+        </div>
+      </div>}
       <header className="workspace-header">
         {loadingWorkflow && <span className="workspace-loading-indicator" role="status"><span className="sr-only">正在打开页面</span></span>}
         <a
@@ -1495,6 +1568,8 @@ export default function App() {
           onChooseMode={chooseTodayMode}
           onRetry={() => setRetryTodayRoutes(count => count + 1)}
           conflicts={todayConflicts}
+          actions={todayActions}
+          onAction={runAction}
           nextStopId={todayStops.find(stop => Date.parse(stop.event.start)>=clockNow)?.event.id}
           syncWarning={!freshness.calendarCurrent && todayStops.some(stop => stop.event.google)}
           onNavigate={rememberLegFocus}
@@ -1533,7 +1608,7 @@ export default function App() {
           setActiveOverlay("schedule");
         })}
         timeline={selectedModel?.timeline}
-        risks={tripRisks}
+        actions={tripActions}
         now={clockNow}
         openConnections={resumedCommute?.owner === activeUser.id && resumedCommute.tripId === selectedModel?.id}
         connections={selectedModel && selectedPlan && <>
@@ -1648,6 +1723,7 @@ export default function App() {
             setShowLocalSpace(false);
             setActiveOverlay(null);
           }}
+          onDemo={() => enterDemoWorkspace()}
           getFootprints={async () => {
             if (!footprints.recorder || footprints.snapshot.storageError) throw new Error("足迹尚未就绪");
             await footprints.recorder.flush();
@@ -1655,6 +1731,7 @@ export default function App() {
             return { tracks: data.tracks, visits: data.visits };
           }}
           onLogin={(user) => {
+            if (demoActive) { exitDemo(); setDemoActive(false); }
             if (user.id !== activeUser.id && footprints.snapshot.storageError) {
               addToast(
                 "足迹尚未保存，请先导出备份并重试保存，再切换空间",

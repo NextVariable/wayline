@@ -4113,3 +4113,40 @@ select:not([multiple]):not([size]) {
 .saved-place-aliases .text-action { min-height:44px; flex-shrink:0; }
 .trip-risk-list .text-action { min-height:44px; justify-self:start; text-align:start; }
 .trip-transfer-lookup .text-action { min-height:44px; }
+
+/* RC.4 Demo Workspace banner */
+.demo-banner {
+  position: fixed; z-index: 45; left: 50%; transform: translateX(-50%);
+  top: calc(env(safe-area-inset-top, 0px) + 8px);
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 12px;
+  max-width: min(720px, calc(100vw - 24px)); padding: 8px 12px;
+  background: var(--brand-tint); border: 1px solid var(--border-light); border-radius: 10px;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 12%); color: var(--text-primary); font-size: var(--font-secondary);
+}
+.demo-banner strong { margin-inline-end: 4px; }
+.demo-banner-actions { display: flex; gap: 6px; }
+.demo-banner-actions button {
+  min-height: 32px; padding: 4px 10px; border: 1px solid var(--border-light); border-radius: 6px;
+  background: var(--surface, transparent); color: inherit; font: inherit;
+}
+.demo-banner-actions button:hover { background: var(--surface-subtle); }
+
+/* RC.4 unified action items */
+.today-actions { margin: 4px 8px 8px; }
+.today-actions-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.today-actions-heading strong { font-size: var(--font-secondary); }
+.today-actions-heading small, .today-actions > .field-help { color: var(--text-secondary); font-size: var(--font-secondary); }
+.today-actions ul { list-style: none; margin: 2px 0 0; padding: 0; }
+.today-action-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; min-height: 44px; padding: 6px 8px; border: 0; border-radius: 8px;
+  background: transparent; color: var(--text-primary); text-align: start; font: inherit;
+}
+.today-action-row:hover { background: var(--surface-subtle); }
+.today-action-row > span { display: grid; gap: 2px; min-width: 0; }
+.today-action-row strong { font-size: var(--font-secondary); font-weight: 600; overflow-wrap: anywhere; }
+.today-action-row small { color: var(--text-secondary); font-size: var(--font-secondary); overflow-wrap: anywhere; }
+.today-actions li[data-severity="high"] .today-action-row strong { color: var(--today-late, #b8394e); }
+.today-action-next { flex-shrink: 0; color: var(--brand); font-size: var(--font-secondary); }
+.trip-action-events { color: var(--text-secondary); }
+.trip-action-uncertain { color: var(--text-secondary); font-style: italic; }

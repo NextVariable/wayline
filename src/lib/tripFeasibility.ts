@@ -37,7 +37,8 @@ export function calendarRisks(events:CalendarEvent[], status:Freshness, day?:str
         action:{kind:"review-calendar",label:"核对两场日程"}});
     }
     if (!furthest || Date.parse(event.end) > Date.parse(furthest.end)) furthest=event;
-    if (!event.place && event.placeResolution?.status !== "ignored" && event.placeResolution?.status !== "online" &&
+    const placeUnconfirmed = event.placeResolution?.status === "ask" || event.placeResolution?.status === "ambiguous";
+    if ((!event.place || placeUnconfirmed) && event.placeResolution?.status !== "ignored" && event.placeResolution?.status !== "online" &&
         classifyLocation(event.location) !== "online") {
       risks.push({id:JSON.stringify(["place",event.id]),type:"missing-location",severity:"info",status:"uncertain",
         eventIds:[event.id],evidence:[eventSource(event,status)],stale:eventStale(event,status),
