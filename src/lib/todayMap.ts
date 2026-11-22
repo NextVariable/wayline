@@ -53,9 +53,9 @@ export function pickDay(events: CalendarEntry[], now: Date): { dateKey: string; 
 }
 
 /** Placed events of one local day, in start order. */
-export function stopsOfDay(events: CalendarEntry[], dateKey: string): TodayStop[] {
+export function stopsOfDay(events: CalendarEntry[], dateKey: string, dayOf: (event: CalendarEntry) => string = e => localDateKey(e.start)): TodayStop[] {
   return events
-    .filter(e => onTimeline(e) && localDateKey(e.start) === dateKey && hasPlace(e))
+    .filter(e => onTimeline(e) && dayOf(e) === dateKey && hasPlace(e))
     .sort((a, b) => Date.parse(a.start) - Date.parse(b.start))
     .map(e => ({ event: e, place: e.place! }));
 }
@@ -64,11 +64,11 @@ export function stopsOfDay(events: CalendarEntry[], dateKey: string): TodayStop[
  * Neighbouring placed events. An event on that day that is on the timeline but has no place yet sits between
  * its neighbours in time, so they are not joined across it: where the person goes in between is unknown.
  */
-export function legPairs(events: CalendarEntry[], dateKey: string): TodayLegPair[] {
+export function legPairs(events: CalendarEntry[], dateKey: string, dayOf: (event: CalendarEntry) => string = e => localDateKey(e.start)): TodayLegPair[] {
   const sameDay = events
-    .filter(e => onTimeline(e) && localDateKey(e.start) === dateKey)
+    .filter(e => onTimeline(e) && dayOf(e) === dateKey)
     .sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
-  const online = events.filter(event => !event.allDay && localDateKey(event.start) === dateKey &&
+  const online = events.filter(event => !event.allDay && dayOf(event) === dateKey &&
     (event.placeResolution?.status === "online" || classifyLocation(event.location) === "online") && !event.google?.stale)
     .sort((a,b) => Date.parse(a.start)-Date.parse(b.start));
   let onlineIndex = 0;

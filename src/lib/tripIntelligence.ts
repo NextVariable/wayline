@@ -2,6 +2,7 @@ import { assignTripBookings, collectTripBookings, inferBookingHome, type Booking
 import { groupBusinessTrips, type BusinessTripSettings } from "./businessTrips";
 import type { CalendarEvent, Trip, TripSegment } from "./tripDomain";
 import { legPairs, localDateKey as dayKey, pickDay, stopsOfDay } from "./todayMap";
+import { eventDay } from "./tripDay";
 
 export function buildTravelWorkspace({events, settings, day, mailbox, cities}: {
   events:CalendarEvent[]; settings:BusinessTripSettings; day:Date; cities:string[];
@@ -24,7 +25,7 @@ export function buildTravelWorkspace({events, settings, day, mailbox, cities}: {
       row.booking.start.length === 10 ? row.booking.start+"T00:00:00+08:00" : row.booking.start);
     timeline.sort((left,right) => at(left)-at(right));
     const segments:TripSegment[] = [
-      ...trip.days.flatMap(day => legPairs(day.events,day.date).filter(pair => !pair.crossCity)
+      ...trip.days.flatMap(day => legPairs(day.events,day.date,eventDay).filter(pair => !pair.crossCity)
         .map(pair => ({kind:"commute" as const,id:pair.id,pair}))),
       ...plan.legs.map(leg => {
         const constraints:Extract<TripSegment,{kind:"intercity"}>["constraints"] = [];

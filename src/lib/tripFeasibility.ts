@@ -2,6 +2,7 @@ import type { CalendarEvent, RouteEvidence, SourceProvenance, TravelRisk, Trip }
 import { judgeLeg, localDateKey, type TodayLegPair, type TravelMode } from "./todayMap";
 import type { TripTransfer } from "./tripTransfers";
 import { classifyLocation } from "./calendarPlaces";
+import { eventDay } from "./tripDay";
 
 export interface Freshness { calendarCurrent: boolean; mailboxCurrent: boolean; now:number }
 export const ROUTE_MAX_AGE = 30 * 60_000;
@@ -75,7 +76,7 @@ export function assessTrip(trip:Trip,status:Freshness,transfers:TripTransfer[] =
   for (const segment of trip.segments) {
     if (segment.kind === "commute") continue;
     const orders=segment.kind === "stay" ? segment.night.orders : segment.leg.orders;
-    const eventIds=segment.kind === "stay" ? events.filter(event=>localDateKey(event.start)===segment.night.date).map(event=>event.id)
+    const eventIds=segment.kind === "stay" ? events.filter(event=>eventDay(event)===segment.night.date).map(event=>event.id)
       : segment.constraints.map(constraint=>constraint.eventId);
     const evidence=eventIds.flatMap(id => byId.has(id) ? [eventSource(byId.get(id)!,status)] : []);
     const stale= evidence.some(item=>item.stale);

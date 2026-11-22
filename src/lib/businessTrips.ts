@@ -1,7 +1,7 @@
 import type { CalendarEntry } from "./calendarEvents";
 import { orderKind } from "../../shared/travel-order.mjs";
 import { cityKey } from "./citySelection";
-import { localDateKey } from "./todayMap";
+import { eventDay } from "./tripDay";
 import { samePlace } from "./placeIdentity";
 import type { Place } from "../types/place";
 
@@ -33,7 +33,7 @@ export function groupBusinessTrips(events: CalendarEntry[], settings: BusinessTr
     const city = cityKey(event.place.city);
     if (city === home) { homeBetween = true; continue; }
     if (!city || /^(未知|未识别|其他|全部)/.test(city)) continue;
-    const date = localDateKey(event.start);
+    const date = eventDay(event);
     const previous = current?.days.at(-1);
     const gap = previous ? (Date.parse(date) - Date.parse(previous.date)) / 86_400_000 : 0;
     const boundary = settings.boundaries[event.id];

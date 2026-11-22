@@ -5,6 +5,7 @@ import type { BusinessTrip } from "./businessTrips";
 import type { CalendarEntry } from "./calendarEvents";
 import type { SourceProvenance } from "./tripDomain";
 import { cityKey } from "./citySelection";
+import { eventDay } from "./tripDay";
 
 export type BookingKind = "rail" | "flight" | "stay";
 export interface OrderPoint { name: string; city?: string; place?: Place }
@@ -101,27 +102,87 @@ export function collectTripBookings(events: CalendarEntry[], railOrders: RailOrd
     })),
     ...mail.map((row): TripBooking => ({ ...row, source: "Gmail", from: row.from ? bookingPoint(row.from, row.kind, cities) : undefined, to: { ...bookingPoint(row.to, row.kind, cities), ...(row.city && {city:cityKey(row.city)}) } })),
   ];
-  for (const item of [...calendar, ...incoming]) {
+  const isNotice = (item: TripBooking) => !!item.state && item.state !== "confirmed";
+  const observedAt = (item: TripBooking) => (item.provenance ?? []).reduce((latest, source) => Math.max(latest, source.observedAt ?? 0), 0);
+  const stateRank: Record<string, number> = { review: 1, changed: 2, cancelled: 3 };
+  const mergeProvenance = (target: TripBooking, item: TripBooking) => {
+    target.provenance = [...new Map([...(target.provenance ?? []), ...(item.provenance ?? [])]
+      .map(source => [`${source.source}|${source.recordId}|${source.observedAt ?? 0}`, source])).values()];
+  };
+  // Only a notice newer than the evidence already held can change the state; a delayed cancellation
+  // arriving after a newer confirmation must not silently cancel the booking again. The target's
+  // observation time is captured before its provenance is merged, otherwise the notice's own
+  // timestamp would pollute the comparison and every notice would look stale.
+  const applyState = (target: TripBooking, item: TripBooking, knownAt = observedAt(target)) => {
+    if (!item.state) return;
+    const incomingAt = observedAt(item);
+    if (incomingAt && knownAt && incomingAt < knownAt) return;
+    if (target.state && (stateRank[target.state] ?? 0) > (stateRank[item.state] ?? 0)) return;
+    target.state = item.state;
+  };
+  const exactMatch = (item: TripBooking) => bookings.find(known => known.kind === item.kind && (item.kind === "stay"
+    ? chinaDate(known.start) === chinaDate(item.start) && known.to.name.replace(/\s/g, "") === item.to.name.replace(/\s/g, "") &&
+      (!known.to.city || !item.to.city || cityKey(known.to.city) === cityKey(item.to.city))
+    : sameTransportBooking(known,item)));
+  // A change notice can lose its journey id or shift the departure time (改签). Attach it only when one
+  // existing booking is the unambiguous subject; otherwise leave every candidate for review.
+  const candidatesFor = (item: TripBooking) => {
+    const same = bookings.filter(known => known.kind === item.kind);
+    if (item.kind === "stay") return same.filter(known =>
+      known.to.name.replace(/\s/g, "") === item.to.name.replace(/\s/g, "") &&
+      (!known.to.city || !item.to.city || cityKey(known.to.city) === cityKey(item.to.city)));
+    // A notice that still carries a service number must match that number. Fuzzy route/date matching is
+    // reserved for notices that lost their number; otherwise a cancellation for G102 would silently
+    // cancel an unrelated replacement such as G103 on the same route.
+    if (item.number) return same.filter(known => known.number === item.number);
+    return same.filter(known => sameOrderPoint(known.from, item.from) && sameOrderPoint(known.to, item.to) &&
+      Math.abs(Date.parse(known.start) - Date.parse(item.start)) <= 3 * 86_400_000);
+  };
+  const bases = [...calendar, ...incoming.filter(item => !isNotice(item))];
+  const notices = incoming.filter(isNotice).sort((left, right) => observedAt(left) - observedAt(right));
+  for (const item of bases) {
     const event = item.source === "日历" ? eventById.get(item.id) : undefined;
     item.provenance ??= [{source:event?.google ? "google-calendar" : event ? "calendar-file" : "gmail",
       recordId:item.id, observedAt:event?.google?.updated ? Date.parse(event.google.updated) || undefined : event ? undefined : mailObservedAt ?? undefined,
       confidence:item.source === "日历" ? "inferred" : "recorded"}];
-    const match = bookings.find(known => known.kind === item.kind && (item.kind === "stay"
-      ? chinaDate(known.start) === chinaDate(item.start) && known.to.name.replace(/\s/g, "") === item.to.name.replace(/\s/g, "") &&
-        (!known.to.city || !item.to.city || cityKey(known.to.city) === cityKey(item.to.city))
-      : sameTransportBooking(known,item)));
+    const match = exactMatch(item);
     if (match) {
-      match.provenance = [...(match.provenance ?? []), ...item.provenance];
-      if (item.state) match.state = item.state;
-      if (item.source === "Gmail" && !item.state) {
-        if ((!match.state || match.state === "confirmed") && match.end && item.end && Date.parse(match.end) !== Date.parse(item.end)) match.state = "review";
-        match.end ??= item.end;
-      } else {
-        if (item.kind === "stay" && (!match.state || match.state === "confirmed") &&
-            match.end && item.end && chinaDate(match.end) !== chinaDate(item.end)) match.state = "review";
-        match.end ??= item.end;
-      }
+      mergeProvenance(match, item);
+      // A stay checkout is recorded either as a date or as a checkout time, so compare whole days;
+      // transport keeps exact timestamps. Only a real difference in the day/time needs review.
+      const endMismatch = !!match.end && !!item.end && (item.kind === "stay"
+        ? chinaDate(match.end) !== chinaDate(item.end)
+        : Date.parse(match.end) !== Date.parse(item.end));
+      const gmailConfirmation = item.source === "Gmail" && !item.state;
+      if ((gmailConfirmation || item.kind === "stay") &&
+          (!match.state || match.state === "confirmed") && endMismatch) match.state = "review";
+      match.end ??= item.end;
       if (!match.to.city && item.to.city) match.to = { ...item.to, ...match.to, city:item.to.city };
+      continue;
+    }
+    bookings.push(item);
+  }
+  for (const item of notices) {
+    const match = exactMatch(item);
+    if (match) {
+      const knownAt = observedAt(match);
+      mergeProvenance(match, item);
+      applyState(match, item, knownAt);
+      continue;
+    }
+    const candidates = candidatesFor(item);
+    if (candidates.length === 1) {
+      const knownAt = observedAt(candidates[0]);
+      mergeProvenance(candidates[0], item);
+      applyState(candidates[0], item, knownAt);
+      continue;
+    }
+    if (candidates.length > 1) {
+      // Ambiguous subject: do not invent a booking, and do not let any candidate look settled.
+      for (const candidate of candidates) {
+        mergeProvenance(candidate, item);
+        if (!candidate.state || candidate.state === "confirmed") candidate.state = "review";
+      }
       continue;
     }
     bookings.push(item);
@@ -136,16 +197,16 @@ export function tripNeeds(trip: BusinessTrip, home: string) {
   const first = activities[0], last = activities.at(-1)!;
   const makeLeg = (from: string, to: string, date: string, after?: CalendarEntry, before?: CalendarEntry): TravelGap =>
     ({ id: JSON.stringify([from,to,date,after?.end,before?.start]), from:cityKey(from), to:cityKey(to), date, after:after?.end, before:before?.start, afterEventId:after?.id, beforeEventId:before?.id, orders: [] });
-  const legs = [makeLeg(home, first.place.city, chinaDate(first.start), undefined, first)];
+  const legs = [makeLeg(home, first.place.city, eventDay(first), undefined, first)];
   for (let i=1; i<activities.length; i++) {
     const from = activities[i-1], to = activities[i];
     if (cityKey(from.place.city) !== cityKey(to.place.city))
-      legs.push(makeLeg(from.place.city, to.place.city, chinaDate(to.start), from, to));
+      legs.push(makeLeg(from.place.city, to.place.city, eventDay(to), from, to));
   }
-  legs.push(makeLeg(last.place.city, home, chinaDate(last.end), last));
+  legs.push(makeLeg(last.place.city, home, eventDay(last), last));
   const nights: StayNight[] = [];
-  for (let date=chinaDate(first.start); date<chinaDate(last.start) && nights.length<60; date=nextDate(date)) {
-    const city = activities.filter(event => chinaDate(event.start) <= date).at(-1)!.place.city;
+  for (let date=eventDay(first); date<eventDay(last) && nights.length<60; date=nextDate(date)) {
+    const city = activities.filter(event => eventDay(event) <= date).at(-1)!.place.city;
     nights.push({ date, city:cityKey(city), orders: [] });
   }
   return { legs, nights };
