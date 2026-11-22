@@ -24,8 +24,9 @@ export async function fetchLeg(pair: TodayLegPair, mode: TravelMode, { fetchImpl
     });
     if (!response.ok) return null;
     const evidence = normalizeRouteEvidence(await response.json());
-    const leg = evidence?.legs[0];
-    if (!leg || leg.points.length < 2) return null;
+    if (evidence?.mode !== routeProviderMode(mode) || evidence.legs.length !== 1) return null;
+    const [leg] = evidence.legs;
+    if (leg.points.length < 2 || (leg.distance > 0 && leg.duration === 0)) return null;
     return { mode, minutes: Math.ceil(leg.duration / 60), source: "amap", points: leg.points, observedAt: evidence.observedAt };
   } catch {
     return null;

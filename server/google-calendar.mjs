@@ -46,6 +46,7 @@ export function createGoogleCalendarService({env=process.env,fetcher=fetch,now=D
     if (!owner.startsWith('google:')) return;
     const account = await accountFor(req);
     if (!account || !same(owner, 'google:' + account.id)) failure(401,'请先登录对应的 Wayline 账号');
+    return account;
   }
   async function jsonBody(req){let text='';for await(const part of req){text+=part;if(text.length>16000)failure(413,'日历请求过大');}try{return JSON.parse(text||'{}');}catch{failure(400,'日历请求无效');}}
   const jsonFetch=async(url,options={})=>{
@@ -90,7 +91,7 @@ export function createGoogleCalendarService({env=process.env,fetcher=fetch,now=D
       if(url.pathname.endsWith('/callback')){
         const store=await vault(),session=await sessionFor(req,res),state=url.searchParams.get('state'),flow=store.data.flows[hash(state||'')];
         if(!session||!flow||!same(flow.session,session)||flow.until<now())failure(400,'授权链接已过期，请返回日程重新连接');
-        await requireOwner(req, flow.owner);
+        const account = await requireOwner(req, flow.owner);
         delete store.data.flows[hash(state)];await store.save();if(url.searchParams.has('error')){res.writeHead(303,{Location:'/?calendar=denied','Cache-Control':'no-store','Referrer-Policy':'no-referrer'});res.end();return true;}
         const code=url.searchParams.get('code');if(!code)failure(400,'Google 未返回授权码');
         const token=await jsonFetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID,client_secret:env.GOOGLE_CLIENT_SECRET,code,code_verifier:flow.verifier,grant_type:'authorization_code',redirect_uri:redirectUri})});
@@ -99,16 +100,23 @@ export function createGoogleCalendarService({env=process.env,fetcher=fetch,now=D
         if(!refresh)failure(401,'Google 未授予持续访问，请重新连接并确认授权');
         const connection={id:key,session,owner:flow.owner,token:{access:token.access_token,refresh,expiresAt:now()+Number(token.expires_in||3600)*1000},selected:[],calendars:[],events:[],lastSync:0,error:'',reconnect:false};
         connection.calendars=await calendarList(connection);const identity=connection.calendars.find(c=>c.primary)?.id;if(!identity)failure(403,'无法确认 Google 日历账号，请重新连接');
+        if (account && (!account.email || !same(identity.toLowerCase(), account.email.toLowerCase())))
+          failure(403,'请授权与 Wayline 登录一致的 Google 账号');
         connection.identity=identity;
-        if(previous?.identity===identity){connection.selected=previous.selected.filter(id=>connection.calendars.some(c=>c.id===id));connection.events=previous.events;connection.lastSync=previous.lastSync;}
+        if(previous?.identity===identity){connection.selected=previous.selected.filter(id=>connection.calendars.some(c=>c.id===id));if (connection.selected.length === previous.selected.length) { connection.events=previous.events;connection.lastSync=previous.lastSync; }}
         store.data.connections[key]=connection;try{await store.save();}catch(error){if(previous)store.data.connections[key]=previous;else delete store.data.connections[key];throw error;}
         res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'no-referrer','Content-Security-Policy':"default-src 'none'; base-uri 'none'; frame-ancestors 'none'"});res.end('<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=/?calendar=connected"><title>日历已连接</title><a href="/?calendar=connected">返回日程</a>');return true;
       }
       const owner=ownerFrom(url);
-      await requireOwner(req, owner);
+      const account = await requireOwner(req, owner);
       if(req.method==='POST'&&(req.headers.origin!==base.origin||!String(req.headers['content-type']||'').startsWith('application/json')))failure(403,'请从本站操作日历连接');
       const session=await sessionFor(req,res,req.method==='POST'&&url.pathname.endsWith('/connect')),store=await vault(),key=session?keyFor(session,owner):null,connection=key?store.data.connections[key]:null;
+      const wrongIdentity = !!(connection && account && (!account.email || !same(connection.identity?.toLowerCase(), account.email.toLowerCase())));
       if(req.method==='GET'&&url.pathname.endsWith('/status')){
+        if (wrongIdentity) {
+          send(res, 200, {configured:true,connected:false,error:'请重新连接与 Wayline 登录一致的 Google 日历'});
+          return true;
+        }
         send(res,200,{configured:true,connected:!!connection,connectionId:connection?.id||null,calendars:connection?.calendars||[],selected:connection?.selected||[],events:connection?.events||[],lastSync:connection?.lastSync||null,error:connection?.error||'',needsReconnect:!!connection?.reconnect,pollSeconds:120,window:{pastDays:30,futureDays:180}});return true;
       }
       if(req.method!=='POST')failure(405,'不支持的日历请求');
@@ -116,8 +124,9 @@ export function createGoogleCalendarService({env=process.env,fetcher=fetch,now=D
         for(const [id,flow]of Object.entries(store.data.flows))if(flow.until<now())delete store.data.flows[id];
         if(Object.values(store.data.flows).filter(f=>f.session===session).length>=5)failure(429,'请稍后重试连接');
         const state=random(),verifier=random();store.data.flows[hash(state)]={session,owner,verifier,until:now()+600000};await store.save();
-        const auth=new URL('https://accounts.google.com/o/oauth2/v2/auth');auth.search=new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID,redirect_uri:redirectUri,response_type:'code',scope:SCOPES.join(' '),state,access_type:'offline',prompt:'consent',code_challenge:createHash('sha256').update(verifier).digest('base64url'),code_challenge_method:'S256'}).toString();send(res,200,{url:auth.href});return true;
+        const auth=new URL('https://accounts.google.com/o/oauth2/v2/auth');auth.search=new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID,redirect_uri:redirectUri,response_type:'code',scope:SCOPES.join(' '),state,access_type:'offline',prompt:'consent',...(account?.email?{login_hint:account.email}:{}),code_challenge:createHash('sha256').update(verifier).digest('base64url'),code_challenge_method:'S256'}).toString();send(res,200,{url:auth.href});return true;
       }
+      if(wrongIdentity && !url.pathname.endsWith('/disconnect'))failure(403,'请重新连接与 Wayline 登录一致的 Google 日历');
       if(!connection)failure(401,'请先连接 Google 日历');
       if(url.pathname.endsWith('/select')){const body=await jsonBody(req);if(!Array.isArray(body.calendarIds)||body.calendarIds.length<1||body.calendarIds.length>10||new Set(body.calendarIds).size!==body.calendarIds.length||body.calendarIds.some(id=>!connection.calendars.some(c=>c.id===id)))failure(400,'请选择 1 至 10 个可读取的日历');await sync(key,body.calendarIds);send(res,200,{ok:true});return true;}
       if(url.pathname.endsWith('/sync')){await sync(key);send(res,200,{ok:true});return true;}

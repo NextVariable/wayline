@@ -28,10 +28,13 @@ const routeBody = (seconds: number) => ({
 const reply = (body: unknown, status = 200) => Promise.resolve(new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } }));
 const requestOf = (call: unknown[]) => JSON.parse(String((call[1] as RequestInit).body)) as { places: { id: string }[]; mode: string; departure?: string };
 
+const routeReply = (seconds: number, init?: RequestInit) =>
+  reply({ ...routeBody(seconds), mode: requestOf(["", init]).mode });
+
 describe("looking up one leg", () => {
   it("returns minutes rounded up, with the route shape", async () => {
     const [pair] = three();
-    const fetchImpl = vi.fn(() => reply(routeBody(1501)));
+    const fetchImpl = vi.fn((_url: string, init?: RequestInit) => routeReply(1501, init));
     const leg = await fetchLeg(pair, "transit", { fetchImpl });
     expect(leg).toMatchObject({ mode: "transit", minutes: 26, source: "amap" });
     expect(leg?.points).toHaveLength(2);
@@ -39,7 +42,7 @@ describe("looking up one leg", () => {
 
   it("sends the previous event's end as the transit departure, with its offset", async () => {
     const [pair] = three();
-    const fetchImpl = vi.fn(() => reply(routeBody(600)));
+    const fetchImpl = vi.fn((_url: string, init?: RequestInit) => routeReply(600, init));
     await fetchLeg(pair, "transit", { fetchImpl });
     await fetchLeg(pair, "walking", { fetchImpl });
     const transit = requestOf(fetchImpl.mock.calls[0] as unknown[]), walking = requestOf(fetchImpl.mock.calls[1] as unknown[]);
@@ -65,7 +68,7 @@ describe("looking up the day", () => {
   it("queries only the default mode first", async () => {
     const pairs = three().filter(p => !p.sameSpot);
     expect(pairs).toHaveLength(3);
-    const fetchImpl = vi.fn(() => reply(routeBody(600)));
+    const fetchImpl = vi.fn((_url: string, init?: RequestInit) => routeReply(600, init));
     const runner = createTodayLegsRunner({ fetchImpl });
     const { onLeg } = collect();
     await runner.run({ pairs, choices: {}, onLeg });
@@ -75,7 +78,7 @@ describe("looking up the day", () => {
 
   it("honours a mode the person chose for a leg", async () => {
     const pairs = three().filter(p => !p.sameSpot).slice(0, 1);
-    const fetchImpl = vi.fn(() => reply(routeBody(600)));
+    const fetchImpl = vi.fn((_url: string, init?: RequestInit) => routeReply(600, init));
     await createTodayLegsRunner({ fetchImpl }).run({ pairs, choices: { [pairs[0].id]: "walking" }, onLeg: collect().onLeg });
     expect(requestOf(fetchImpl.mock.calls[0] as unknown[]).mode).toBe("walking");
   });
@@ -86,7 +89,7 @@ describe("looking up the day", () => {
     const fetchImpl = vi.fn((_url: string, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body)) as { places: { id: string }[] };
       const late = body.places[0].id === pairs[0].from.place.id && body.places[1].id === pairs[0].to.place.id;
-      return reply(routeBody(late ? 45 * 60 : 5 * 60));
+      return routeReply(late ? 45 * 60 : 5 * 60, init);
     });
     const { seen, onLeg } = collect();
     await createTodayLegsRunner({ fetchImpl }).run({ pairs, choices: {}, onLeg });
@@ -99,7 +102,7 @@ describe("looking up the day", () => {
   it("keeps a leg unknown when the route service fails and never blocks the others", async () => {
     const pairs = three().filter(p => !p.sameSpot);
     let calls = 0;
-    const fetchImpl = vi.fn(() => { calls += 1; return calls === 1 ? Promise.reject(new TypeError("offline")) : reply(routeBody(300)); });
+    const fetchImpl = vi.fn((_url: string, init?: RequestInit) => { calls += 1; return calls === 1 ? Promise.reject(new TypeError("offline")) : routeReply(300, init); });
     const { seen, onLeg } = collect();
     await createTodayLegsRunner({ fetchImpl }).run({ pairs, choices: {}, onLeg });
     expect(seen[pairs[0].id]).toBeUndefined();
@@ -109,7 +112,7 @@ describe("looking up the day", () => {
 
   it("asks for the same leg and mode only once", async () => {
     const pairs = three().filter(p => !p.sameSpot).slice(0, 1);
-    const fetchImpl = vi.fn(() => reply(routeBody(600)));
+    const fetchImpl = vi.fn((_url: string, init?: RequestInit) => routeReply(600, init));
     const runner = createTodayLegsRunner({ fetchImpl });
     await runner.run({ pairs, choices: {}, onLeg: collect().onLeg });
     await runner.run({ pairs, choices: {}, onLeg: collect().onLeg });
@@ -118,7 +121,7 @@ describe("looking up the day", () => {
 
   it("reuses the road query for self-driving while keeping the selected mode", async () => {
     const [pair] = three();
-    const fetchImpl = vi.fn(() => reply(routeBody(60)));
+    const fetchImpl = vi.fn((_url: string, init?: RequestInit) => routeReply(60, init));
     const runner = createTodayLegsRunner({ fetchImpl });
     const { seen, onLeg } = collect();
     await runner.run({ pairs:[pair], choices:{[pair.id]:"driving"}, onLeg });
@@ -130,7 +133,7 @@ describe("looking up the day", () => {
   it("looks up a corrected location even when both calendar event IDs stay the same", async () => {
     const [pair] = three();
     const moved = { ...pair, to: { ...pair.to, place: { ...pair.to.place, lng: pair.to.place.lng + 0.02 } } };
-    const fetchImpl = vi.fn(() => reply(routeBody(600)));
+    const fetchImpl = vi.fn((_url: string, init?: RequestInit) => routeReply(600, init));
     const runner = createTodayLegsRunner({ fetchImpl });
     for (const leg of [pair, moved]) {
       await runner.run({ pairs: [leg], choices: {}, onLeg: collect().onLeg });
@@ -152,7 +155,7 @@ describe("looking up the day", () => {
       [guomao, "2026-11-13T09:00:00+08:00", "2026-11-13T10:00:00+08:00"],
       [guomao, "2026-11-13T11:00:00+08:00", "2026-11-13T12:00:00+08:00"],
     );
-    const fetchImpl = vi.fn(() => reply(routeBody(600)));
+    const fetchImpl = vi.fn((_url: string, init?: RequestInit) => routeReply(600, init));
     await createTodayLegsRunner({ fetchImpl }).run({ pairs, choices: {}, onLeg: collect().onLeg });
     expect(fetchImpl).not.toHaveBeenCalled();
   });
@@ -164,7 +167,7 @@ describe("looking up the day", () => {
     const fetchImpl = vi.fn(async (_url: string, init?: RequestInit) => {
       await gate;
       if (init?.signal?.aborted) throw new DOMException("aborted", "AbortError");
-      return reply(routeBody(600));
+      return routeReply(600, init);
     });
     const runner = createTodayLegsRunner({ fetchImpl });
     const onLeg = vi.fn();
@@ -179,15 +182,24 @@ describe("looking up the day", () => {
     const [pair] = three().filter(p => !p.sameSpot);
     let release!: () => void;
     const gate = new Promise<void>(r => { release = r; });
-    const slow = vi.fn(async () => { await gate; return reply(routeBody(600)); });
+    const slow = vi.fn(async (_url: string, init?: RequestInit) => { await gate; return routeReply(600, init); });
     const runner = createTodayLegsRunner({ fetchImpl: slow });
     const stale = vi.fn();
     const firstRun = runner.run({ pairs: [pair], choices: {}, onLeg: stale });
-    const fast = createTodayLegsRunner({ fetchImpl: vi.fn(() => reply(routeBody(300))) });
+    const fast = createTodayLegsRunner({ fetchImpl: vi.fn((_url: string, init?: RequestInit) => routeReply(300, init)) });
     await fast.run({ pairs: [pair], choices: {}, onLeg: vi.fn() });
     runner.cancel();
     release();
     await firstRun;
     expect(stale).not.toHaveBeenCalled();
   });
+});
+
+
+it("rejects evidence for a different mode, multiple routes or an impossible duration", async () => {
+  const [pair] = three();
+  const base = routeBody(600);
+  for (const payload of [base, { ...base, mode:"walking", legs:[...base.legs, ...base.legs] }, { ...routeBody(0), mode:"walking" }]) {
+    expect(await fetchLeg(pair, "walking", { fetchImpl: () => reply(payload) })).toBeNull();
+  }
 });

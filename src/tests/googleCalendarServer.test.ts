@@ -10,7 +10,7 @@ import {openCalendarVault} from '../../server/calendar-vault.mjs';
 const scope='https://www.googleapis.com/auth/calendar.events.readonly https://www.googleapis.com/auth/calendar.calendarlist.readonly';
 function response(){return {status:200,headers:{} as Record<string,any>,body:'',headersSent:false,setHeader(k:string,v:any){this.headers[k]=v;},writeHead(status:number,headers:object={}){this.status=status;Object.assign(this.headers,headers);this.headersSent=true;},end(value=''){this.body=value;}};}
 const normal=(id='event',location='上海虹桥站')=>({id,iCalUID:id,summary:'客户会议',location,updated:'2026-10-29T01:00:00Z',start:{dateTime:'2026-10-30T09:00:00+08:00'},end:{dateTime:'2026-10-30T10:00:00+08:00'}});
-function setup(accountFor?: (request: {headers: {cookie?: string}}) => Promise<{id:string}|null>){
+function setup(accountFor?: (request: {headers: {cookie?: string}}) => Promise<{id:string;email:string}|null>){
  let clock=Date.parse('2026-10-29T01:00:00Z'),pages:any[][]=[[normal()]],failurePage=-1,revoked=false,nullErrorBody=false,failSave=false;
  const store={data:{sessions:{},connections:{},flows:{}} as any,save:vi.fn(async()=>{if(failSave)throw new Error('disk');})};
  const fetcher=vi.fn(async(input:string,options:any={})=>{const url=new URL(input);const result=(data:any,status=200)=>({ok:status===200,status,json:async()=>data});
@@ -37,7 +37,7 @@ it('keeps credentials out of responses and isolates owners and browser sessions'
 });
 it('requires the matching signed-in account to read or authorize an account calendar',async()=>{
  let user:string|null='owner';
- const s=setup(async()=>user?{id:user}:null);
+ const s=setup(async()=>user?{id:user,email:'primary@test'}:null);
  const {cookie}=await s.authorize('google:owner');
  expect((await s.call('status?owner=google:owner','GET',undefined,cookie)).json().connected).toBe(true);
  user='other';
@@ -95,4 +95,45 @@ it('preserves explicit offsets and rejects zone-free upstream times', () => {
  expect(normalizeGoogleEvent(item,'owner',{id:'work'}).start).toBe('2026-10-30T01:00:00.000Z');
  item.start.dateTime='2026-10-30T09:00:00';
  expect(() => normalizeGoogleEvent(item,'owner',{id:'work'})).toThrow('事件时间');
+});
+
+it('rejects a Calendar grant from another Google account before reading any events', async () => {
+ const s=setup(async()=>({id:'owner',email:'different@test'}));
+ const start=await s.call('connect?owner=google:owner','POST',{});
+ const url=new URL(start.json().url);
+ expect(url.searchParams.get('login_hint')).toBe('different@test');
+ const cookie=start.headers['Set-Cookie'].split(';')[0];
+ const result=await s.call('callback?state='+url.searchParams.get('state')+'&code=code','GET',undefined,cookie);
+ expect(result.status).toBe(403);
+ expect(result.body).not.toMatch(/PRIVATE_ACCESS|PRIVATE_REFRESH|different@test|primary@test/);
+ expect(s.fetcher.mock.calls.some(([request])=>request.includes('/events?'))).toBe(false);
+ expect((await s.call('status?owner=google:owner','GET',undefined,cookie)).json().connected).toBe(false);
+});
+
+it('reads events only for calendars explicitly selected and treats an empty calendar as a successful sync',async()=>{
+ const s=setup();
+ s.setPages([[]]);
+ const {cookie}=await s.authorize();
+ const before=(await s.call('status?owner=guest','GET',undefined,cookie)).json();
+ expect(before).toMatchObject({lastSync:null,selected:[],events:[]});
+ expect(s.fetcher.mock.calls.some(([url])=>url.includes('/events?'))).toBe(false);
+ expect((await s.call('select?owner=guest','POST',{calendarIds:['primary@test']},cookie)).status).toBe(200);
+ const after=(await s.call('status?owner=guest','GET',undefined,cookie)).json();
+ expect(after).toMatchObject({lastSync:expect.any(Number),selected:['primary@test'],events:[]});
+ const requests=s.fetcher.mock.calls.map(([url])=>new URL(url)).filter(url=>url.pathname.endsWith('/events'));
+ expect(requests).toHaveLength(1);
+ expect(decodeURIComponent(requests[0].pathname)).toContain('/primary@test/events');
+ expect(requests[0].searchParams.get('timeZone')).toBe('UTC');
+});
+
+it('does not return a previously bound legacy snapshot after the signed-in email changes', async () => {
+ let email='primary@test';
+ const s=setup(async()=>({id:'owner',email}));
+ const {cookie}=await s.authorize('google:owner');
+ await s.call('select?owner=google:owner','POST',{calendarIds:['primary@test']},cookie);
+ email='another@test';
+ const result=await s.call('status?owner=google:owner','GET',undefined,cookie);
+ expect(result.json()).toMatchObject({connected:false});
+ expect(result.json()).not.toHaveProperty('events');
+ expect((await s.call('sync?owner=google:owner','POST',{},cookie)).status).toBe(403);
 });

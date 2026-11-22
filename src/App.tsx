@@ -1,4 +1,4 @@
-import { BusinessTripCommute } from "./components/BusinessTripCommute";
+import { BusinessTripCommute, type CommuteChoice } from "./components/BusinessTripCommute";
 import { BusinessTripConnections } from "./components/BusinessTripConnections";
 import { assignTripBookings, collectTripBookings, inferBookingHome } from "./lib/businessOrders";
 import { useBookingPlaces, bookingPlaceKey } from "./lib/useBookingPlaces";
@@ -12,6 +12,7 @@ import { readCalendarEntries, mergeCalendarEntries } from "./lib/calendarEvents"
 import { readPlaceAliases, writePlaceAliases, type PlaceAliases } from "./lib/placeAliases";
 import { useCalendarPlaces } from "./lib/useCalendarPlaces";
 import { calendarMapPlaces, pendingPlaces, confirmPlace, acceptSuggestion, rejectSuggestion, ignorePlace } from "./lib/calendarPlaces";
+import { GoogleCalendarConnection } from "./components/GoogleCalendarConnection";
 import { CalendarPlaceHint } from "./components/CalendarPlaceHint";
 import { TodayPanel, type TodaySegment } from "./components/TodayPanel";
 import { judgeLeg, legPairs, localDateKey, pickDay, stopsOfDay, type TodayLegPair, type TravelMode } from "./lib/todayMap";
@@ -255,7 +256,9 @@ export default function App() {
     ? signedInUser
     : chooseActiveUser({status: "loading"}, localUser);
   const mailbox = useTripMailbox(activeUser.method === "google" ? accountKey : undefined);
-  const [calendarEvents, setCalendarEvents] = useState(()=>readCalendarEntries(activeUser.id));
+  const [calendarState, setCalendarState] = useState(() => ({ owner:activeUser.id, events:readCalendarEntries(activeUser.id) }));
+  const calendarEvents = useMemo(() => calendarState.owner === activeUser.id
+    ? calendarState.events : readCalendarEntries(activeUser.id), [calendarState, activeUser.id]);
   const [tripSettingsOverride, setTripSettingsOverride] = useState<{ owner: string; settings: BusinessTripSettings }>();
   const [businessSelection, setBusinessSelection] = useState<{ owner: string; id: string } | null>(null);
   const businessSettings = useMemo(() => tripSettingsOverride?.owner === activeUser.id
@@ -274,7 +277,16 @@ export default function App() {
     return () => { window.clearInterval(timer); document.removeEventListener("visibilitychange", update); };
   }, []);
   const [legPreference, setLegPreference] = useState<{ owner: string; values: Record<string, TravelMode> }>();
-  const [focusedTodayLeg, setFocusedTodayLeg] = useState<string | null>(null);
+  const [legFocus, setLegFocus] = useState<{ owner: string; id: string | null }>();
+  const legFocusKey = `whatto.legFocus.${activeUser.id}`;
+  const restoredLegFocus = useMemo(() => {
+    try { return sessionStorage.getItem(legFocusKey); } catch { return null; }
+  }, [legFocusKey]);
+  const requestedLegFocus = legFocus?.owner === activeUser.id ? legFocus.id : restoredLegFocus;
+  const rememberLegFocus = (id: string | null) => {
+    setLegFocus({owner:activeUser.id, id});
+    try { if (id) sessionStorage.setItem(legFocusKey, id); else sessionStorage.removeItem(legFocusKey); } catch { /* keep the in-page focus */ }
+  };
   const [retryTodayRoutes, setRetryTodayRoutes] = useState(0);
   // Phrases the user pinned to a place ("公司" → 国贸大厦). Pulled cloud data reloads the page, so reading here stays current.
   const [placeAliases, setPlaceAliases] = useState(()=>readPlaceAliases(activeUser.id));
@@ -405,7 +417,7 @@ export default function App() {
     const next=reconcileCalendarRoute(route,current.events,events);
     persistCalendarState(current.owner,next.events,next.route);
     calendarCurrent.current={...current,...{events:next.events,route:next.route}};
-    setCalendarEvents(next.events);setRoutePlaces(next.route);
+    setCalendarState({owner:current.owner, events:next.events});setRoutePlaces(next.route);
   };
   const googleCalendar=useGoogleCalendar(activeUser.id,async(incoming,connectionId,signal)=>{
     if(signal.aborted)return;
@@ -414,6 +426,18 @@ export default function App() {
     const next=mergeGoogleSnapshot(current.events,incoming,connectionId);
     if(JSON.stringify(next)!==JSON.stringify(current.events)||JSON.stringify(reconcileCalendarRoute(current.route,current.events,next).route)!==JSON.stringify(current.route))commitCalendarEvents(next);
   });
+  const awaitingFirstSync = useRef<string | null>(null);
+  const calendarStatus = googleCalendar.status;
+  useEffect(() => {
+    if (!calendarStatus?.connected) {
+      awaitingFirstSync.current = null;
+    } else if (!calendarStatus.lastSync) {
+      awaitingFirstSync.current = activeUser.id;
+    } else if (awaitingFirstSync.current === activeUser.id && !googleCalendar.error) {
+      awaitingFirstSync.current = null;
+      if (calendarStatus.events?.length) addToast("Google 日历已同步", "success");
+    }
+  }, [calendarStatus, activeUser.id, addToast, googleCalendar.error]);
   useEffect(() => {
     if (!selectedPlace?.calendarEventIds?.length) return;
     const eventIds = selectedPlace.calendarEventIds.filter(id =>
@@ -441,10 +465,14 @@ export default function App() {
   useEffect(()=>{
     const url=new URL(window.location.href);
     const gmailResult = url.searchParams.get("gmail");
-    if (url.searchParams.has("calendar") || gmailResult) {
-      setScheduleOrigin("business-trips");
-      setActiveOverlay("schedule");
-      if (gmailResult === "denied") addToast("未连接 Gmail", "info");
+    const calendarResult = url.searchParams.get("calendar");
+    if (calendarResult === "denied") addToast("未连接 Google 日历，可重新授权", "info");
+    if (calendarResult || gmailResult) {
+      if (gmailResult) {
+        setScheduleOrigin("business-trips");
+        setActiveOverlay("schedule");
+        if (gmailResult === "denied") addToast("未连接 Gmail", "info");
+      }
       url.searchParams.delete("calendar");
       url.searchParams.delete("gmail");
       window.history.replaceState(null, "", url.pathname + url.search + url.hash);
@@ -562,6 +590,7 @@ export default function App() {
   const today = useMemo(() => pickDay(calendarEvents, todayDate), [calendarEvents, todayDate]);
   const todayStops = useMemo(() => today ? stopsOfDay(calendarEvents, today.dateKey) : [], [calendarEvents, today]);
   const pairs = useMemo(() => today ? legPairs(calendarEvents, today.dateKey) : [], [calendarEvents, today]);
+  const focusedTodayLeg = pairs.some(pair => pair.id === requestedLegFocus) ? requestedLegFocus : null;
   const legModeKey = `whatto.legModes.${activeUser.id}`;
   const preferences = useMemo(() => {
     if (legPreference?.owner === activeUser.id) return legPreference.values;
@@ -582,11 +611,14 @@ export default function App() {
   const { legs: todayLegResults, loading: todayLoading } = useTodayLegs({
     pairs: todayVisible ? pairs : [], choices, owner: activeUser.id, retryCount: retryTodayRoutes,
   });
+  const calendarCurrentEnough = !!googleCalendar.status?.connected && !!googleCalendar.status.lastSync && !googleCalendar.error;
   const todaySegments = useMemo<TodaySegment[]>(() => pairs.map(pair => {
     const mode = choices[pair.id];
     const options = Object.values(todayLegResults[pair.id] ?? {});
-    return { pair, mode, result: todayLegResults[pair.id]?.[mode], verdict: judgeLeg(pair, options, mode) };
-  }), [pairs, choices, todayLegResults]);
+    const needsSync = !!(pair.from.event.google || pair.to.event.google) && !calendarCurrentEnough;
+    return { pair, mode, result: todayLegResults[pair.id]?.[mode],
+      verdict: needsSync ? {status:"unknown" as const} : judgeLeg(pair, options, mode) };
+  }), [pairs, choices, todayLegResults, calendarCurrentEnough]);
   const showTodayOnMap = todayVisible && calendarLayer && todayStops.length > 0;
   const todayRoutes = useMemo(() => showTodayOnMap ? todaySegments.flatMap(({ pair, result, verdict }) =>
     result ? [{ id: pair.id, points: result.points, late: verdict.status === "late" || verdict.status === "overlap" }] : []
@@ -603,6 +635,29 @@ export default function App() {
     [calendarEvents, effectiveBusinessSettings, todayKey]);
   const bookingPlan = useMemo(() => assignTripBookings(businessTrips, effectiveBusinessSettings.home, tripBookings),
     [businessTrips, effectiveBusinessSettings.home, tripBookings]);
+  const businessNavKey = `whatto.businessNav.${activeUser.id}`;
+  const [resumedCommute, setResumedCommute] = useState<{ owner: string; tripId: string; choice: CommuteChoice }>();
+  useEffect(() => {
+    if (!businessTrips.length) return;
+    try {
+      const raw = sessionStorage.getItem(businessNavKey);
+      if (!raw) return;
+      sessionStorage.removeItem(businessNavKey);
+      const data = JSON.parse(raw);
+      if (!businessTrips.some(trip => trip.id === data?.tripId) || typeof data?.choice?.id !== "string" ||
+        !["walking", "transit", "selfDrive"].includes(data.choice.mode)) return;
+      setBusinessSelection({owner:activeUser.id, id:data.tripId});
+      setResumedCommute({owner:activeUser.id, tripId:data.tripId, choice:data.choice});
+      setActiveOverlay("business-trips");
+    } catch { /* recovery is optional if tab storage is unavailable */ }
+  }, [activeUser.id, businessNavKey, businessTrips, setActiveOverlay]);
+  useEffect(() => {
+    const clear = (event: PageTransitionEvent) => {
+      if (event.persisted) try { sessionStorage.removeItem(businessNavKey); } catch { /* current page already retains its state */ }
+    };
+    window.addEventListener("pageshow", clear);
+    return () => window.removeEventListener("pageshow", clear);
+  }, [businessNavKey]);
   const selectedBusinessTrip = businessSelection?.owner === activeUser.id
     ? businessTrips.find(item => item.id === businessSelection.id) : undefined;
   const selectedPlan = selectedBusinessTrip && bookingPlan.get(selectedBusinessTrip.id);
@@ -778,7 +833,7 @@ export default function App() {
     setScheduleEdit(null);
     skipNextPersist.current = true;
     setUserPlaces(loadUserPlaces(activeUser));
-    setCalendarEvents(readCalendarEntries(activeUser.id));
+    setCalendarState({owner:activeUser.id, events:readCalendarEntries(activeUser.id)});
     setPlaceAliases(readPlaceAliases(activeUser.id));
     setCalendarLayer(readCalendarLayer(activeUser.id));
     setPlaceLayers({ saved: true, visited: false, booked: true });
@@ -1260,7 +1315,7 @@ export default function App() {
             onAccept={id => fixCalendarPlace(events => ({ events: acceptSuggestion(events, id) }))}
             onReject={id => fixCalendarPlace(events => ({ events: rejectSuggestion(events, id) }))}
             onIgnore={id => fixCalendarPlace(events => ({ events: ignorePlace(events, id) }))}
-            onSearch={text => searchPlaceCandidates(text, calendarSearchCity(text, city))}
+            onSearch={text => searchPlaceCandidates(text, calendarSearchCity(text, city), {quick:true, aiFallback:false})}
           />
         )}
         <div className="map-controls">
@@ -1376,7 +1431,17 @@ export default function App() {
         userPlaces={savedLocations}
         visitedPlaces={visitedResourcePlaces}
         onSelectPlace={togglePlaceSelection}
-        todayPanel={todayVisible && today && <TodayPanel
+        todayPanel={todayVisible && <>
+          {(googleCalendar.status?.configured || (googleCalendar.error && activeUser.method === "google")) && !googleCalendar.status?.lastSync && <div className="calendar-first-use">
+            {account.status === "guest" && !googleCalendar.status?.connected
+              ? <button type="button" className="text-action" onClick={() => void account.signIn().catch(error => addToast(error instanceof Error ? error.message : "暂时无法登录，请重试", "error"))}>用 Google 登录，连接日历</button>
+              : (activeUser.method === "google" || googleCalendar.status?.connected) &&
+                <GoogleCalendarConnection key={activeUser.id} connection={googleCalendar} />}
+          </div>}
+          {googleCalendar.status?.connected && googleCalendar.status.lastSync && !today && <p className="calendar-first-use field-help" role="status">
+            {googleCalendar.error ? "日历同步未完成" : googleCalendar.status.events?.length ? "已同步 · 暂无可上图的日程" : "已同步 · 此时间范围内没有日程"}
+          </p>}
+          {today && <TodayPanel
           heading={today.isToday ? `今天 · ${dayLabel.format(new Date(today.dateKey + "T00:00:00"))}`
             : `${calendarEvents.some(event => !event.google?.stale && localDateKey(event.start) === todayKey)
               ? "下一个有地点的日程" : "今天没有安排 · 下一天是"} ${today.nextLabel}`}
@@ -1391,11 +1456,14 @@ export default function App() {
           onSelectStop={({ event, place }) => togglePlaceSelection(todayPlaces.find(item => samePlace(item, place)) ?? { ...place, calendarEventIds: [event.id] })}
           onChooseMode={chooseTodayMode}
           onRetry={() => setRetryTodayRoutes(count => count + 1)}
+          syncWarning={!calendarCurrentEnough && todayStops.some(stop => stop.event.google)}
+          onNavigate={rememberLegFocus}
           onFocus={id => {
             if (!calendarLayer) changeCalendarLayer(true);
-            setFocusedTodayLeg(current => current === id ? null : id);
+            rememberLegFocus(focusedTodayLeg === id ? null : id);
           }}
         />}
+        </>}
         isOpen={sidebarOpen}
         onToggleOpen={() => setSidebarOpen((v) => !v)}
         onSearchCity={(chosen) => {
@@ -1426,6 +1494,10 @@ export default function App() {
         })}
         connections={selectedBusinessTrip && selectedPlan && <>
           <BusinessTripCommute key={`${businessRevision}:${businessOverviewCommand}`} trip={selectedBusinessTrip}
+            initialChoice={resumedCommute?.owner === activeUser.id && resumedCommute.tripId === selectedBusinessTrip.id ? resumedCommute.choice : undefined}
+            onNavigate={choice => {
+              try { sessionStorage.setItem(businessNavKey, JSON.stringify({tripId:selectedBusinessTrip.id, choice})); } catch { /* retain the current view */ }
+            }}
             onRoute={route => setBusinessRoad(route ? { revision:businessRevision, route } : null)} />
           <BusinessTripConnections
           trip={selectedBusinessTrip} legs={selectedPlan.legs} nights={selectedPlan.nights} places={bookingLocations}
@@ -1460,6 +1532,7 @@ export default function App() {
           setStayArea(null);
           setBusinessRoad(null);
           setSelectedPlace(null);
+          setResumedCommute(undefined);
           setBusinessOverviewCommand(value => value + 1);
         }}
         onBoundary={(id, value) => {

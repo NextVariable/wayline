@@ -18,15 +18,16 @@ export function useGoogleCalendar(owner:string,onSnapshot:(events:CalendarEntry[
       if(mutating.current)return Promise.resolve();
       if(running.current)return running.current;
       const task=(async()=>{try{const response=await fetch(`/api/calendar/google/status?owner=${encodeURIComponent(owner)}`,{credentials:'same-origin',signal:abort.signal,cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'日历暂时无法同步');if(abort.signal.aborted||version!==generation.current)return;
-        if(data.connected&&data.connectionId&&!data.error)await callback.current(data.events,data.connectionId,abort.signal);
+        if(data.connected&&data.connectionId&&data.lastSync&&data.selected?.length&&!data.error)await callback.current(data.events,data.connectionId,abort.signal);
         if(abort.signal.aborted||version!==generation.current)return;failures.current=0;pausedUntil.current=0;setView({owner,status:data,error:data.error||''});
       }catch(e){if(!abort.signal.aborted&&version===generation.current){failures.current+=1;pausedUntil.current=Date.now()+Math.min(30000*2**failures.current,600000);}if(!abort.signal.aborted&&version===generation.current)setView(previous=>({owner,status:previous.owner===owner?previous.status:null,error:e instanceof Error?e.message:'日历暂时无法同步'}));}})();
       running.current=task;task.finally(()=>{if(version===generation.current)running.current=null;});return task;
     };
     refreshRef.current=refresh;void refresh();const poll=()=>{if(document.visibilityState==='visible'&&Date.now()>=pausedUntil.current)void refresh();};
     const timer=setInterval(poll,30000);
-    const visible=poll;document.addEventListener('visibilitychange',visible);
-    return()=>{abort.abort();clearInterval(timer);document.removeEventListener('visibilitychange',visible);};
+    document.addEventListener('visibilitychange',poll);
+    const online=()=>void refresh();window.addEventListener('online',online);
+    return()=>{abort.abort();clearInterval(timer);document.removeEventListener('visibilitychange',poll);window.removeEventListener('online',online);};
   },[owner]);
   const action=async(kind:'connect'|'select'|'sync'|'disconnect',body:object={})=>{
     if(mutating.current)return;

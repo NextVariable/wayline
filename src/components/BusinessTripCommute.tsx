@@ -6,10 +6,15 @@ import { routeMapLink } from "../lib/navigationLinks";
 
 const queryTime = new Intl.DateTimeFormat("zh-CN", {hour:"2-digit", minute:"2-digit", hour12:false});
 
-export function BusinessTripCommute({ trip, onRoute }: {
-  trip: BusinessTrip; onRoute: (route: { id:string; points:LegResult["points"]; late:false } | null) => void;
+export type CommuteChoice = { id:string; mode:TravelMode };
+
+export function BusinessTripCommute({ trip, onRoute, initialChoice, onNavigate }: {
+  trip: BusinessTrip;
+  initialChoice?: CommuteChoice;
+  onNavigate: (choice:CommuteChoice) => void;
+  onRoute: (route: { id:string; points:LegResult["points"]; late:false } | null) => void;
 }) {
-  const [selection, setSelection] = useState<{ id:string; mode:TravelMode; result?:LegResult|null }>();
+  const [selection, setSelection] = useState<(CommuteChoice & { result?:LegResult|null }) | undefined>(initialChoice);
   const latestRoute = useRef(onRoute);
   latestRoute.current = onRoute;
   useEffect(() => {
@@ -31,13 +36,13 @@ export function BusinessTripCommute({ trip, onRoute }: {
       return <section className="business-trip-day" key={pair.id}>
         <h3>{pair.from.place.name} → {pair.to.place.name}</h3>
         <div className="business-trip-modes">
-          {(["walking","transit","driving"] as const).map(mode => <button key={mode} type="button" className="text-action"
-            aria-pressed={current?.mode === mode} onClick={() => { onRoute(null); setSelection({id:pair.id, mode}); }}>
-            {mode === "driving" ? "驾车" : modeName(mode)}</button>)}
+          {(["walking","transit","selfDrive"] as const).map(mode => <button key={mode} type="button" className="text-action"
+            aria-pressed={current?.mode === mode} disabled={current?.mode === mode && current.result === undefined} onClick={() => { onRoute(null); setSelection({id:pair.id, mode}); }}>
+            {mode === "selfDrive" ? "驾车" : modeName(mode)}</button>)}
         </div>
-        {current && <small>{current.result === undefined ? "查询中…" : current.result ?
+        {current && <small role="status">{current.result === undefined ? "查询中…" : current.result ?
           `约 ${current.result.minutes} 分钟 · 高德${current.result.observedAt ? ` ${queryTime.format(current.result.observedAt)} 查询` : "查询参考"}` : "暂未查到路线"} {current.result && link &&
-          <a href={link.href} target={link.target} rel="noreferrer">导航</a>}</small>}
+          <a className="business-commute-navigation" href={link.href} target={link.target} rel="noreferrer" onClick={() => { if (!link.target) onNavigate({ id:pair.id, mode:current.mode }); }}>导航</a>}</small>}
       </section>;
     })}</>;
 }

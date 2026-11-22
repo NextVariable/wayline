@@ -163,3 +163,9 @@ it('resolves an all-day event by its written date on the device calendar', () =>
   const item = event({allDay:true, start:'2026-11-01', end:'2026-11-02'});
   expect(planResolution([item], {}, {now:new Date(2026,10,1,12), windowDays:1, city:'北京'}).lookups).toHaveLength(1);
 });
+
+it('keeps an unlocated meeting discoverable while the provider is unavailable', () => {
+  const unresolved = event();
+  const online = event({location:'线上'});
+  expect(pendingPlaces([unresolved, online], {now})).toEqual([unresolved]);
+});

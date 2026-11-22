@@ -4077,3 +4077,13 @@ select:not([multiple]):not([size]) {
   .transport-window > summary { display: flex; align-items: center; min-height: 44px; }
   .transport-window select { min-height: 44px; }
 }
+
+.calendar-first-use { margin: 6px 8px; }
+.calendar-hint-choices button small { display:block; font-weight:400; text-align:start; }
+.calendar-hint-search input { font-size:max(16px, 1em); }
+@media (pointer: coarse) {
+  .google-calendar-connection button, .google-calendar-choices > label,
+  .calendar-first-use > button, .business-trip-modes button,
+  .business-commute-navigation { min-height:44px; }
+  .business-commute-navigation { display:inline-flex; align-items:center; min-width:44px; }
+}

@@ -23,11 +23,13 @@ interface Props {
   onFocus: (id: string) => void;
   onRetry: () => void;
   onOpenSchedule?: () => void;
+  onNavigate?: (id: string) => void;
+  syncWarning?: boolean;
 }
 
 const clock = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false });
 
-export function TodayPanel({ heading, stops, segments, loading, focused, onSelectStop, onChooseMode, onFocus, onRetry, onOpenSchedule }: Props) {
+export function TodayPanel({ heading, stops, segments, loading, focused, onSelectStop, onChooseMode, onFocus, onRetry, onOpenSchedule, onNavigate, syncWarning }: Props) {
   if (!stops.length) return null;
   const fromEvent = new Map(segments.map(segment => [segment.pair.from.event.id, segment]));
   return (
@@ -36,6 +38,7 @@ export function TodayPanel({ heading, stops, segments, loading, focused, onSelec
         <h2 id="today-map-heading">{heading}</h2>
         {onOpenSchedule && <button type="button" className="text-action" onClick={onOpenSchedule}>查看日程</button>}
       </div>
+      {syncWarning && <p className="field-help" role="status">日历待同步，暂不判断能否准时</p>}
       <ol className="today-stops">
         {stops.map(stop => {
           const { event, place } = stop;
@@ -54,7 +57,7 @@ export function TodayPanel({ heading, stops, segments, loading, focused, onSelec
                 </span>
               </button>
               {segment && (
-                <TodayLeg segment={segment} loading={loading} focused={focused === segment.pair.id} onChooseMode={onChooseMode} onFocus={onFocus} onRetry={onRetry} />
+                <TodayLeg segment={segment} loading={loading} focused={focused === segment.pair.id} onChooseMode={onChooseMode} onFocus={onFocus} onRetry={onRetry} onNavigate={onNavigate} />
               )}
             </li>
           );
@@ -64,13 +67,14 @@ export function TodayPanel({ heading, stops, segments, loading, focused, onSelec
   );
 }
 
-function TodayLeg({ segment, loading, focused, onChooseMode, onFocus, onRetry }: {
+function TodayLeg({ segment, loading, focused, onChooseMode, onFocus, onRetry, onNavigate }: {
   segment: TodaySegment;
   loading: boolean;
   focused: boolean;
   onChooseMode: Props["onChooseMode"];
   onFocus: Props["onFocus"];
   onRetry: Props["onRetry"];
+  onNavigate: Props["onNavigate"];
 }) {
   const { pair, mode, result, verdict } = segment;
   const late = verdict.status === "late" || verdict.status === "overlap";
@@ -98,7 +102,7 @@ function TodayLeg({ segment, loading, focused, onChooseMode, onFocus, onRetry }:
             ))}
           </div>
           {navigation && <a className="today-navigation" aria-label={`用${navigation.label}导航`} title={`用${navigation.label}导航`}
-            href={navigation.href} target={navigation.target} rel="noopener noreferrer"><Navigation size={14} aria-hidden="true" /></a>}
+            href={navigation.href} target={navigation.target} onClick={() => onNavigate?.(pair.id)} rel="noopener noreferrer"><Navigation size={14} aria-hidden="true" /></a>}
         </div>
       )}
     </div>

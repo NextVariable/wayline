@@ -131,7 +131,8 @@ export function ignorePlace(events: CalendarEntry[], eventId: string) {
 export function pendingPlaces(events: CalendarEntry[], { now, windowDays = 30 }: { now: Date; windowDays?: number }) {
   const window = windowOf(now, windowDays);
   return events
-    .filter(e => !e.place && inWindow(e, window) && PENDING.has(e.placeResolution?.status ?? ""))
+    .filter(e => !e.place && !e.google?.stale && inWindow(e, window) &&
+      (e.placeResolution ? PENDING.has(e.placeResolution.status) : classifyLocation(e.location) !== "online"))
     .sort((a, b) => a.start.localeCompare(b.start));
 }
 
