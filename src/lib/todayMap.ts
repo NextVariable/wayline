@@ -1,6 +1,7 @@
 import type { CalendarEntry } from "./calendarEvents";
 import type { Place } from "../types/place";
 import { cityKey } from "./citySelection";
+import { classifyLocation } from "./calendarPlaces";
 import { samePlace } from "./placeIdentity";
 
 export type TravelMode = "walking" | "transit" | "driving" | "selfDrive";
@@ -14,6 +15,7 @@ export interface TodayLegPair {
   crossCity: boolean;
   directKm: number;
   gapMinutes: number;
+  departure?: string;
   defaultMode: TravelMode;
 }
 
@@ -37,7 +39,7 @@ export function localDateKey(value: string | number | Date) {
 }
 
 /** Not all-day, not an online meeting, not ignored: the events that can sit on a timeline. */
-const onTimeline = (e: CalendarEntry) => !e.allDay && Number.isFinite(Date.parse(e.start)) && e.placeResolution?.status !== "ignored" && e.placeResolution?.status !== "online";
+const onTimeline = (e: CalendarEntry) => !e.allDay && Number.isFinite(Date.parse(e.start)) && e.placeResolution?.status !== "ignored" && e.placeResolution?.status !== "online" && classifyLocation(e.location) !== "online";
 const hasPlace = (e: CalendarEntry): e is CalendarEntry & { place: Place } => !!e.place && !e.google?.stale;
 
 export function pickDay(events: CalendarEntry[], now: Date): { dateKey: string; isToday: boolean; nextLabel?: string } | null {
@@ -66,18 +68,31 @@ export function legPairs(events: CalendarEntry[], dateKey: string): TodayLegPair
   const sameDay = events
     .filter(e => onTimeline(e) && localDateKey(e.start) === dateKey)
     .sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+  const online = events.filter(event => !event.allDay && localDateKey(event.start) === dateKey &&
+    (event.placeResolution?.status === "online" || classifyLocation(event.location) === "online") && !event.google?.stale)
+    .sort((a,b) => Date.parse(a.start)-Date.parse(b.start));
+  let onlineIndex = 0;
+  let onlineEnd = Number.NEGATIVE_INFINITY;
   const pairs: TodayLegPair[] = [];
   for (let i = 1; i < sameDay.length; i += 1) {
     const prev = sameDay[i - 1], next = sameDay[i];
     if (!hasPlace(prev) || !hasPlace(next)) continue;
     const from: TodayStop = { event: prev, place: prev.place }, to: TodayStop = { event: next, place: next.place };
+    const nextStart=Date.parse(next.start);
+    while (onlineIndex<online.length && Date.parse(online[onlineIndex].start)<nextStart) {
+      onlineEnd=Math.max(onlineEnd,Date.parse(online[onlineIndex].end));
+      onlineIndex++;
+    }
+    const prevEnd=Date.parse(prev.end);
+    const departure=Math.max(prevEnd,onlineEnd);
     const directKm = haversineKm(from.place, to.place);
     const crossCity = cityKey(from.place.city) !== cityKey(to.place.city);
     pairs.push({
       id: `${prev.id}>${next.id}`, from, to,
       sameSpot: samePlace(from.place, to.place),
       crossCity, directKm,
-      gapMinutes: Math.floor((Date.parse(next.start) - Date.parse(prev.end)) / 60000),
+      gapMinutes: Math.floor((nextStart-departure) / 60000),
+      ...(departure > prevEnd && {departure:new Date(departure).toISOString()}),
       defaultMode: defaultMode(directKm, crossCity),
     });
   }

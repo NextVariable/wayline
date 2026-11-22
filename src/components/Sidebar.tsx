@@ -69,6 +69,8 @@ const categoryIcons = {
 
 type Props = {
   todayPanel?: React.ReactNode;
+  placeAliases?: Record<string, Place>;
+  onRemovePlaceAlias?: (phrase:string) => void;
   ownerId: string;
   activeCity: CityName;
   selectedCities: CityName[];
@@ -419,6 +421,14 @@ export function Sidebar(props: Props) {
           scrollPositions.current.set(scrollKey, event.currentTarget.scrollTop);
           if (scrollPositions.current.size > 80) scrollPositions.current.delete(scrollPositions.current.keys().next().value!);
         }}>
+        {!query.trim() && !guideHome && !!Object.keys(props.placeAliases ?? {}).length && <details className="trip-connections saved-place-aliases">
+          <summary>日程地点别名</summary>
+          <ul>{Object.entries(props.placeAliases ?? {}).map(([phrase,place])=><li key={phrase}>
+            <span>{phrase} → {place.name}</span>
+            <button type="button" className="text-action" aria-label={`移除「${phrase}」的地点别名`}
+              onClick={() => props.onRemovePlaceAlias?.(phrase)}>移除</button>
+          </li>)}</ul>
+        </details>}
         {!!citySuggestions.length && <div className="search-city-suggestions" aria-label="城市推荐">
           {citySuggestions.map(city => <button key={city.name} className="search-city-suggestion" role="option" aria-selected={false} onClick={() => chooseSearchCity(city)} onKeyDown={event => {
             if (!["ArrowDown", "ArrowUp", "Escape"].includes(event.key)) return;
@@ -451,9 +461,9 @@ export function Sidebar(props: Props) {
         {guideHome && <div className="guide-library is-library-home">
           <>
             {props.todayPanel}
-            <nav className="place-home-navigation" aria-label="地点资料库">
+            <nav className="place-home-navigation" aria-label="行程与地点">
               {props.onOpenBusinessTrips && <button type="button" data-library-destination="business-trips" onClick={props.onOpenBusinessTrips}><Route size={20}/><span>行程</span><ChevronRight size={14}/></button>}
-              <LibraryHoverEntry label="已存地点" preview={<>{scoped.map(place=><button key={place.id} onClick={()=>props.onSelectPlace(place)}><strong>{place.name}</strong>{place.city !== place.name && <small>{place.city}</small>}</button>)}<button className="text-action" onClick={openSavedPlaces}>查看全部地点</button></>}><button type="button" data-library-destination="saved" onClick={openSavedPlaces}><Bookmark size={20}/><span>已存地点</span><ChevronRight size={14}/></button></LibraryHoverEntry>
+              <LibraryHoverEntry label="已存地点" preview={<>{scoped.map(place=><button key={place.id} onClick={()=>props.onSelectPlace(place)}><strong>{place.name}</strong>{place.city !== place.name && <small>{place.city}</small>}</button>)}<button className="text-action" onClick={openSavedPlaces}>查看全部地点</button></>}><button type="button" data-library-destination="saved" onClick={openSavedPlaces}><Bookmark size={20}/><span>地点</span><ChevronRight size={14}/></button></LibraryHoverEntry>
               {!!scoped.length && <div className="saved-place-preview" aria-label="已存地点快捷访问">
                 {scoped.slice(0,3).map(place => <button className="recent-place-row" key={place.id} onClick={()=>props.onSelectPlace(place)}>
                   <span><strong>{place.name}</strong><small>{place.address && place.address!==place.name ? place.address : place.city}</small></span>

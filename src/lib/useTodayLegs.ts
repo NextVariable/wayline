@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { apiEndpoint } from "./apiEndpoint";
+import { ROUTE_MAX_AGE } from "./tripFeasibility";
+import type { RouteEvidence } from "./tripDomain";
 import { normalizeRouteEvidence } from "./plannerEvidence";
-import { judgeLeg, routeProviderMode, type LegOption, type TodayLegPair, type TravelMode } from "./todayMap";
+import { judgeLeg, routeProviderMode, type TodayLegPair, type TravelMode } from "./todayMap";
 
 type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
-export type LegResult = LegOption & { points: { latitude: number; longitude: number }[]; observedAt?: number };
+export type LegResult = RouteEvidence;
 type Legs = Record<string, Partial<Record<TravelMode, LegResult>>>;
 const emptyLegs: Legs = {};
 export const ALL_MODES: TravelMode[] = ["walking", "transit", "driving"];
@@ -19,7 +21,7 @@ export async function fetchLeg(pair: TodayLegPair, mode: TravelMode, { fetchImpl
       method: "POST", headers: { "Content-Type": "application/json" }, signal,
       body: JSON.stringify({
         places: [pair.from.place, pair.to.place].map(({ id, name, lat, lng }) => ({ id, name, lat, lng })),
-        mode: routeProviderMode(mode), ...(mode === "transit" ? { departure: pair.from.event.end } : {}),
+        mode: routeProviderMode(mode), ...(mode === "transit" ? { departure: pair.departure ?? pair.from.event.end } : {}),
       }),
     });
     if (!response.ok) return null;
@@ -36,6 +38,7 @@ export async function fetchLeg(pair: TodayLegPair, mode: TravelMode, { fetchImpl
 interface RunInput {
   pairs: TodayLegPair[];
   choices: Record<string, TravelMode>;
+  force?: boolean;
   onLeg: (pairId: string, mode: TravelMode, leg: LegResult | null) => void;
 }
 
@@ -45,26 +48,27 @@ interface RunInput {
  * failures are not, so the next run tries again.
  */
 export function createTodayLegsRunner({ fetchImpl = fetch }: { fetchImpl?: FetchLike } = {}) {
-  const done = new Map<string, LegResult>();
+  const done = new Map<string, {leg:LegResult; fetchedAt:number}>();
   let active: AbortController | null = null;
   const cancel = () => { active?.abort(); active = null; };
   const key = (pair: TodayLegPair, mode: TravelMode) => JSON.stringify([
     ...[pair.from.place, pair.to.place].map(p => [p.id, p.city, p.lat, p.lng]),
-    routeProviderMode(mode), mode === "transit" ? pair.from.event.end : null,
+    routeProviderMode(mode), mode === "transit" ? pair.departure ?? pair.from.event.end : null,
   ]);
   return {
     cancel,
-    async run({ pairs, choices, onLeg }: RunInput) {
+    async run({ pairs, choices, onLeg, force }: RunInput) {
       cancel();
       const controller = new AbortController();
       active = controller;
       const live = () => active === controller && !controller.signal.aborted;
       const look = async (pair: TodayLegPair, mode: TravelMode) => {
-        const cached = done.get(key(pair, mode));
+        const entry = done.get(key(pair, mode));
+        const cached = !force && entry && Date.now()-entry.fetchedAt < ROUTE_MAX_AGE ? entry.leg : undefined;
         const leg = cached ? (cached.mode === mode ? cached : { ...cached, mode }) : await fetchLeg(pair, mode, { fetchImpl, signal: controller.signal });
         if (!live()) return null;
         if (leg) {
-          done.set(key(pair, mode), leg);
+          if (!cached) done.set(key(pair, mode), {leg,fetchedAt:Date.now()});
           if (done.size > 96) done.delete(done.keys().next().value!);
         }
         onLeg(pair.id, mode, leg);
@@ -91,11 +95,12 @@ export function useTodayLegs({ pairs, choices, owner, retryCount }: {
     window.addEventListener("online", refresh);
     return () => window.removeEventListener("online", refresh);
   }, []);
+  const requestedRetry = useRef(retryCount);
   const runner = useRef<{ owner: string; lookup: ReturnType<typeof createTodayLegsRunner> } | null>(null);
   const [result, setResult] = useState<{ signature: string; legs: Legs; pending: boolean }>();
   const signature = JSON.stringify([owner, pairs.map(p => [
     p.id, ...[p.from.place, p.to.place].map(place => [place.id, place.city, place.lat, place.lng]),
-    p.from.event.end, p.to.event.start, p.sameSpot, p.defaultMode,
+    p.departure ?? p.from.event.end, p.to.event.start, p.sameSpot, p.defaultMode,
   ])]);
   const chosenModes = JSON.stringify(choices);
   const hasRoutes = pairs.some(pair => !pair.sameSpot);
@@ -107,8 +112,10 @@ export function useTodayLegs({ pairs, choices, owner, retryCount }: {
     const current = runner.current.lookup;
     let live = true;
     setResult(old => ({ signature, legs: old?.signature === signature ? old.legs : emptyLegs, pending: true }));
+    const force = requestedRetry.current !== retryCount;
+    requestedRetry.current = retryCount;
     void current.run({
-      ...input.current,
+      ...input.current, force,
       onLeg: (id, mode, leg) => {
         if (live) setResult(old => {
           if (old?.signature !== signature || old.legs[id]?.[mode] === (leg ?? undefined)) return old;

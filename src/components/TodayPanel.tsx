@@ -1,3 +1,4 @@
+import type { TravelRisk } from "../lib/tripDomain";
 import { Navigation } from "lucide-react";
 import { routeMapLink } from "../lib/navigationLinks";
 import { modeName, type LegVerdict, type TodayLegPair, type TodayStop, type TravelMode } from "../lib/todayMap";
@@ -10,6 +11,7 @@ export interface TodaySegment {
   mode: TravelMode;
   result?: LegResult;
   verdict: LegVerdict;
+  risk?:TravelRisk;
 }
 
 interface Props {
@@ -25,12 +27,14 @@ interface Props {
   onOpenSchedule?: () => void;
   onNavigate?: (id: string) => void;
   syncWarning?: boolean;
+  conflicts?: TravelRisk[];
+  nextStopId?: string;
 }
 
 const clock = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false });
 
-export function TodayPanel({ heading, stops, segments, loading, focused, onSelectStop, onChooseMode, onFocus, onRetry, onOpenSchedule, onNavigate, syncWarning }: Props) {
-  if (!stops.length) return null;
+export function TodayPanel({ heading, stops, segments, loading, focused, onSelectStop, onChooseMode, onFocus, onRetry, onOpenSchedule, onNavigate, syncWarning, conflicts = [], nextStopId }: Props) {
+  if (!stops.length && !conflicts.length) return null;
   const fromEvent = new Map(segments.map(segment => [segment.pair.from.event.id, segment]));
   return (
     <section className="today-panel" aria-labelledby="today-map-heading">
@@ -39,13 +43,16 @@ export function TodayPanel({ heading, stops, segments, loading, focused, onSelec
         {onOpenSchedule && <button type="button" className="text-action" onClick={onOpenSchedule}>查看日程</button>}
       </div>
       {syncWarning && <p className="field-help" role="status">日历待同步，暂不判断能否准时</p>}
+      {conflicts.length > 0 && <p className="field-help">
+        {conflicts[0].title} · {conflicts[0].basis}{conflicts.length>1 && ` 等 ${conflicts.length} 项`}
+      </p>}
       <ol className="today-stops">
         {stops.map(stop => {
           const { event, place } = stop;
           const segment = fromEvent.get(event.id);
           const subtitle = [place.name !== event.title ? place.name : "", event.google?.stale ? "待同步" : ""].filter(Boolean).join(" · ");
           return (
-            <li className="today-stop" key={event.id}>
+            <li className="today-stop" key={event.id} aria-current={event.id === nextStopId ? "step" : undefined}>
               <button className="today-stop-button" onClick={() => onSelectStop(stop)}>
                 <span className="today-stop-time" title="日历时间">
                   <time dateTime={event.start}>{clock.format(new Date(event.start))}</time>
@@ -53,6 +60,7 @@ export function TodayPanel({ heading, stops, segments, loading, focused, onSelec
                 </span>
                 <span className="today-stop-copy">
                   <strong>{event.title}</strong>
+                  {event.id === nextStopId && <small className="today-next">下一站</small>}
                   {subtitle && <small>{subtitle}</small>}
                 </span>
               </button>
@@ -76,7 +84,7 @@ function TodayLeg({ segment, loading, focused, onChooseMode, onFocus, onRetry, o
   onRetry: Props["onRetry"];
   onNavigate: Props["onNavigate"];
 }) {
-  const { pair, mode, result, verdict } = segment;
+  const { pair, mode, result, verdict, risk } = segment;
   const late = verdict.status === "late" || verdict.status === "overlap";
   const navigation = !pair.sameSpot ? routeMapLink(pair.from.place, pair.to.place, mode) : null;
   const timing = result ? `${modeName(mode)} ${result.minutes} 分钟` : loading ? "正在查路线…" : "暂未查到路线";
@@ -93,6 +101,7 @@ function TodayLeg({ segment, loading, focused, onChooseMode, onFocus, onRetry, o
         {!pair.sameSpot && !result && !loading && <button type="button" onClick={onRetry}>重试</button>}
         {status && <strong>{status}</strong>}
       </div>
+      {risk?.stale && result && <button type="button" className="text-action" onClick={onRetry}>更新路线参考</button>}
       {verdict.advice && <p className="today-leg-advice">{verdict.advice}</p>}
       {!pair.sameSpot && (
         <div className="today-leg-actions">

@@ -1,7 +1,7 @@
 import { expect, it, vi } from "vitest";
 // @ts-expect-error Server ESM exercised directly.
-import { collectRailOrders, collectMailBookings, createGmailOrders, parseRailMessage, parseBookingMessage } from "../../server/gmail-rail-orders.mjs";
-import { hasCalendarRailOrder } from "../components/GmailRailOrders";
+import { collectBookingChanges, collectRailOrders, collectMailBookings, createGmailOrders, parseRailMessage, parseBookingMessage } from "../../server/gmail-rail-orders.mjs";
+import { hasCalendarRailOrder } from "../lib/businessOrders";
 import type { CalendarEntry } from "../lib/calendarEvents";
 
 const now = Date.parse("2026-11-13T02:00:00Z");
@@ -48,6 +48,7 @@ it("suppresses duplicates only when a calendar event has the same train and depa
   const event = { title: "高铁 G123 苏州→上海虹桥", start: "2026-11-16T01:00:00Z" } as CalendarEntry;
   expect(hasCalendarRailOrder(order, [event])).toBe(true);
   expect(hasCalendarRailOrder(order, [{ ...event, title: "高铁 G1234" }])).toBe(false);
+  expect(hasCalendarRailOrder(order, [{ ...event, title: "高铁 G123 苏州→上海站" }])).toBe(false);
   expect(hasCalendarRailOrder(order, [{ ...event, start: "2026-11-16T01:01:00Z" }])).toBe(false);
 });
 
@@ -155,4 +156,28 @@ it("expands the one-message trial only for the account that enables sync", async
   expect(await service.enableFullSync("first")).toMatchObject({singleSample:false});
   expect(await service.status("second")).toMatchObject({singleSample:true});
   expect(new URL(fetcher.mock.calls[0][0]).searchParams.get("q")).toContain("from:trip.com");
+});
+
+it("exposes a matched cancellation, a provisional change without a reference and a newer replacement", () => {
+  const booking = parseRailMessage(mail());
+  const refund = parseRailMessage(mail("订单号 E123456789", {subject:"12306退票成功",timestamp:now}));
+  const unclear = parseRailMessage(mail("", {subject:"12306改签成功",timestamp:now}));
+  expect(collectBookingChanges([booking, refund],now)).toMatchObject([{kind:"rail",state:"cancelled",number:"G123",observedAt:now}]);
+  expect(collectBookingChanges([booking, unclear],now)).toMatchObject([{state:"review"}]);
+  const replacement=parseRailMessage(mail(ticket,{timestamp:now+1000}));
+  expect(collectBookingChanges([booking,refund,replacement],now+1000)).toEqual([]);
+  expect(JSON.stringify(collectBookingChanges([booking,refund],now))).not.toMatch(/reference|E123456789/);
+});
+
+it("keeps the last orders with a reauthorization flag after Gmail revokes access", async()=>{
+  const {service,fetcher,advance}=setup();
+  await service.connect("test",{access_token:"fixture",refresh_token:"fixture"});
+  await service.sync("test");
+  advance(61_000);
+  fetcher.mockResolvedValueOnce(Response.json({}, {status:401}));
+  await expect(service.sync("test")).rejects.toMatchObject({status:401});
+  expect(await service.status("test")).toMatchObject({needsReconnect:true,orders:[{train:"G123"}]});
+  const previous=fetcher.mock.calls.length;
+  await expect(service.sync("test")).rejects.toMatchObject({status:401});
+  expect(fetcher.mock.calls).toHaveLength(previous);
 });

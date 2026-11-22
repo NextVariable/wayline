@@ -58,7 +58,7 @@ export function parseRailMessage(message) {
   if (!/^mx\.google\.com\s*;/i.test(authentication) ||
       !/(?:\bdmarc=pass\b[^;]*\bheader\.from=rails\.com\.cn(?=[;\s]|$)|\bdkim=pass\b[^;]*\bheader\.(?:i=@|d=)rails\.com\.cn(?=[;\s]|$)|\bspf=pass\b[^;]*\bsmtp\.mailfrom=[^;\s]*@rails\.com\.cn(?=[;\s]|$))/i.test(authentication))
     return { kind: 'review', reference, receivedAt };
-  if (uncertainty.test(subject)) return { kind: 'change', reference, receivedAt };
+  if (uncertainty.test(subject)) return { kind: 'change', reference, receivedAt, state: /退票|取消|停运/.test(subject) ? 'cancelled' : 'changed' };
   if (/待支付|未支付|候补兑现失败/.test(subject) || /(?:订单状态\s*[:：]\s*(?:待支付|未支付)|请在[^\n。]{0,24}(?:分钟|小时)内[^\n。]{0,16}支付)/.test(content))
     return { kind: 'review', reference, receivedAt };
 
@@ -109,7 +109,7 @@ export function parseBookingMessage(message) {
   const reference = ref ? digest(domain + ':' + ref) : '';
   const receivedAt = Number(message.internalDate);
   if (!Number.isFinite(receivedAt) || receivedAt <= 0) return null;
-  if (/取消|退款|退订|退票|改签/.test(subject)) return { kind:'booking-change', domain, reference, receivedAt };
+  if (/取消|退款|退订|退票|改签/.test(subject)) return { kind:'booking-change', domain, reference, receivedAt, state: /取消|退款|退订|退票/.test(subject) ? 'cancelled' : 'changed' };
   if (/待支付|未支付|尚未确认/.test(content)) return { kind:'review', reference, receivedAt };
   const kind = orderKind(subject) ?? (/酒店|住宿|客房/.test(subject) ? 'stay' : /航班|机票/.test(subject) ? 'flight' : null);
   const readDateTime = value => {
@@ -136,7 +136,7 @@ export function parseBookingMessage(message) {
 export function collectMailBookings(messages, now) {
   const changes = messages.filter(row => row?.kind === 'booking-change');
   const bookings = new Map();
-  for (const row of messages) {
+  for (const row of [...messages].sort((a,b)=>(a?.receivedAt ?? 0)-(b?.receivedAt ?? 0))) {
     if (row?.kind !== 'booking' || Date.parse(row.booking.end) < now - DAY) continue;
     if (changes.some(change => change.domain === row.domain && change.receivedAt >= row.receivedAt &&
         (!change.reference || !row.reference || change.reference === row.reference))) continue;
@@ -149,7 +149,7 @@ export function collectRailOrders(messages, now, { includePast = false } = {}) {
   const changes = messages.filter(row => row?.kind === 'change');
   const orders = new Map();
   let reviewCount = messages.filter(row => row?.kind === 'review' || row?.kind === 'change').length;
-  for (const row of messages) {
+  for (const row of [...messages].sort((a,b)=>(a?.receivedAt ?? 0)-(b?.receivedAt ?? 0))) {
     if (row?.kind !== 'confirmed') continue;
     // Without an order reference we cannot safely match amendments. Show the uncertainty, not a fixed departure.
     if (changes.some(change => change.receivedAt >= row.receivedAt && (!change.reference || !row.reference || change.reference === row.reference))) {
@@ -161,6 +161,34 @@ export function collectRailOrders(messages, now, { includePast = false } = {}) {
     }
   }
   return { orders: [...orders.values()].sort((a, b) => a.departAt.localeCompare(b.departAt)), reviewCount };
+}
+
+// Return only normalized itinerary fields and the notice time. References stay in the private vault.
+export function collectBookingChanges(messages, now) {
+  const changes = messages.filter(row => row?.kind === 'change' || row?.kind === 'booking-change');
+  const affected = new Map();
+  for (const row of messages) {
+    if (!['confirmed', 'booking'].includes(row?.kind)) continue;
+    const notice = changes.filter(item => item.receivedAt >= row.receivedAt &&
+      (row.kind === 'confirmed' ? item.kind === 'change' : item.kind === 'booking-change' && item.domain === row.domain) &&
+      (!item.reference || !row.reference || item.reference === row.reference))
+      .sort((a,b) => b.receivedAt - a.receivedAt)[0];
+    if (!notice) continue;
+    const historical = row.kind === 'booking' ? [row.booking] : row.journeys.map(journey => ({
+      id:journey.id, kind:'rail', number:journey.train, start:journey.departAt, end:journey.arriveAt,
+      from:journey.origin, to:journey.destination,
+    }));
+    for (const booking of historical) {
+      if (Date.parse(booking.end ?? booking.start) < now - DAY) continue;
+      const matchingReference = !!notice.reference && notice.reference === row.reference;
+      const state = matchingReference ? notice.state ?? 'review' : 'review';
+      const known = affected.get(booking.id);
+      if (!known || known.observedAt < notice.receivedAt)
+        affected.set(booking.id, {...booking, state, observedAt:notice.receivedAt});
+    }
+  }
+  const activeIds = new Set([...collectMailBookings(messages, now), ...collectRailOrders(messages, now).orders].map(row => row.id));
+  return [...affected.values()].filter(row => !activeIds.has(row.id));
 }
 
 export function createGmailOrders({ vault, fetcher, now, env }) {
@@ -194,10 +222,11 @@ export function createGmailOrders({ vault, fetcher, now, env }) {
     const entry = enabled && id ? (await bucket())[id] : undefined;
     const messages = Object.values(entry?.messages ?? {});
     const singleSample = defaultSingleSample && entry?.fullSync !== true;
-    return { enabled, connected: !!entry, lastSync: entry?.lastSync ?? null, partial: entry?.partial ?? false, singleSample,
+    return { enabled, connected: !!entry, lastSync: entry?.lastSync ?? null, partial: entry?.partial ?? false, singleSample, needsReconnect: !!entry?.needsReconnect,
       ...(singleSample && { sampleRead: messages.length > 0 }),
       ...collectRailOrders(messages, now(), { includePast: singleSample }),
-      bookings: singleSample ? [] : collectMailBookings(messages, now()) };
+      bookings: singleSample ? [] : collectMailBookings(messages, now()),
+      changes: singleSample ? [] : collectBookingChanges(messages, now()) };
   }
 
   async function request(url, options = {}) {
@@ -221,6 +250,7 @@ export function createGmailOrders({ vault, fetcher, now, env }) {
     const rows = await bucket();
     const current = rows[id];
     if (!current) throw error(409, '请先连接 Gmail');
+    if (current.needsReconnect) throw error(401, 'Gmail 授权已失效，请重新连接');
     const singleSample = defaultSingleSample && current.fullSync !== true;
     if (current.lastSync && now() - current.lastSync < 60_000) return status(id);
     let token = current.token;
@@ -255,7 +285,7 @@ export function createGmailOrders({ vault, fetcher, now, env }) {
       if (rows[id] !== current) throw error(409, 'Gmail 连接已变更，请重试');
       await Promise.all(list.slice(offset, offset + 5).map(async messageId => {
         const key = digest(messageId);
-        if (Object.hasOwn(current.messages, key) && (current.parserVersion === 2 || current.messages[key])) {
+        if (Object.hasOwn(current.messages, key) && (current.parserVersion === 3 || (current.messages[key] && !['change','booking-change'].includes(current.messages[key].kind)))) {
           messages[key] = current.messages[key];
         } else {
           const message = await request(`${gmailRoot}/${encodeURIComponent(messageId)}?format=full&fields=internalDate,payload`, { headers });
@@ -264,7 +294,7 @@ export function createGmailOrders({ vault, fetcher, now, env }) {
       }));
     }
     if (rows[id] !== current) throw error(409, 'Gmail 连接已变更，请重试');
-    await save(id, { token, messages, lastSync: now(), partial: !!pageToken, parserVersion:2, fullSync:current.fullSync === true }, current);
+    await save(id, { token, messages, lastSync: now(), partial: !!pageToken, parserVersion:3, fullSync:current.fullSync === true }, current);
     return status(id);
   }
 
@@ -277,7 +307,15 @@ export function createGmailOrders({ vault, fetcher, now, env }) {
   }
 
   function sync(id) {
-    if (!locks.has(id)) locks.set(id, perform(id).finally(() => locks.delete(id)));
+    if (!locks.has(id)) locks.set(id, (async () => {
+      const entry = (await bucket())[id];
+      try { return await perform(id); }
+      catch (failure) {
+        if (failure.status === 401 && entry && !entry.needsReconnect && (await bucket())[id] === entry)
+          await save(id, {...entry,needsReconnect:true},entry);
+        throw failure;
+      }
+    })().finally(() => locks.delete(id)));
     return locks.get(id);
   }
   async function disconnect(id) {

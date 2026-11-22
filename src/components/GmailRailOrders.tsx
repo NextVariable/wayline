@@ -1,22 +1,15 @@
 import { TrainFront } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import type { GmailBooking } from "../lib/businessOrders";
+import { hasCalendarRailOrder, type GmailBooking, type RailOrder } from "../lib/businessOrders";
 import type { CalendarEntry } from "../lib/calendarEvents";
 import { userFacingError } from "../lib/userFacingError";
 
-interface RailOrder {
-  id: string;
-  train: string;
-  origin: string;
-  destination: string;
-  departAt: string;
-  arriveAt?: string;
-}
 interface Mailbox {
   enabled: boolean;
   connected: boolean;
   lastSync: number | null;
   partial: boolean;
+  needsReconnect?: boolean;
   singleSample?: boolean;
   sampleRead?: boolean;
   orders: RailOrder[];
@@ -28,14 +21,6 @@ const departureFormat = new Intl.DateTimeFormat("zh-CN", {
   timeZone: "Asia/Shanghai", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false,
 });
 const syncTime = new Intl.DateTimeFormat("zh-CN", {hour:"2-digit", minute:"2-digit", hour12:false});
-const minutes = (value: string) => Math.floor(Date.parse(value) / 60_000);
-
-export function hasCalendarRailOrder(order: RailOrder, events: CalendarEntry[]) {
-  return events.some(event => !event.allDay && !event.google?.stale &&
-    event.title.toUpperCase().split(/[^A-Z0-9]+/).includes(order.train) &&
-    minutes(event.start) === minutes(order.departAt));
-}
-
 async function request(action: "status" | "start" | "sync" | "enable-sync" | "disconnect", signal?: AbortSignal) {
   const response = await fetch(`/api/auth/gmail/${action}`, {
     cache: "no-store", signal, ...(action !== "status" && {
@@ -62,7 +47,8 @@ export function GmailRailOrders({ email, events }: { email: string; events: Cale
         const status: Mailbox = await request("status", pending.signal);
         if (pending.signal.aborted) return;
         setMailbox(status);
-        if (!status.connected || status.lastSync && Date.now() - status.lastSync < 15 * 60_000) return;
+        setReconnect(!!status.needsReconnect);
+        if (status.needsReconnect || !status.connected || status.lastSync && Date.now() - status.lastSync < 15 * 60_000) return;
         setBusy(true);
         const fresh: Mailbox = await request("sync", pending.signal);
         if (!pending.signal.aborted) { setMailbox(fresh); window.dispatchEvent(new Event("wayline:gmail-change")); }

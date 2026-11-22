@@ -27,7 +27,7 @@ it("falls back to all saved places when a leftover guide filter is active", () =
   const place = {...initialUserPlaces.find(p => p.city === "深圳")!, isSaved: true};
   const html = renderSidebar({activeFilter: {kind: "customGuide", value: "旧指南", label: "旧指南"}, userPlaces: [place]});
   expect(html).not.toContain("旧指南");
-  expect(html).toContain('aria-label="地点资料库"');
+  expect(html).toContain('aria-label="行程与地点"');
 });
 it("still lists a stored place that carries old guide membership", () => {
   const place = {...initialUserPlaces.find(p => p.city === "深圳")!, isSaved: true, customGuideNames: ["旧指南"]};

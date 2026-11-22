@@ -11,11 +11,12 @@ const scope='https://www.googleapis.com/auth/calendar.events.readonly https://ww
 function response(){return {status:200,headers:{} as Record<string,any>,body:'',headersSent:false,setHeader(k:string,v:any){this.headers[k]=v;},writeHead(status:number,headers:object={}){this.status=status;Object.assign(this.headers,headers);this.headersSent=true;},end(value=''){this.body=value;}};}
 const normal=(id='event',location='上海虹桥站')=>({id,iCalUID:id,summary:'客户会议',location,updated:'2026-10-29T01:00:00Z',start:{dateTime:'2026-10-30T09:00:00+08:00'},end:{dateTime:'2026-10-30T10:00:00+08:00'}});
 function setup(accountFor?: (request: {headers: {cookie?: string}}) => Promise<{id:string;email:string}|null>, disk?:string, originOverride?:string){
- let clock=Date.parse('2026-10-29T01:00:00Z'),pages:any[][]=[[normal()]],failurePage=-1,revoked=false,nullErrorBody=false,failSave=false,primaryId='primary@test',quota=false;
+ let clock=Date.parse('2026-10-29T01:00:00Z'),pages:any[][]=[[normal()]],failurePage=-1,revoked=false,nullErrorBody=false,failSave=false,primaryId='primary@test',quota=false,rejectDelta=false;
  const store={data:{sessions:{},connections:{},flows:{}} as any,save:vi.fn(async()=>{if(failSave)throw new Error('disk');})};
  const fetcher=vi.fn(async(input:string,options:any={})=>{const url=new URL(input);const result=(data:any,status=200)=>({ok:status===200,status,json:async()=>data});
  if(url.hostname==='oauth2.googleapis.com'){if(nullErrorBody)return {ok:false,status:500,json:async()=>null};if(revoked)return result({error:'invalid_grant'},400);return result({access_token:'PRIVATE_ACCESS',refresh_token:'PRIVATE_REFRESH',expires_in:3600,scope});}
  if(url.pathname.endsWith('/calendarList'))return result({items:[{id:primaryId,summary:'工作日历',primary:true,accessRole:'owner',timeZone:'Asia/Shanghai'},{id:'other@test',summary:'其他日历',accessRole:'reader'}]});
+ if(rejectDelta && url.searchParams.has('updatedMin'))return result({},410);
  if(quota)return result({error:{errors:[{reason:'userRateLimitExceeded'}]}},403);
  const page=Number(url.searchParams.get('pageToken')||0);if(page===failurePage)return result({},503);return result({items:pages[page]||[],...(page+1<pages.length?{nextPageToken:String(page+1)}:{})});
  });
@@ -23,7 +24,7 @@ function setup(accountFor?: (request: {headers: {cookie?: string}}) => Promise<{
  let service=createService();
  const call=async(path:string,method='GET',body:any=undefined,cookie='',origin=originOverride || 'http://127.0.0.1:8787')=>{const req=Readable.from(body===undefined?[]:[JSON.stringify(body)]) as any;req.url='/api/calendar/google/'+path;req.method=method;req.headers={cookie,...(method==='POST'?{origin,'content-type':'application/json'}:{})};const res=response();await service.handle(req,res);return {...res,json:()=>JSON.parse(res.body)};};
  const authorize=async(owner='guest')=>{const connected=await call('connect?owner='+owner,'POST',{},'');const cookie=connected.headers['Set-Cookie'].split(';')[0];const auth=new URL(connected.json().url);const callback=await call('callback?state='+auth.searchParams.get('state')+'&code=code','GET',undefined,cookie);expect(callback.status).toBe(200);expect(callback.body).toContain('calendar=connected');return {cookie,auth};};
- return {store,fetcher,service,call,authorize,setQuota:(value:boolean)=>{quota=value;},setPrimary:(value:string)=>{primaryId=value;},restart:()=>{service=createService();},setPages:(value:any[][])=>{pages=value;},failPage:(value:number)=>{failurePage=value;},advance:(ms:number)=>{clock+=ms;},revoke:()=>{revoked=true;},nullErrorBody:()=>{nullErrorBody=true;},failSave:(value:boolean)=>{failSave=value;}};
+ return {store,fetcher,service,call,authorize,setQuota:(value:boolean)=>{quota=value;},rejectDelta:()=>{rejectDelta=true;},setPrimary:(value:string)=>{primaryId=value;},restart:()=>{service=createService();},setPages:(value:any[][])=>{pages=value;},failPage:(value:number)=>{failurePage=value;},advance:(ms:number)=>{clock+=ms;},revoke:()=>{revoked=true;},nullErrorBody:()=>{nullErrorBody=true;},failSave:(value:boolean)=>{failSave=value;}};
 }
 it('uses browser-bound state, PKCE and only read permissions; rejects state replay',async()=>{
  const s=setup();const {cookie,auth}=await s.authorize();expect(auth.searchParams.get('access_type')).toBe('offline');expect(auth.searchParams.get('scope')).toBe(scope);expect(auth.searchParams.get('code_challenge_method')).toBe('S256');
@@ -80,7 +81,7 @@ it('keeps original IDs stable across rescheduling and recurring-instance updates
 });
 
 it('runs the background timer even when no browser requests a refresh',async()=>{
- vi.useFakeTimers();const s=setup();try{const {cookie}=await s.authorize();await s.call('select?owner=guest','POST',{calendarIds:['primary@test']},cookie);s.setPages([[normal('new')]]);s.advance(120001);s.service.start();await vi.advanceTimersByTimeAsync(60001);const state=(await s.call('status?owner=guest','GET',undefined,cookie)).json();expect(state.events[0].google.eventId).toBe('new');}finally{s.service.stop();vi.useRealTimers();}
+ vi.useFakeTimers();const s=setup();try{const {cookie}=await s.authorize();await s.call('select?owner=guest','POST',{calendarIds:['primary@test']},cookie);s.setPages([[normal('new')]]);s.advance(120001);s.service.start();await vi.advanceTimersByTimeAsync(60001);const state=(await s.call('status?owner=guest','GET',undefined,cookie)).json();expect(state.events.map((event:{google:{eventId:string}})=>event.google.eventId)).toEqual(['event','new']);}finally{s.service.stop();vi.useRealTimers();}
 });
 it('expires an unused OAuth authorization link without contacting Google',async()=>{
  const s=setup();const start=await s.call('connect?owner=guest','POST',{});const cookie=start.headers['Set-Cookie'].split(';')[0];const state=new URL(start.json().url).searchParams.get('state');s.advance(600001);expect((await s.call('callback?state='+state+'&code=x','GET',undefined,cookie)).status).toBe(400);expect(s.fetcher).not.toHaveBeenCalled();
@@ -196,4 +197,37 @@ it('keeps the previous snapshot retryable when Google signals quota with HTTP 40
  expect(state.events).toHaveLength(1);
  s.setQuota(false);
  expect((await s.call('sync?owner=guest','POST',{},cookie)).status).toBe(200);
+});
+
+it('keeps unchanged events during delta sync, applies cancellations, and eventually replaces the bounded window', async () => {
+ const s=setup();
+ const {cookie}=await s.authorize();
+ s.setPages([[normal('keep'),normal('remove')]]);
+ await s.call('select?owner=guest','POST',{calendarIds:['primary@test']},cookie);
+ s.setPages([[{id:'remove',status:'cancelled'},normal('new')]]);
+ s.advance(120001);
+ await s.service.tick();
+ const status=async()=> (await s.call('status?owner=guest','GET',undefined,cookie)).json();
+ expect((await status()).events.map((event:{google:{eventId:string}})=>event.google.eventId)).toEqual(['keep','new']);
+ const lastQuery=new URL(s.fetcher.mock.calls.at(-1)![0]);
+ expect(lastQuery.searchParams.get('updatedMin')).toBeTruthy();
+ expect(lastQuery.searchParams.get('timeMin')).toBeTruthy();
+ expect(lastQuery.searchParams.get('timeMax')).toBeTruthy();
+ s.advance(600000);s.setPages([[]]);
+ await s.service.tick();
+ expect((await status()).events).toEqual([]);
+ expect(new URL(s.fetcher.mock.calls.at(-1)![0]).searchParams.has('updatedMin')).toBe(false);
+});
+
+it('falls back to a bounded full scan when the provider rejects the delta query',async()=>{
+ const s=setup();
+ const {cookie}=await s.authorize();
+ await s.call('select?owner=guest','POST',{calendarIds:['primary@test']},cookie);
+ s.rejectDelta();s.advance(120001);s.setPages([[normal('recovered')]]);
+ await s.service.tick();
+ const state=(await s.call('status?owner=guest','GET',undefined,cookie)).json();
+ expect(state.events).toMatchObject([{google:{eventId:'recovered'}}]);
+ const requests=s.fetcher.mock.calls.map(([url])=>new URL(url)).filter(url=>url.pathname.endsWith('/events')).slice(-2);
+ expect(requests.map(url=>url.searchParams.has('updatedMin'))).toEqual([true,false]);
+ expect(requests.every(url=>url.searchParams.has('timeMin') && url.searchParams.has('timeMax'))).toBe(true);
 });

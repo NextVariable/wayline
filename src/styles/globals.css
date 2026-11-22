@@ -4087,3 +4087,16 @@ select:not([multiple]):not([size]) {
   .business-commute-navigation { min-height:44px; }
   .business-commute-navigation { display:inline-flex; align-items:center; min-width:44px; }
 }
+
+.trip-risk-list, .trip-connections { border-block-start:1px solid var(--border-light); margin-block:8px; }
+.trip-risk-list > summary, .trip-connections > summary { min-height:44px; padding-block:12px; cursor:pointer; font-weight:600; }
+.trip-risk-list > ul { list-style:none; padding:0; margin:0 0 8px; }
+.trip-risk-list li { display:grid; gap:2px; padding:6px 0; overflow-wrap:anywhere; }
+.trip-risk-list li span, .trip-risk-list li small { color:var(--text-secondary); font-size:var(--font-secondary); }
+.trip-risk-list li[data-severity="high"] > strong { color:var(--today-late, #b8394e); }
+.trip-order-row { grid-template-columns:52px minmax(0,1fr); }
+.today-stop[aria-current="step"] .today-next { color:var(--text-primary); font-weight:600; }
+.saved-place-aliases ul { list-style:none; padding:0; }
+.saved-place-aliases li { display:flex; justify-content:space-between; align-items:center; gap:8px; overflow-wrap:anywhere; }
+.saved-place-aliases .text-action { min-height:44px; flex-shrink:0; }
+.trip-risk-list .text-action { min-height:44px; justify-self:start; text-align:start; }

@@ -73,7 +73,7 @@ export function planResolution(events: CalendarEntry[], aliases: PlaceAliases, {
     if (kind === "empty") return resolved(e, { status: "missing", text: "" });
     if (kind === "online") return resolved(e, { status: "online", text: e.location });
     const key = normalizeLocationText(e.location);
-    const remembered = aliases[key];
+    const remembered = Object.hasOwn(aliases,key) ? aliases[key] : undefined;
     if (remembered) return resolved(e, { status: "ask", text: e.location, suggestion: remembered });
     const text = e.location.trim();
     if (text.length > 200 || !key) return resolved(e, { status: "none", text: e.location });
@@ -103,7 +103,7 @@ export function confirmPlace(events: CalendarEntry[], aliases: PlaceAliases, eve
   const target = events.find(e => e.id === eventId);
   if (!target) return { events, aliases };
   const key = normalizeLocationText(target.location);
-  const nextAliases: PlaceAliases = { ...aliases, [key]: place };
+  const nextAliases: PlaceAliases = key && key.length <= 200 ? { ...aliases, [key]: place } : aliases;
   const next = events.map(e => {
     if (e.id === eventId) return resolved(e, { status: "confirmed", text: e.location }, place);
     const status = e.placeResolution?.status;

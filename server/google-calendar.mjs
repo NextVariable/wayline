@@ -6,6 +6,9 @@ const hash=s=>createHash('sha256').update(s).digest('hex');
 const random=()=>randomBytes(32).toString('base64url');
 const same=(a,b)=>typeof a==='string'&&typeof b==='string'&&timingSafeEqual(Buffer.from(hash(a)),Buffer.from(hash(b)));
 const api='https://www.googleapis.com/calendar/v3';
+const FULL_REFRESH_MS=10*60_000;
+const UPDATE_OVERLAP_MS=60_000;
+const eventKey=(connectionId,calendarId,eventId)=>`google:${connectionId}:${encodeURIComponent(calendarId)}:${encodeURIComponent(eventId)}`;
 class CalendarFailure extends Error {constructor(status,message){super(message);this.status=status;}}
 const failure=(status,message)=>{throw new CalendarFailure(status,message);};
 export function normalizeGoogleEvent(item,connectionId,calendar) {
@@ -20,7 +23,7 @@ export function normalizeGoogleEvent(item,connectionId,calendar) {
   const start=timestamp(item.start), end=timestamp(item.end);
   if(!item.id||!start||!end||!Number.isFinite(Date.parse(start))||!Number.isFinite(Date.parse(end))||Date.parse(end)<Date.parse(start))throw new Error('Google 返回了无效事件，已保留上次同步');
   const text=v=>String(v||'').slice(0,12000);
-  return {id:`google:${connectionId}:${encodeURIComponent(calendar.id)}:${encodeURIComponent(item.id)}`,uid:text(item.iCalUID||item.id),title:text(item.summary||'未命名事件'),location:text(item.location),description:text(item.description),start,end,allDay:!!item.start.date,timezone:item.start.timeZone||calendar.timeZone||'UTC',calendar:text(calendar.summary||calendar.id),google:{connectionId,calendarId:calendar.id,eventId:item.id,updated:item.updated||'',originalStart:item.originalStartTime?.dateTime||item.originalStartTime?.date||null}};
+  return {id:eventKey(connectionId,calendar.id,item.id),uid:text(item.iCalUID||item.id),title:text(item.summary||'未命名事件'),location:text(item.location),description:text(item.description),start,end,allDay:!!item.start.date,timezone:item.start.timeZone||calendar.timeZone||'UTC',calendar:text(calendar.summary||calendar.id),google:{connectionId,calendarId:calendar.id,eventId:item.id,updated:item.updated||'',originalStart:item.originalStartTime?.dateTime||item.originalStartTime?.date||null}};
 }
 export function createGoogleCalendarService({env=process.env,fetcher=fetch,now=Date.now,openVault=openCalendarVault,intervalMs=120000,accountFor=async()=>null}={}) {
   const origin=env.PUBLIC_ORIGIN||`http://127.0.0.1:${env.PORT||8787}`;
@@ -58,6 +61,8 @@ export function createGoogleCalendarService({env=process.env,fetcher=fetch,now=D
       if (response.status === 429 || (response.status === 403 && reasons.some(reason =>
         ['rateLimitExceeded','userRateLimitExceeded','quotaExceeded','dailyLimitExceeded'].includes(reason))))
         failure(429,'Google 日历暂时达到查询额度，已保留上次结果，请稍后重试');
+      if ((response.status === 400 || response.status === 410) && String(url).includes('updatedMin='))
+        failure(409,'Google 日历需要完整刷新');
       if (response.status === 403) failure(403,'Google 日历权限不足，请重新授权');
       failure(502,'Google 日历暂时无法同步，已保留上次结果');
     }
@@ -72,24 +77,83 @@ export function createGoogleCalendarService({env=process.env,fetcher=fetch,now=D
   }
   async function google(connection,path,params={}){const access=await tokenFor(connection);return jsonFetch(`${api}${path}?${new URLSearchParams(params)}`,{headers:{Authorization:`Bearer ${access}`}});}
   async function calendarList(connection){const rows=[];let pageToken='';for(let i=0;i<20;i++){const page=await google(connection,'/users/me/calendarList',{maxResults:'250',...(pageToken?{pageToken}:{})});rows.push(...(page.items||[]).filter(c=>!c.deleted&&['owner','writer','reader'].includes(c.accessRole)));pageToken=page.nextPageToken||'';if(!pageToken)return rows.map(c=>({id:c.id,summary:c.summary||c.id,timeZone:c.timeZone||'UTC',primary:!!c.primary}));}failure(502,'日历列表过大，请稍后重试');}
-  async function snapshot(connection,selected) {
-    const from=new Date(now()-30*86400000).toISOString(),to=new Date(now()+180*86400000).toISOString(),rows=[];
-    for(const calendarId of selected){const calendar=connection.calendars.find(c=>c.id===calendarId);if(!calendar)failure(400,'所选日历已不可用');let pageToken='';let complete=false;
-      for(let p=0;p<40;p++){const page=await google(connection,`/calendars/${encodeURIComponent(calendarId)}/events`,{timeZone:'UTC',singleEvents:'true',showDeleted:'true',timeMin:from,timeMax:to,maxResults:'250',...(pageToken?{pageToken}:{})});if(!Array.isArray(page.items))failure(502,'Google 日历结果不完整，已保留上次结果');for(const item of page.items){const normalized=normalizeGoogleEvent(item,connection.id,calendar);if(normalized)rows.push(normalized);}if(rows.length>5000)failure(422,'所选日历事件过多，请减少同步的日历');pageToken=page.nextPageToken||'';if(!pageToken){complete=true;break;}}
-      if(!complete)failure(502,'Google 日历未读取完整，已保留上次结果');
+  async function snapshot(connection,selected,startedAt,since) {
+    const lower=startedAt-30*86400000, upper=startedAt+180*86400000;
+    const from=new Date(lower).toISOString(), to=new Date(upper).toISOString();
+    const rows=new Map(since ? connection.events
+      .filter(event => Date.parse(event.end)>lower && Date.parse(event.start)<upper)
+      .map(event => [event.id,event]) : []);
+    const updatedMin=since ? new Date(since-UPDATE_OVERLAP_MS).toISOString() : '';
+    for (const calendarId of selected) {
+      const calendar=connection.calendars.find(item=>item.id===calendarId);
+      if (!calendar) failure(400,'所选日历已不可用');
+      let pageToken='', complete=false;
+      for (let p=0;p<40;p++) {
+        const page=await google(connection,`/calendars/${encodeURIComponent(calendarId)}/events`,{
+          timeZone:'UTC',singleEvents:'true',showDeleted:'true',timeMin:from,timeMax:to,maxResults:'250',
+          ...(updatedMin && {updatedMin}),...(pageToken && {pageToken}),
+        });
+        if (!Array.isArray(page.items)) failure(502,'Google 日历结果不完整，已保留上次结果');
+        for (const item of page.items) {
+          if (typeof item?.id !== 'string' || !item.id) failure(502,'Google 返回了没有标识的日程');
+          const id=eventKey(connection.id,calendarId,item.id);
+          if (item.status==='cancelled') { rows.delete(id); continue; }
+          const event=normalizeGoogleEvent(item,connection.id,calendar);
+          const previous=rows.get(id);
+          if (previous && Date.parse(previous.google.updated)>Date.parse(event.google.updated)) continue;
+          rows.set(id,event);
+        }
+        if (rows.size>5000) failure(422,'所选日历事件过多，请减少同步的日历');
+        pageToken=page.nextPageToken||'';
+        if (!pageToken) { complete=true; break; }
+      }
+      if (!complete) failure(502,'Google 日历未读取完整，已保留上次结果');
     }
-    return rows.sort((a,b)=>a.id.localeCompare(b.id));
+    return [...rows.values()].sort((a,b)=>a.id.localeCompare(b.id));
   }
-  function sync(key,selectedOverride) {
-    if(locks.has(key))return selectedOverride?locks.get(key).catch(()=>{}).then(()=>sync(key,selectedOverride)):locks.get(key);
-    const job=(async()=>{const store=await vault(),connection=store.data.connections[key];if(!connection?.token)return;
-      const selected=selectedOverride??connection.selected;if(!selected.length)return;
-      connection.lastAttempt=now();
-      try{const events=await snapshot(connection,selected);if(store.data.connections[key]!==connection)return;
-        const previous={events:connection.events,selected:connection.selected,lastSync:connection.lastSync,error:connection.error,reconnect:connection.reconnect};
-        Object.assign(connection,{events,selected,lastSync:now(),error:'',reconnect:false});try{await store.save();}catch{Object.assign(connection,previous);throw new Error('日历同步结果无法保存，请重试');}
-      }catch(error){if(store.data.connections[key]===connection){connection.error=error instanceof CalendarFailure?error.message:'日历同步失败，已保留上次结果';connection.reconnect=error.status===401||error.status===403;await store.save();}throw error;}
-    })();locks.set(key,job);job.finally(()=>locks.delete(key)).catch(()=>{});return job;
+
+  function sync(key,selectedOverride,forceFull=false) {
+    if (locks.has(key)) {
+      const running=locks.get(key);
+      return selectedOverride || forceFull ? running.catch(()=>{}).then(()=>sync(key,selectedOverride,forceFull)) : running;
+    }
+    const job=(async()=>{
+      const store=await vault(), connection=store.data.connections[key];
+      const selected=selectedOverride??connection?.selected;
+      if (!connection?.token || !selected?.length) return;
+      const startedAt=now();
+      const cursor=!forceFull && !selectedOverride && connection.syncCursor &&
+        startedAt-connection.lastFullSync < FULL_REFRESH_MS && connection.syncCursor<=startedAt
+        ? connection.syncCursor : undefined;
+      connection.lastAttempt=startedAt;
+      try {
+        let full=!cursor;
+        let events;
+        try { events=await snapshot(connection,selected,startedAt,cursor); }
+        catch (error) {
+          if (!cursor || error.status!==409) throw error;
+          full=true;
+          events=await snapshot(connection,selected,startedAt);
+        }
+        if (store.data.connections[key]!==connection) return;
+        const previous={events:connection.events,selected:connection.selected,lastSync:connection.lastSync,
+          error:connection.error,reconnect:connection.reconnect,syncCursor:connection.syncCursor,lastFullSync:connection.lastFullSync};
+        Object.assign(connection,{events,selected,lastSync:now(),error:'',reconnect:false,syncCursor:startedAt,
+          lastFullSync:full?startedAt:connection.lastFullSync});
+        try { await store.save(); }
+        catch { Object.assign(connection,previous); throw new Error('日历同步结果无法保存，请重试'); }
+      } catch (error) {
+        if (store.data.connections[key]===connection) {
+          connection.error=error instanceof CalendarFailure ? error.message : '日历同步失败，已保留上次结果';
+          connection.reconnect=error.status===401||error.status===403;
+          await store.save();
+        }
+        throw error;
+      }
+    })();
+    locks.set(key,job);
+    job.finally(()=>locks.delete(key)).catch(()=>{});
+    return job;
   }
   async function tick(){if(!configured)return;const store=await vault();for(const [key,c]of Object.entries(store.data.connections)){if(c.selected.length&&!c.reconnect&&store.data.sessions[c.session]?.until>now()&&now()-(c.lastAttempt||c.lastSync||0)>=intervalMs)await sync(key).catch(()=>{});}}
   function start(){if(configured&&!timer){timer=setInterval(()=>void tick().catch(()=>{}),Math.min(intervalMs,60000));timer.unref();}}
@@ -140,7 +204,7 @@ export function createGoogleCalendarService({env=process.env,fetcher=fetch,now=D
       if(wrongIdentity && !url.pathname.endsWith('/disconnect'))failure(403,'请重新连接与 Wayline 登录一致的 Google 日历');
       if(!connection)failure(401,'请先连接 Google 日历');
       if(url.pathname.endsWith('/select')){const body=await jsonBody(req);if(!Array.isArray(body?.calendarIds)||body.calendarIds.length<1||body.calendarIds.length>10||new Set(body.calendarIds).size!==body.calendarIds.length||body.calendarIds.some(id=>!connection.calendars.some(c=>c.id===id)))failure(400,'请选择 1 至 10 个可读取的日历');await sync(key,body.calendarIds);send(res,200,{ok:true});return true;}
-      if(url.pathname.endsWith('/sync')){await sync(key);send(res,200,{ok:true});return true;}
+      if(url.pathname.endsWith('/sync')){await sync(key,undefined,true);send(res,200,{ok:true});return true;}
       if(url.pathname.endsWith('/disconnect')){delete store.data.connections[key];try{await store.save();}catch(error){store.data.connections[key]=connection;throw error;}send(res,200,{ok:true});return true;}
       failure(404,'日历接口不存在');
     }catch(error){if(!res.headersSent){

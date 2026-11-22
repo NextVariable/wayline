@@ -85,19 +85,17 @@ export function BusinessTripConnections({ trip, legs, nights, places, onPlace, o
   const orderRow = (order: TripBooking) => <li key={order.id}>
     <strong>{order.number ?? "住宿"}</strong>{" "}{order.from && <>{renderPoint(order.from)} → </>}{renderPoint(order.to)}
     {order.kind !== "stay" && <small>{when(order.start)} 出发{order.end && ` · ${when(order.end)} 到达`}</small>}
-    <small className="source-tag">{order.source}</small>
+    <small className="source-tag">{order.source}{order.state && order.state !== "confirmed" ? " · 待核对" : ""}</small>
   </li>;
-  const conflicts = (leg:TravelGap) => leg.orders.some(order =>
-    (leg.after && Date.parse(order.start) < Date.parse(leg.after)) ||
-    (leg.before && Date.parse(order.end ?? order.start) > Date.parse(leg.before)));
   return <section className="business-trip-connections" aria-label="交通与住宿">
     <h2>交通与住宿</h2>
     {legs.map((leg, index) => {
       const status = index === 0 ? "去程" : index === legs.length-1 ? "返程" : "城际接驳";
-      return <section key={leg.id} className="business-trip-day">
-        <header><h3>{routeLabel(leg)}</h3><small>{date(leg.date)} · {status}{leg.orders.length ? "已订" : "未定"}</small></header>
-        {leg.orders.length ? <><ul>{leg.orders.map(orderRow)}</ul>{conflicts(leg) && <p className="inline-error">已订时间与日程冲突</p>}</> :
-          leg.date >= localDateKey(new Date()) && <TransportOptions key={JSON.stringify([leg.date,leg.before,leg.after])} leg={leg} />}
+      const active = leg.orders.some(order => !order.state || order.state === "confirmed");
+      return <section key={leg.id} data-trip-segment={leg.id} className="business-trip-day">
+        <header><h3>{routeLabel(leg)}</h3><small>{date(leg.date)} · {status}{active ? "已有安排" : leg.orders.length ? "待核对" : "未定"}</small></header>
+        {leg.orders.length > 0 && <ul>{leg.orders.map(orderRow)}</ul>}
+        {!active && leg.date >= localDateKey(new Date()) && <TransportOptions key={JSON.stringify([leg.date,leg.before,leg.after])} leg={leg} />}
       </section>;
     })}
     {nights.map(night => {
@@ -108,8 +106,8 @@ export function BusinessTripConnections({ trip, legs, nights, places, onPlace, o
         .map(point => point.place ?? places[bookingPlaceKey(point)]).filter((place): place is Place => !!place);
       const candidates = [...events.map(event => event.place), ...nearbyStations];
       const anchors = candidates.filter((place, index) => candidates.findIndex(item => item.lat === place.lat && item.lng === place.lng) === index).slice(0,3);
-      return <section key={night.date} className="business-trip-day">
-        <header><h3>{date(night.date)} · {night.city}</h3><small>{night.orders.length ? "住宿已订" : "住宿未定"}</small></header>
+      return <section key={night.date} data-trip-segment={`stay:${night.date}:${night.city}`} className="business-trip-day">
+        <header><h3>{date(night.date)} · {night.city}</h3><small>{night.orders.some(order => !order.state || order.state === "confirmed") ? "已有住宿安排" : night.orders.length ? "住宿待核对" : "住宿未定"}</small></header>
         {night.orders.length ? <ul>{night.orders.map(orderRow)}</ul> : night.date >= localDateKey(new Date()) && anchors.length > 0 &&
           <RecommendationAction key={JSON.stringify(anchors.map(p=>[p.id,p.lat,p.lng]))} label="看住哪一带" input={{kind:"stay", city:night.city, anchors}}>
             {value => value.area ? <div>

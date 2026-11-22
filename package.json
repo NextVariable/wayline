@@ -1,9 +1,9 @@
 {
   "name": "wayline",
-  "version": "0.1.0",
+  "version": "1.0.0-rc.1",
   "private": true,
   "license": "MIT",
-  "description": "Calendar-driven business trip map: see where your day goes, how to get there, and whether you will be on time.",
+  "description": "Calendar-first workspace for business trips, routes, bookings, and schedule risks.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/NextVariable/wayline.git"

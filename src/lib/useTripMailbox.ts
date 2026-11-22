@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import type { GmailBooking, RailOrder } from "./businessOrders";
+import type { BookingChange, GmailBooking, RailOrder } from "./businessOrders";
 
-interface Mailbox { connected: boolean; lastSync: number | null; orders: RailOrder[]; bookings?: GmailBooking[]; singleSample?: boolean }
+interface Mailbox { connected: boolean; lastSync: number | null; orders: RailOrder[]; bookings?: GmailBooking[]; singleSample?: boolean; changes?: BookingChange[]; partial?: boolean; uncertain?: boolean; needsReconnect?: boolean }
 export function useTripMailbox(owner?: string) {
   const [view, setView] = useState<{ owner: string; mailbox: Mailbox }>();
   useEffect(() => {
@@ -24,11 +24,14 @@ export function useTripMailbox(owner?: string) {
         const mailbox = await read("status");
         if (!mailbox || controller.signal.aborted || queued) return;
         setView({ owner, mailbox });
-        if (mailbox.connected && !mailbox.singleSample && (!mailbox.lastSync || Date.now() - mailbox.lastSync >= 15 * 60_000)) {
+        if (mailbox.connected && !mailbox.singleSample && !mailbox.needsReconnect && (!mailbox.lastSync || Date.now() - mailbox.lastSync >= 15 * 60_000)) {
           const fresh = await read("sync");
-          if (fresh && !controller.signal.aborted && !queued) setView({ owner, mailbox:fresh });
+          if (!controller.signal.aborted && !queued) setView({ owner, mailbox:fresh ?? {...mailbox, uncertain:true} });
         }
-      } catch { /* Preserve the last synchronized orders on transient failures. */ }
+      } catch {
+        if (!controller.signal.aborted)
+          setView(previous => previous?.owner === owner ? {owner,mailbox:{...previous.mailbox,uncertain:true}} : previous);
+      }
       finally {
         running = false;
         if (queued) { queued = false; void refresh(); }
