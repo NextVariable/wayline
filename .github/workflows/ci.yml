@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, 'codex/v1.0-rc.*']
+    branches: [main, 'codex/v1.0-rc.*', 'trae/v1.0-rc.*']
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -32,7 +32,17 @@ jobs:
       - name: Check runtime
         run: node --version
       - run: npm ci --no-audit --no-fund
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
       - run: npm run lint
+      - name: Check release environment profile
+        run: node scripts/rc-env-check.mjs
+        env:
+          PUBLIC_ORIGIN: http://127.0.0.1:8787
+          HOST: 127.0.0.1
+          NODE_ENV: development
+      - name: Rehearse backup and restore
+        run: node scripts/wayline-backup-drill.mjs
       - run: npm test
       - run: npm run build
       - name: Check isolated release process
