@@ -79,6 +79,20 @@ assert.ok((current.guest||'').includes('real-guest-event'));
 
 assert.deepEqual(providerCalls,[],'demo must not query calendar, Gmail, routes or place providers');
 
+const second=await context.newPage();
+second.setDefaultTimeout(7000);
+await second.goto(base);
+await second.locator('.workspace-header').waitFor();
+assert.equal(await second.locator('.demo-banner').count(),0,'another tab must stay in the real workspace');
+const otherTab=await second.evaluate(()=>({
+  guest:localStorage.getItem('whatto.calendarEvents.guest'),
+  demo:localStorage.getItem('whatto.calendarEvents.demo:wayline'),
+}));
+assert.ok((otherTab.guest||'').includes('real-guest-event'));
+assert.ok(!!otherTab.demo,'demo data is owner scoped and must stay for the demo tab');
+await second.close();
+await banner.waitFor();
+
 await page.getByRole('button',{name:'退出演示'}).click();
 await banner.waitFor({state:'detached'});
 current=await state();
