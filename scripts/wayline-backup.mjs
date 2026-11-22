@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createHash, randomUUID } from 'node:crypto';
-import { copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { basename, dirname, isAbsolute, join, parse, posix, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -8,6 +8,20 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const sha256 = path => createHash('sha256').update(readFileSync(path)).digest('hex');
 const PROJECT_ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const HASH = /^[0-9a-f]{64}$/i;
+const LABEL = /^[A-Za-z0-9_-]{1,40}$/;
+
+/** Resolves symlinked parents to their real location so path aliases cannot bypass safety checks. */
+function canonicalize(path) {
+  let existing = resolve(path);
+  const tail = [];
+  while (!existsSync(existing)) {
+    const parent = dirname(existing);
+    if (parent === existing) break;
+    tail.unshift(basename(existing));
+    existing = parent;
+  }
+  return join(realpathSync(existing), ...tail);
+}
 
 function inside(parent, child) {
   const rel = relative(resolve(parent), resolve(child));
@@ -20,10 +34,12 @@ function assertNoOverlap(left, right, label) {
 
 /** Rejects system or user locations where a restore could destroy unrelated data. */
 export function assertSafeRestoreTarget(into) {
-  const target = resolve(into);
+  const requested = resolve(into);
+  if (existsSync(requested) && lstatSync(requested).isSymbolicLink()) throw new Error(`拒绝恢复到符号链接：${requested}`);
+  if (existsSync(requested) && !statSync(requested).isDirectory()) throw new Error(`恢复目标不是目录：${requested}`);
+  const target = canonicalize(requested);
   if (target === parse(target).root) throw new Error(`拒绝恢复到文件系统根目录：${target}`);
-  if (existsSync(target) && !statSync(target).isDirectory()) throw new Error(`恢复目标不是目录：${target}`);
-  const protectedPaths = [homedir(), PROJECT_ROOT, process.cwd()].map(path => resolve(path));
+  const protectedPaths = [homedir(), PROJECT_ROOT, process.cwd()].map(path => canonicalize(path));
   for (const guarded of protectedPaths) {
     if (target === guarded) throw new Error(`拒绝恢复到受保护目录：${target}`);
     if (inside(target, guarded)) throw new Error(`拒绝恢复到受保护目录的上级：${target}`);
@@ -103,12 +119,14 @@ function copyManifestFiles(fromData, toData, manifest) {
 
 /** Creates a manifest-backed backup using only regular files; symlinks are rejected. */
 export function createBackup(source, dest, label = 'manual') {
-  const from = resolve(source);
-  if (!existsSync(from)) throw new Error(`备份源不存在：${source}`);
-  const sourceStat = lstatSync(from);
+  if (!LABEL.test(label)) throw new Error(`备份 label 非法：${label}`);
+  const rawFrom = resolve(source);
+  if (!existsSync(rawFrom)) throw new Error(`备份源不存在：${source}`);
+  const sourceStat = lstatSync(rawFrom);
   if (sourceStat.isSymbolicLink()) throw new Error(`备份源不能是符号链接：${source}`);
   if (!sourceStat.isDirectory()) throw new Error(`备份源不是目录：${source}`);
-  const destRoot = resolve(dest);
+  const from = canonicalize(rawFrom);
+  const destRoot = canonicalize(dest);
   assertNoOverlap(from, destRoot, '备份源与目标目录');
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   const target = join(destRoot, `wayline-${label}-${stamp}`);
@@ -170,7 +188,7 @@ export function verifyBackup(backup) {
 
 /** Restores into an isolated staging directory, verifies it, then swaps it in. */
 export function restoreBackup(backup, into, { force = false } = {}) {
-  const root = resolve(backup);
+  const root = canonicalize(backup);
   const target = assertSafeRestoreTarget(into);
   assertNoOverlap(root, target, '备份目录与恢复目标');
   const { problems } = verifyBackup(root);

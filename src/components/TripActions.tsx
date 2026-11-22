@@ -11,6 +11,7 @@ const SOURCE_LABEL: Record<string, string> = {
 const clock = new Intl.DateTimeFormat("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
 
 const LIFECYCLE_LABEL: Partial<Record<TripAction["lifecycle"], string>> = {
+  overdue: "已逾期",
   imminent: "即将发生",
   expired: "已过期",
 };

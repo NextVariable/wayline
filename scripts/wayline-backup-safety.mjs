@@ -125,6 +125,34 @@ scenario('部分失败时目标保持不变', () => {
   }
 });
 
+scenario('路径别名与符号链接不能绕过安全检查', () => {
+  const homeLink = join(root, 'home-link');
+  symlinkSync(homedir(), homeLink);
+  throws(() => assertSafeRestoreTarget(homeLink), 'home alias');
+  throws(() => restoreBackup(backup, homeLink, { force: true }), 'restore via home alias');
+  const projectLink = join(root, 'project-link');
+  symlinkSync(PROJECT_ROOT, projectLink);
+  throws(() => assertSafeRestoreTarget(projectLink), 'project alias');
+  throws(() => restoreBackup(backup, projectLink, { force: true }), 'restore via project alias');
+  const dangling = join(root, 'target-link');
+  symlinkSync(join(root, 'real-target'), dangling);
+  throws(() => restoreBackup(backup, dangling), 'target itself is a symlink');
+
+  const safeDir = join(root, 'safe-dir');
+  mkdirSync(safeDir, { recursive: true });
+  const safeLink = join(root, 'safe-link');
+  symlinkSync(safeDir, safeLink);
+  restoreBackup(backup, join(safeLink, 'restored'));
+  check(existsSync(join(safeDir, 'restored', 'token.json')), '指向普通临时目录的别名应可恢复');
+});
+
+scenario('备份 label 不能构造路径穿越', () => {
+  throws(() => createBackup(source, backups, '../../evil'), 'label traversal');
+  throws(() => createBackup(source, backups, 'a/b'), 'label slash');
+  throws(() => createBackup(source, backups, ''), 'empty label');
+  check(!existsSync(join(root, 'evil')), '不得在目标目录外写入');
+});
+
 try {
   for (const item of scenarios) {
     item.fn();

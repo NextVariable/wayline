@@ -8,7 +8,7 @@ export interface ActionEventRef {
   location: string;
 }
 
-export type ActionLifecycle = "imminent" | "upcoming" | "undated" | "expired";
+export type ActionLifecycle = "overdue" | "imminent" | "upcoming" | "undated" | "expired";
 
 export interface TripAction {
   id: string;
@@ -31,14 +31,22 @@ export interface TripAction {
 }
 
 const SEVERITY_WEIGHT: Record<TravelRisk["severity"], number> = { high: 0, medium: 1, info: 2 };
-const LIFECYCLE_WEIGHT: Record<ActionLifecycle, number> = { imminent: 0, upcoming: 1, undated: 2, expired: 3 };
+const LIFECYCLE_WEIGHT: Record<ActionLifecycle, number> = { overdue: 0, imminent: 1, upcoming: 2, undated: 3, expired: 4 };
 const IMMINENT_WINDOW_MS = 24 * 60 * 60_000;
+// 会议/行程开始后仍需处理的类型：已发生但问题未解决，仍有行动价值。
+const ACTIONABLE_AFTER_START = new Set<RiskType>(["booking-conflict", "booking-change", "missing-transport", "missing-stay"]);
 
-/** 把行动项分为即将发生、未来待处理、时间待定与已过期，避免过期项长期占据首位。 */
-export function lifecycleOf(action: Pick<TripAction, "dueAt">, now: number): ActionLifecycle {
+/**
+ * 把行动项分为已逾期但仍需处理、即将发生、未来待处理、时间待定与已过期。
+ * 进行中的会议与跨天日程不会在开始后立刻被判为 expired；只有纯日程冲突类风险在全部结束后才过期。
+ */
+export function lifecycleOf(action: Pick<TripAction, "dueAt" | "type"> & { endsAt?: number }, now: number): ActionLifecycle {
   if (action.dueAt === undefined) return "undated";
-  if (action.dueAt < now) return "expired";
-  return action.dueAt - now <= IMMINENT_WINDOW_MS ? "imminent" : "upcoming";
+  if (action.dueAt > now) return action.dueAt - now <= IMMINENT_WINDOW_MS ? "imminent" : "upcoming";
+  // 已开始但尚未结束（含跨天会议）仍具行动价值。
+  if (action.endsAt !== undefined && action.endsAt >= now) return "imminent";
+  if (ACTIONABLE_AFTER_START.has(action.type)) return "overdue";
+  return "expired";
 }
 
 function eventRef(event: CalendarEvent): ActionEventRef {
@@ -81,6 +89,7 @@ export function buildTripActions({ risks, events, now }: {
     const refs = risk.eventIds.map(id => byId.get(id)).filter((event): event is CalendarEvent => !!event).map(eventRef);
     const uncertainty = uncertaintyOf(risk);
     const dueAt = earliest(refs);
+    const endsAt = refs.map(event => Date.parse(event.end)).filter(Number.isFinite).reduce<number | undefined>((max, time) => max === undefined || time > max ? time : max, undefined);
     seen.set(key, {
       id: risk.id,
       riskIds: [risk.id],
@@ -97,7 +106,7 @@ export function buildTripActions({ risks, events, now }: {
       uncertain: !!uncertainty,
       uncertainty,
       dueAt,
-      lifecycle: lifecycleOf({ dueAt }, reference),
+      lifecycle: lifecycleOf({ dueAt, endsAt, type: risk.type }, reference),
       stale: risk.stale,
     });
   }

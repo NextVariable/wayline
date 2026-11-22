@@ -12,6 +12,8 @@ it("rejects hostile restore targets, manifests and partial failures on temp fixt
     "拒绝备份源中的符号链接与非普通文件",
     "force 覆盖必须通过暂存校验且保留旧数据",
     "部分失败时目标保持不变",
+    "路径别名与符号链接不能绕过安全检查",
+    "备份 label 不能构造路径穿越",
   ]) {
     expect(result.stdout).toContain(`PASS ${scenario}`);
   }

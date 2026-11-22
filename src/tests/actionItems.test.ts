@@ -132,6 +132,40 @@ it("orders imminent work ahead of future work and undated work ahead of expired"
   expect(withExpired.map(action => action.id)).toEqual(["undated", "expired"]);
 });
 
+it("keeps ongoing and cross-day meetings actionable instead of expiring them at start", () => {
+  const ongoing = event("ongoing", "2026-11-24T07:30:00+08:00", "2026-11-24T09:30:00+08:00");
+  const overnight = event("overnight", "2026-11-23T22:00:00+08:00", "2026-11-24T08:30:00+08:00");
+  const actions = buildTripActions({ risks: [
+    risk({ id: "ongoing-risk", type: "overlap", severity: "high", eventIds: ["ongoing"] }),
+    risk({ id: "overnight-risk", type: "commute-time", severity: "medium", eventIds: ["overnight"] }),
+  ], events: [...events, ongoing, overnight], now });
+  expect(actions.map(action => [action.id, action.lifecycle])).toEqual([
+    ["ongoing-risk", "imminent"],
+    ["overnight-risk", "imminent"],
+  ]);
+});
+
+it("keeps unresolved booking problems actionable after departure as overdue", () => {
+  const actions = buildTripActions({ risks: [
+    risk({ id: "past-booking", type: "booking-conflict", severity: "high", eventIds: ["d"] }),
+    risk({ id: "past-overlap", type: "overlap", severity: "high", eventIds: ["d"] }),
+  ], events: [...events, past], now });
+  expect(actions.map(action => [action.id, action.lifecycle])).toEqual([
+    ["past-booking", "overdue"],
+    ["past-overlap", "expired"],
+  ]);
+});
+
+it("compares event end times across time zones without shifting the day", () => {
+  const utcOngoing = event("utc-ongoing", "2026-11-24T01:00:00Z", "2026-11-24T03:00:00Z");
+  const utcNow = Date.parse("2026-11-24T02:00:00Z");
+  const [action] = buildTripActions({ risks: [
+    risk({ id: "utc-risk", type: "intercity", severity: "medium", eventIds: ["utc-ongoing"] }),
+  ], events: [utcOngoing], now: utcNow });
+  expect(action.lifecycle).toBe("imminent");
+  expect(action.dueAt).toBe(Date.parse("2026-11-24T01:00:00Z"));
+});
+
 it("keeps stale and uncertainty markers on expired risks", () => {
   const [expired] = buildTripActions({ risks: [
     risk({ id: "stale-old", type: "missing-location", severity: "high", eventIds: ["d"], stale: true }),
