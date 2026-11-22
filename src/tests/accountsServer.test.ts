@@ -88,6 +88,13 @@ it('rejects a different Google identity and does not connect when the Gmail scop
   expect((await s.call('/api/auth/gmail/status', {cookie: session})).json().connected).toBe(false);
 });
 
+it('ignores an owner query and never opens a Gmail mailbox without signing in', async () => {
+  const s = setup({ gmail: true });
+  expect((await s.call('/api/auth/gmail/status?owner=demo:wayline')).status).toBe(401);
+  expect((await s.call('/api/auth/gmail/start?owner=demo:wayline', {method: 'POST', body: {}})).status).toBe(401);
+  expect(s.fetcher).not.toHaveBeenCalled();
+});
+
 it('signs in with Google using state and PKCE, then reports the account', async () => {
   const s = setup();
   const {auth, callback, session} = await s.signIn();

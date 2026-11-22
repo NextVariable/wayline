@@ -44,7 +44,7 @@ export function createGoogleCalendarService({env=process.env,fetcher=fetch,now=D
     if(Object.keys(store.data.sessions).length>=1000)failure(503,'日历连接暂时繁忙');
     const value=random(),id=hash(value);store.data.sessions[id]={until:now()+2592000000};await store.save();cookie(res,value);return id;
   }
-  const ownerFrom=url=>{const owner=url.searchParams.get('owner')||'';if(!owner||owner.length>160||/[\u0000-\u001f]/.test(owner))failure(400,'请重新选择当前空间');return owner;};
+  const ownerFrom=url=>{const owner=url.searchParams.get('owner')||'';if(!owner||owner.length>160||/[\u0000-\u001f]/.test(owner))failure(400,'请重新选择当前空间');if(owner.toLowerCase().startsWith('demo:'))failure(400,'演示工作区不支持连接 Google 日历');return owner;};
   async function requireOwner(req, owner) {
     if (!owner.startsWith('google:')) return;
     const account = await accountFor(req);
@@ -164,6 +164,7 @@ export function createGoogleCalendarService({env=process.env,fetcher=fetch,now=D
       if(url.pathname==='/api/calendar/google/callback'){
         if (req.method !== 'GET') failure(405,'不支持的日历请求');
         const store=await vault(),session=await sessionFor(req,res),state=url.searchParams.get('state'),flow=store.data.flows[hash(state||'')];
+        if(flow?.owner?.toLowerCase().startsWith('demo:'))failure(400,'演示工作区不支持连接 Google 日历');
         if(!session||!flow||!same(flow.session,session)||flow.until<=now())failure(400,'授权链接已过期，请返回日程重新连接');
         const account = await requireOwner(req, flow.owner);
         if (store.data.flows[hash(state)] !== flow) failure(400,'授权链接已使用，请返回日程重新连接');
