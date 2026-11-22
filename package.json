@@ -1,6 +1,6 @@
 {
   "name": "wayline",
-  "version": "1.0.0-rc.2",
+  "version": "1.0.0-rc.4",
   "private": true,
   "license": "MIT",
   "description": "Calendar-first workspace for business trips, routes, bookings, and schedule risks.",

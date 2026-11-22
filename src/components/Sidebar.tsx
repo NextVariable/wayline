@@ -24,7 +24,6 @@ import {
   ChevronRight,
   ListFilter,
   Route,
-  Footprints,
 } from "lucide-react";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { getCitiesGuidePlaces, groupSavedPlacesByCity, placeBelongsToGuide, savedPlaceAddress } from "../lib/guideFilters";
@@ -69,6 +68,8 @@ const categoryIcons = {
 
 type Props = {
   todayPanel?: React.ReactNode;
+  calendarHint?: React.ReactNode;
+  demoBanner?: React.ReactNode;
   placeAliases?: Record<string, Place>;
   onRemovePlaceAlias?: (phrase:string) => void;
   ownerId: string;
@@ -97,7 +98,6 @@ type Props = {
   accountStatus?: AccountState["status"];
   accountEmail?: string;
   onOpenBusinessTrips?: () => void;
-  onOpenFootprints: () => void;
   onOpenSearch: () => void;
   onNavigatePanel: (update: () => void, direction?: "forward" | "back") => void;
   openingEntry?: string | null;
@@ -329,6 +329,8 @@ export function Sidebar(props: Props) {
       >
         <span />
       </button>
+      {props.demoBanner}
+      {props.calendarHint}
       <div className="places-search-toolbar">
         <div className="place-search">
           {searching ? <Loader2 size={17} className="animate-spin" aria-hidden="true" /> : <Search size={17} />}
@@ -469,8 +471,6 @@ export function Sidebar(props: Props) {
                   <span><strong>{place.name}</strong><small>{place.address && place.address!==place.name ? place.address : place.city}</small></span>
                 </button>)}
               </div>}
-              
-              <LibraryHoverEntry label="足迹" preview={<>{props.visitedPlaces.filter(p=>selectedCities.includes(p.city)).map(place=><button key={place.id} onClick={()=>props.onSelectPlace(place)}><strong>{place.name}</strong><small>{place.city}</small></button>)}<button className="text-action" onClick={props.onOpenFootprints}>查看轨迹与到访<ChevronRight size={16}/></button></>}><button type="button" className="desktop-library-destination" data-library-destination="footprints" data-opening={props.openingEntry === "footprints" || undefined} onClick={props.onOpenFootprints}><Footprints size={20}/><span>足迹</span><ChevronRight size={14}/></button></LibraryHoverEntry>
 
             </nav>
             {!!recent.length&&<section className="recent-place-searches" aria-label="最近搜索">

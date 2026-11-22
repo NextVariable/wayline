@@ -12,6 +12,7 @@ export function useGoogleCalendar(owner:string,onSnapshot:(events:CalendarEntry[
   // sync service is not hit every 30s; manual refresh is never throttled.
   const failures=useRef(0),pausedUntil=useRef(0);
   useEffect(()=>{
+    if(owner.startsWith('demo:')){setView({owner,status:{configured:false,connected:false},error:''});return;}
     failures.current=0;pausedUntil.current=0;
     const version=++generation.current;controller.current?.abort();const abort=new AbortController();controller.current=abort;running.current=null;mutating.current=false;setBusy(false);
     const refresh=()=>{

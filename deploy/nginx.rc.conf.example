@@ -1,5 +1,15 @@
 # Include under http {}. Fill in the staging certificate and host before nginx -t.
+# These zones must stay in the http {} block, outside this file's server blocks.
+limit_req_zone $binary_remote_addr zone=wayline_api:10m rate=30r/m;
+limit_req_zone $binary_remote_addr zone=wayline_static:10m rate=120r/m;
 log_format wayline_path '$time_iso8601 $request_method $uri $status';
+
+server {
+    listen 80;
+    server_name wayline-staging.example;
+    return 301 https://$host$request_uri;
+}
+
 server {
     listen 443 ssl;
     server_name wayline-staging.example;
@@ -7,11 +17,34 @@ server {
     ssl_certificate_key /etc/nginx/certs/wayline-staging.key;
     access_log /var/log/nginx/wayline-staging.access.log wayline_path;
     client_max_body_size 30m;
-    location / {
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+    add_header X-Frame-Options DENY always;
+
+    location = /healthz {
+        proxy_pass http://127.0.0.1:8787;
+        proxy_set_header Host $host;
+        access_log off;
+    }
+
+    location /api/ {
+        limit_req zone=wayline_api burst=20 nodelay;
         proxy_pass http://127.0.0.1:8787;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto https;
-        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_read_timeout 90s;
+        proxy_cache off;
+    }
+
+    location / {
+        limit_req zone=wayline_static burst=60 nodelay;
+        proxy_pass http://127.0.0.1:8787;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_read_timeout 90s;
         proxy_cache off;
     }

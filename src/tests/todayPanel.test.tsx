@@ -48,8 +48,9 @@ it("renders the selected route and its verdict together", () => {
 it("offers a retry for an unavailable route without inventing a time", () => {
   expect(render("transit", true, [])).toContain("正在查路线");
   const unavailable = render("transit", false, []);
-  expect(unavailable).toContain("暂未查到路线");
-  expect(unavailable).toContain(">重试<");
+  expect(unavailable).toContain("路线暂不可用");
+  expect(unavailable).toContain("重试路线");
+  expect(unavailable).not.toContain("分钟</");
   expect(unavailable).toContain('data-status="unknown"');
   expect(unavailable).not.toContain('data-status="late"');
 });

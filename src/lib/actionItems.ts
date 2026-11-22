@@ -1,0 +1,131 @@
+import type { ActionItem, CalendarEvent, RiskType, SourceProvenance, TravelRisk } from "./tripDomain";
+
+export interface ActionEventRef {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+  location: string;
+}
+
+export type ActionLifecycle = "overdue" | "imminent" | "upcoming" | "undated" | "expired";
+
+export interface TripAction {
+  id: string;
+  riskIds: string[];
+  type: RiskType;
+  severity: TravelRisk["severity"];
+  status: TravelRisk["status"];
+  title: string;
+  problem: string;
+  evidence: SourceProvenance[];
+  eventIds: string[];
+  events: ActionEventRef[];
+  segmentId?: string;
+  nextStep: ActionItem;
+  uncertain: boolean;
+  uncertainty?: string;
+  dueAt?: number;
+  lifecycle: ActionLifecycle;
+  stale: boolean;
+}
+
+const SEVERITY_WEIGHT: Record<TravelRisk["severity"], number> = { high: 0, medium: 1, info: 2 };
+const LIFECYCLE_WEIGHT: Record<ActionLifecycle, number> = { overdue: 0, imminent: 1, upcoming: 2, undated: 3, expired: 4 };
+const IMMINENT_WINDOW_MS = 24 * 60 * 60_000;
+// 会议/行程开始后仍需处理的类型：已发生但问题未解决，仍有行动价值。
+const ACTIONABLE_AFTER_START = new Set<RiskType>(["booking-conflict", "booking-change", "missing-transport", "missing-stay"]);
+
+/**
+ * 把行动项分为已逾期但仍需处理、即将发生、未来待处理、时间待定与已过期。
+ * 进行中的会议与跨天日程不会在开始后立刻被判为 expired；只有纯日程冲突类风险在全部结束后才过期。
+ */
+export function lifecycleOf(action: Pick<TripAction, "dueAt" | "type"> & { endsAt?: number }, now: number): ActionLifecycle {
+  if (action.dueAt === undefined) return "undated";
+  if (action.dueAt > now) return action.dueAt - now <= IMMINENT_WINDOW_MS ? "imminent" : "upcoming";
+  // 已开始但尚未结束（含跨天会议）仍具行动价值。
+  if (action.endsAt !== undefined && action.endsAt >= now) return "imminent";
+  if (ACTIONABLE_AFTER_START.has(action.type)) return "overdue";
+  return "expired";
+}
+
+function eventRef(event: CalendarEvent): ActionEventRef {
+  return { id: event.id, title: event.title, start: event.start, end: event.end, location: event.location };
+}
+
+function earliest(events: ActionEventRef[]): number | undefined {
+  const times = events.map(event => Date.parse(event.start)).filter(Number.isFinite);
+  return times.length ? Math.min(...times) : undefined;
+}
+
+function uncertaintyOf(risk: TravelRisk): string | undefined {
+  if (risk.stale) return "来源数据可能已过期，请重新刷新后再确认";
+  if (risk.status === "uncertain") return "判断基于估算或未确认数据，实际出行前需复核";
+  if (!risk.evidence.length) return "暂无来源证据，需人工确认";
+  return undefined;
+}
+
+/**
+ * 把来自 Today 与 Trips 的 TravelRisk 统一成可执行行动项。
+ * 只做派生与排序，不触发订票、不修改日历、不调用外部供应商。
+ */
+export function buildTripActions({ risks, events, now }: {
+  risks: TravelRisk[];
+  events: CalendarEvent[];
+  now?: number;
+}): TripAction[] {
+  const byId = new Map(events.map(event => [event.id, event]));
+  const reference = now ?? Date.now();
+  const seen = new Map<string, TripAction>();
+  for (const risk of risks) {
+    // 证据记录也参与去重：同一会议下不同订单的同类风险不能被合并。
+    const evidenceKey = [...new Set(risk.evidence.map(item => `${item.source}:${item.recordId}`))].sort().join(",");
+    const key = `${risk.type}|${risk.segmentId ?? ""}|${[...risk.eventIds].sort().join(",")}|${risk.title}|${evidenceKey}`;
+    const existing = seen.get(key);
+    if (existing) {
+      if (!existing.riskIds.includes(risk.id)) existing.riskIds.push(risk.id);
+      continue;
+    }
+    const refs = risk.eventIds.map(id => byId.get(id)).filter((event): event is CalendarEvent => !!event).map(eventRef);
+    const uncertainty = uncertaintyOf(risk);
+    const dueAt = earliest(refs);
+    const endsAt = refs.map(event => Date.parse(event.end)).filter(Number.isFinite).reduce<number | undefined>((max, time) => max === undefined || time > max ? time : max, undefined);
+    seen.set(key, {
+      id: risk.id,
+      riskIds: [risk.id],
+      type: risk.type,
+      severity: risk.severity,
+      status: risk.status,
+      title: risk.title,
+      problem: risk.basis,
+      evidence: risk.evidence,
+      eventIds: risk.eventIds,
+      events: refs,
+      segmentId: risk.segmentId,
+      nextStep: risk.action,
+      uncertain: !!uncertainty,
+      uncertainty,
+      dueAt,
+      lifecycle: lifecycleOf({ dueAt, endsAt, type: risk.type }, reference),
+      stale: risk.stale,
+    });
+  }
+  return [...seen.values()].sort((a, b) => {
+    // 先按行动价值分层：即将发生 > 未来待处理 > 时间待定 > 已过期。
+    const lifecycle = LIFECYCLE_WEIGHT[a.lifecycle] - LIFECYCLE_WEIGHT[b.lifecycle];
+    if (lifecycle) return lifecycle;
+    const severity = SEVERITY_WEIGHT[a.severity] - SEVERITY_WEIGHT[b.severity];
+    if (severity) return severity;
+    const aDue = a.dueAt ?? Number.POSITIVE_INFINITY;
+    const bDue = b.dueAt ?? Number.POSITIVE_INFINITY;
+    if (aDue !== bDue) return aDue - bDue;
+    // 同等严重度和时间下，先给出已确认事实，再给出待核实推断。
+    if (a.uncertain !== b.uncertain) return a.uncertain ? 1 : -1;
+    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+  });
+}
+
+/** 仅用于展示的近期相关性判断，不影响排序。 */
+export function isImminent(action: TripAction, now: number, windowMs = 6 * 60 * 60_000): boolean {
+  return action.dueAt !== undefined && action.dueAt >= now && action.dueAt - now <= windowMs;
+}

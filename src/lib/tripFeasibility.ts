@@ -2,6 +2,7 @@ import type { CalendarEvent, RouteEvidence, SourceProvenance, TravelRisk, Trip }
 import { judgeLeg, localDateKey, type TodayLegPair, type TravelMode } from "./todayMap";
 import type { TripTransfer } from "./tripTransfers";
 import { classifyLocation } from "./calendarPlaces";
+import { eventDay } from "./tripDay";
 
 export interface Freshness { calendarCurrent: boolean; mailboxCurrent: boolean; now:number }
 export const ROUTE_MAX_AGE = 30 * 60_000;
@@ -36,7 +37,8 @@ export function calendarRisks(events:CalendarEvent[], status:Freshness, day?:str
         action:{kind:"review-calendar",label:"核对两场日程"}});
     }
     if (!furthest || Date.parse(event.end) > Date.parse(furthest.end)) furthest=event;
-    if (!event.place && event.placeResolution?.status !== "ignored" && event.placeResolution?.status !== "online" &&
+    const placeUnconfirmed = event.placeResolution?.status === "ask" || event.placeResolution?.status === "ambiguous";
+    if ((!event.place || placeUnconfirmed) && event.placeResolution?.status !== "ignored" && event.placeResolution?.status !== "online" &&
         classifyLocation(event.location) !== "online") {
       risks.push({id:JSON.stringify(["place",event.id]),type:"missing-location",severity:"info",status:"uncertain",
         eventIds:[event.id],evidence:[eventSource(event,status)],stale:eventStale(event,status),
@@ -75,7 +77,7 @@ export function assessTrip(trip:Trip,status:Freshness,transfers:TripTransfer[] =
   for (const segment of trip.segments) {
     if (segment.kind === "commute") continue;
     const orders=segment.kind === "stay" ? segment.night.orders : segment.leg.orders;
-    const eventIds=segment.kind === "stay" ? events.filter(event=>localDateKey(event.start)===segment.night.date).map(event=>event.id)
+    const eventIds=segment.kind === "stay" ? events.filter(event=>eventDay(event)===segment.night.date).map(event=>event.id)
       : segment.constraints.map(constraint=>constraint.eventId);
     const evidence=eventIds.flatMap(id => byId.has(id) ? [eventSource(byId.get(id)!,status)] : []);
     const stale= evidence.some(item=>item.stale);

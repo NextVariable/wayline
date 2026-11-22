@@ -42,9 +42,10 @@ export function localDateKey(value: string | number | Date) {
 const onTimeline = (e: CalendarEntry) => !e.allDay && Number.isFinite(Date.parse(e.start)) && e.placeResolution?.status !== "ignored" && e.placeResolution?.status !== "online" && classifyLocation(e.location) !== "online";
 const hasPlace = (e: CalendarEntry): e is CalendarEntry & { place: Place } => !!e.place && !e.google?.stale;
 
-export function pickDay(events: CalendarEntry[], now: Date): { dateKey: string; isToday: boolean; nextLabel?: string } | null {
-  const today = localDateKey(now);
-  const days = [...new Set(events.filter(e => onTimeline(e) && hasPlace(e)).map(e => localDateKey(e.start)))].filter(k => k >= today).sort();
+export function pickDay(events: CalendarEntry[], now: Date, options: { todayKey?: string; dayOf?: (event: CalendarEntry) => string } = {}): { dateKey: string; isToday: boolean; nextLabel?: string } | null {
+  const dayOf = options.dayOf ?? ((event: CalendarEntry) => localDateKey(event.start));
+  const today = options.todayKey ?? localDateKey(now);
+  const days = [...new Set(events.filter(e => onTimeline(e) && hasPlace(e)).map(dayOf))].filter(k => k >= today).sort();
   if (!days.length) return null;
   const dateKey = days[0];
   if (dateKey === today) return { dateKey, isToday: true };
@@ -53,9 +54,9 @@ export function pickDay(events: CalendarEntry[], now: Date): { dateKey: string; 
 }
 
 /** Placed events of one local day, in start order. */
-export function stopsOfDay(events: CalendarEntry[], dateKey: string): TodayStop[] {
+export function stopsOfDay(events: CalendarEntry[], dateKey: string, dayOf: (event: CalendarEntry) => string = e => localDateKey(e.start)): TodayStop[] {
   return events
-    .filter(e => onTimeline(e) && localDateKey(e.start) === dateKey && hasPlace(e))
+    .filter(e => onTimeline(e) && dayOf(e) === dateKey && hasPlace(e))
     .sort((a, b) => Date.parse(a.start) - Date.parse(b.start))
     .map(e => ({ event: e, place: e.place! }));
 }
@@ -64,11 +65,11 @@ export function stopsOfDay(events: CalendarEntry[], dateKey: string): TodayStop[
  * Neighbouring placed events. An event on that day that is on the timeline but has no place yet sits between
  * its neighbours in time, so they are not joined across it: where the person goes in between is unknown.
  */
-export function legPairs(events: CalendarEntry[], dateKey: string): TodayLegPair[] {
+export function legPairs(events: CalendarEntry[], dateKey: string, dayOf: (event: CalendarEntry) => string = e => localDateKey(e.start)): TodayLegPair[] {
   const sameDay = events
-    .filter(e => onTimeline(e) && localDateKey(e.start) === dateKey)
+    .filter(e => onTimeline(e) && dayOf(e) === dateKey)
     .sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
-  const online = events.filter(event => !event.allDay && localDateKey(event.start) === dateKey &&
+  const online = events.filter(event => !event.allDay && dayOf(event) === dateKey &&
     (event.placeResolution?.status === "online" || classifyLocation(event.location) === "online") && !event.google?.stale)
     .sort((a,b) => Date.parse(a.start)-Date.parse(b.start));
   let onlineIndex = 0;

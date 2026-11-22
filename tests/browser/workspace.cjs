@@ -4,7 +4,8 @@ const base='http://127.0.0.1:'+(process.env.WAYLINE_E2E_PORT || '18945');
 // All external endpoints below are fulfilled locally or blocked.
 const redirect=(route,path)=>route.fulfill({contentType:'text/html',body:'<meta http-equiv="refresh" content="0;url='+base+path+'">'});
 (async()=>{
-for(const device of ['desktop','iPhone 13','Pixel 7']){
+const deviceList=(process.env.WAYLINE_E2E_DEVICES||'desktop,iPhone 13,Pixel 7').split(',').map(item=>item.trim()).filter(Boolean);
+for(const device of deviceList){
 const browser=device==='iPhone 13'? await webkit.launch({headless:true}) : await chromium.launch({channel:'chrome',headless:true});
 try {
 const context=await browser.newContext({...device==='desktop'?{viewport:{width:1440,height:900}}:devices[device],timezoneId:'Asia/Shanghai'});
@@ -70,7 +71,7 @@ await page.getByRole('alert').filter({hasText:'样本暂时无法同步'}).waitF
 await page.getByRole('button',{name:'重试同步',exact:true}).click();
 await page.getByRole('button',{name:'1 个日程没有地点'}).click();
 await page.getByRole('button',{name:/会场乙.*测试路/}).click();
-const retry=page.getByRole('button',{name:'重试',exact:true});await retry.waitFor();
+const retry=page.getByRole('button',{name:'重试路线',exact:true});await retry.waitFor();
 await context.setOffline(true);
 await page.waitForFunction(()=>!navigator.onLine);
 routeFailed=false;

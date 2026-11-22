@@ -9,6 +9,7 @@ export function useBookingPlaces(points: OrderPoint[], owner: string) {
   const queries = JSON.stringify([...new Set(points.filter(point => !point.place && point.city).map(bookingPlaceKey))].sort());
   const [view, setView] = useState<{ owner: string; queries: string; places: Record<string, Place> }>();
   useEffect(() => {
+    if (owner.startsWith("demo:")) return;
     const keys = (JSON.parse(queries) as string[]).slice(0, 18);
     if (!keys.length) return;
     const controller = new AbortController();

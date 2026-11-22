@@ -110,10 +110,13 @@ const allowedOrigins = new Set([corsOrigin,publicOrigin]);
 if (loopback && !process.env.PUBLIC_ORIGIN) allowedOrigins.add(`http://localhost:${port}`);
 
 function send(response, status, payload) {
+  // Echo an allowed cross-origin caller so WEB_ORIGIN and PUBLIC_ORIGIN stay usable together.
+  const allowOrigin = response.waylineCorsOrigin ?? corsOrigin;
   response.writeHead(status, {
-    "Access-Control-Allow-Origin": corsOrigin,
+    "Access-Control-Allow-Origin": allowOrigin,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
+    ...(allowOrigin !== corsOrigin && { Vary: "Origin" }),
     "Content-Type": "application/json; charset=utf-8",
     "Cache-Control": "no-store",
     "X-Content-Type-Options": "nosniff",
@@ -369,11 +372,12 @@ async function handleSearch(body) {
 
 const server = http.createServer(async (request, response) => {
   const route = (request.url || '').split('?')[0];
+  const origin=request.headers.origin;
+  response.waylineCorsOrigin = origin && allowedOrigins.has(origin) ? origin : corsOrigin;
   if (route === '/healthz' && request.method === 'GET') {
     send(response,200,{ok:true});
     return;
   }
-  const origin=request.headers.origin;
   if (route.startsWith('/api/') && ['POST','OPTIONS'].includes(request.method) && origin &&
       !allowedOrigins.has(origin)) {
     send(response,403,{error:'请从 Wayline 页面发起请求'});

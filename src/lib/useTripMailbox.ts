@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { BookingChange, GmailBooking, RailOrder } from "./businessOrders";
 
-interface Mailbox { connected: boolean; lastSync: number | null; orders: RailOrder[]; bookings?: GmailBooking[]; singleSample?: boolean; changes?: BookingChange[]; partial?: boolean; uncertain?: boolean; needsReconnect?: boolean }
+export interface Mailbox { connected: boolean; lastSync: number | null; orders: RailOrder[]; bookings?: GmailBooking[]; singleSample?: boolean; changes?: BookingChange[]; partial?: boolean; uncertain?: boolean; needsReconnect?: boolean }
 export function useTripMailbox(owner?: string) {
   const [view, setView] = useState<{ owner: string; mailbox: Mailbox }>();
   useEffect(() => {

@@ -31,3 +31,6 @@ skills-lock.json
 
 # Real release environment files live outside Git.
 /deploy/*.env
+
+# Backup archives never enter the repository.
+backups/

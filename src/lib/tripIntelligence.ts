@@ -2,14 +2,18 @@ import { assignTripBookings, collectTripBookings, inferBookingHome, type Booking
 import { groupBusinessTrips, type BusinessTripSettings } from "./businessTrips";
 import type { CalendarEvent, Trip, TripSegment } from "./tripDomain";
 import { legPairs, localDateKey as dayKey, pickDay, stopsOfDay } from "./todayMap";
+import { eventDay } from "./tripDay";
 
-export function buildTravelWorkspace({events, settings, day, mailbox, cities}: {
+export function buildTravelWorkspace({events, settings, day, mailbox, cities, todayKey, dayOf}: {
   events:CalendarEvent[]; settings:BusinessTripSettings; day:Date; cities:string[];
+  todayKey?:string; dayOf?:(event:CalendarEvent)=>string;
   mailbox?:{ orders:RailOrder[]; bookings?:GmailBooking[]; changes?:BookingChange[]; lastSync:number|null };
 }) {
   const bookings = collectTripBookings(events, mailbox?.orders ?? [], mailbox?.bookings ?? [], cities, mailbox?.changes, mailbox?.lastSync);
   const home = settings.home || (settings.inferHome !== false ? inferBookingHome(bookings) : "") || "";
-  const trips = groupBusinessTrips(events, {...settings,home}, dayKey(day));
+  const today = todayKey ?? dayKey(day);
+  const keyOf = dayOf ?? ((event: CalendarEvent) => dayKey(event.start));
+  const trips = groupBusinessTrips(events, {...settings,home}, today);
   const plans = assignTripBookings(trips, home, bookings);
   const tripModels = new Map(trips.map(trip => {
     const plan = plans.get(trip.id)!;
@@ -24,7 +28,7 @@ export function buildTravelWorkspace({events, settings, day, mailbox, cities}: {
       row.booking.start.length === 10 ? row.booking.start+"T00:00:00+08:00" : row.booking.start);
     timeline.sort((left,right) => at(left)-at(right));
     const segments:TripSegment[] = [
-      ...trip.days.flatMap(day => legPairs(day.events,day.date).filter(pair => !pair.crossCity)
+      ...trip.days.flatMap(day => legPairs(day.events,day.date,eventDay).filter(pair => !pair.crossCity)
         .map(pair => ({kind:"commute" as const,id:pair.id,pair}))),
       ...plan.legs.map(leg => {
         const constraints:Extract<TripSegment,{kind:"intercity"}>["constraints"] = [];
@@ -37,8 +41,8 @@ export function buildTravelWorkspace({events, settings, day, mailbox, cities}: {
     const model:Trip = {...trip,timeline,segments};
     return [trip.id,model] as const;
   }));
-  const today = pickDay(events,day);
-  return {home,trips,plans,tripModels,today,
-    stops:today ? stopsOfDay(events,today.dateKey) : [],
-    pairs:today ? legPairs(events,today.dateKey) : []};
+  const todayDay = pickDay(events,day,{todayKey:today,dayOf:keyOf});
+  return {home,trips,plans,tripModels,today:todayDay,
+    stops:todayDay ? stopsOfDay(events,todayDay.dateKey,keyOf) : [],
+    pairs:todayDay ? legPairs(events,todayDay.dateKey,keyOf) : []};
 }

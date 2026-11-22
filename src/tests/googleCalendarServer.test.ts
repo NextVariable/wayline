@@ -232,6 +232,32 @@ it('falls back to a bounded full scan when the provider rejects the delta query'
  expect(requests.every(url=>url.searchParams.has('timeMin') && url.searchParams.has('timeMax'))).toBe(true);
 });
 
+it('rejects every demo workspace owner before starting Google or creating a flow', async () => {
+ const s=setup();
+ for (const owner of ['demo:wayline','demo:other','DEMO:wayline']) {
+   const status=await s.call('status?owner='+encodeURIComponent(owner));
+   expect(status.status).toBe(400);
+   expect(status.json().error).toContain('演示工作区');
+   const connect=await s.call('connect?owner='+encodeURIComponent(owner),'POST',{});
+   expect(connect.status).toBe(400);
+   expect(connect.json().error).toContain('演示工作区');
+ }
+ expect(s.fetcher).not.toHaveBeenCalled();
+ expect(Object.keys(s.store.data.flows)).toHaveLength(0);
+});
+
+it('rejects a legacy demo flow on callback before contacting Google', async () => {
+ const s=setup();
+ const start=await s.call('connect?owner=guest','POST',{});
+ const cookie=start.headers['Set-Cookie'].split(';')[0];
+ const state=new URL(start.json().url).searchParams.get('state');
+ s.store.data.flows[Object.keys(s.store.data.flows)[0]].owner='demo:wayline';
+ const result=await s.call('callback?state='+state+'&code=x','GET',undefined,cookie);
+ expect(result.status).toBe(400);
+ expect(result.body).toContain('演示工作区');
+ expect(s.fetcher).not.toHaveBeenCalled();
+});
+
 it('keeps a later event when an older cancellation is replayed in an overlapping delta', async()=>{
  const s=setup();
  const {cookie}=await s.authorize();

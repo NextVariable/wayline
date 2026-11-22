@@ -3,6 +3,7 @@ import type { City, CityName, ExtractedPlace, Place } from "../types/place";
 import { cityCatalog } from "../data/cities";
 import { wgsToGcj, gcjToWgs } from "./trackCoordinates";
 import { officialAddressByName } from "../data/systemPlaces";
+import { readDemoMode } from "./demoWorkspace";
 
 const apiBase = "";
 const tiandituToken = import.meta.env.VITE_TIANDITU_TOKEN as string | undefined;
@@ -34,6 +35,7 @@ export function calendarSearchCity(location: string, fallback: City): City {
 }
 
 export async function geocodeCity(keyword: string, fallback: City): Promise<City> {
+  if (readDemoMode()) return fallback;
   const name = keyword.trim();
   if (!name) return fallback;
   const browser = await geocodeCityStrict(name);
@@ -89,6 +91,7 @@ export async function suggestPlaceCandidates(keyword:string,city:City,options:{s
 }
 
 export async function searchPlaceCandidates(keyword: string, city: City, options: { aiFallback?: boolean; reference?: SearchReference | null; localPlaces?: Place[]; quick?: boolean; signal?: AbortSignal } = {}): Promise<Place[]> {
+  if (readDemoMode()) return [];
   const aiFallback = options.aiFallback ?? true;
   const reference = options.reference ?? { lat: city.lat, lng: city.lng, label: "地图中心" };
   const localPlaces = options.localPlaces ?? [];
@@ -218,7 +221,7 @@ function matchLocalPlaces(query: string, places: Place[], referenceCity: City, r
 }
 
 export async function reverseGeocodeAddress(lat: number, lng: number): Promise<string | null> {
-  if (!tiandituToken || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (readDemoMode() || !tiandituToken || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   const [longitude, latitude] = gcjToWgs(lng, lat);
   const postStr = JSON.stringify({ lon: longitude, lat: latitude, ver: 1 });
   const endpoints = [

@@ -14,6 +14,9 @@ assert.deepEqual(await health.json(),{ok:true});
 const denied=await call('/api/route',{method:'POST',headers:{Origin:'https://invalid-origin.example','Content-Type':'application/json'},body:'{}'});
 assert.equal(denied.status,403);
 assert.equal(denied.headers.get('cache-control'),'no-store');
+const echoed=await call('/api/route',{method:'POST',headers:{Origin:target.origin,'Content-Type':'text/plain'},body:'{}'});
+assert.equal(echoed.status,415);
+assert.equal(echoed.headers.get('access-control-allow-origin'),target.origin);
 const homepage=await call('/');
 assert.equal(homepage.status,preview ? 401 : 200);
 if (!preview) {

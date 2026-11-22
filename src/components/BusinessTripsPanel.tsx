@@ -1,17 +1,20 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { usePanelFocus } from "../lib/usePanelFocus";
-import type { Trip, TravelRisk } from "../lib/tripDomain";
+import type { Trip } from "../lib/tripDomain";
+import type { TripAction } from "../lib/actionItems";
 import { localDateKey } from "../lib/todayMap";
 import type { BusinessTrip } from "../lib/businessTrips";
 import { useRef, type ReactNode } from "react";
 import type { City } from "../types/place";
 import { CityPicker } from "./CityPicker";
+import { TripActions } from "./TripActions";
 
 interface Props {
   home: string;
   connections?: ReactNode;
   timeline?: Trip["timeline"];
-  risks?: TravelRisk[];
+  actions?: TripAction[];
+  onAction?: (action: TripAction) => void;
   openConnections?: boolean;
   now?: number;
   onSchedule: () => void;
@@ -34,7 +37,7 @@ const dates = new Intl.DateTimeFormat("zh-CN", {
 const dateLabel = (date: string) => dates.format(new Date(date + "T12:00:00"));
 const timeLabel = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false });
 
-export function BusinessTripsPanel({ home, cities, trips, selected, selectedEventIds, mapIndices, onHome, onTrip, onBack, onEvent, onOverview, onBoundary, connections, onSchedule, timeline, risks = [], openConnections, now = Date.now() }: Props) {
+export function BusinessTripsPanel({ home, cities, trips, selected, selectedEventIds, mapIndices, onHome, onTrip, onBack, onEvent, onOverview, onBoundary, connections, onSchedule, timeline, actions = [], onAction, openConnections, now = Date.now() }: Props) {
   const panel = usePanelFocus(true);
   const details = useRef<HTMLDetailsElement>(null);
   const showConnections = (segmentId?: string) => {
@@ -65,21 +68,11 @@ export function BusinessTripsPanel({ home, cities, trips, selected, selectedEven
           : <button type="button" className="text-action" onClick={onSchedule}>日程</button>}
       </header>
       {selected ? <>
-        {risks.length > 0 && <details className="trip-risk-list" open={risks.some(risk=>risk.severity==="high") || undefined}>
-          <summary>{risks.some(risk=>risk.severity==="high") ? "有时间冲突" : "行程待确认"} · {risks.length} 项</summary>
-          <ul>
-            {risks.map(risk => <li key={risk.id} data-severity={risk.severity}>
-              <strong>{risk.title}</strong>
-              <span>{risk.basis}</span>
-              <small>{[...new Set(risk.evidence.map(item => item.source === "gmail" ? "Gmail" : item.source === "amap" ? "高德" :
-                item.source === "google-calendar" ? "Google 日历" : item.source === "calendar-file" ? "导入日历" : "Wayline"))].join(" · ")}
-                {risk.stale ? " · 来源待更新" : risk.status === "uncertain" ? " · 待核实" : ""}</small>
-              <button type="button" className="text-action" onClick={risk.action.kind === "review-calendar" ? onSchedule : () => showConnections(risk.segmentId)}>
-                {risk.action.label}
-              </button>
-            </li>)}
-          </ul>
-        </details>}
+        <TripActions actions={actions} onAction={action => {
+          if (onAction) { onAction(action); return; }
+          if (action.nextStep.kind === "review-calendar" || action.nextStep.kind === "confirm-place") onSchedule();
+          else showConnections(action.segmentId);
+        }} />
         {[...rowsByDay].sort(([a],[b])=>a.localeCompare(b)).map(([date,rows]) => {
           const index=selected.days.findIndex(day=>day.date === date);
           return <section className="business-trip-day" aria-label={dateLabel(date)} key={date}>
@@ -92,10 +85,10 @@ export function BusinessTripsPanel({ home, cities, trips, selected, selectedEven
                 const order=row.booking;
                 const state=order.state === "cancelled" ? "收到取消通知" : order.state === "changed" ? "收到改签通知" :
                   order.state === "review" ? "待核对" : !!order.end && Date.parse(order.end)<now ? "时段已过" : order.source === "日历" ? "日历安排" : "订单记录";
-                return <li key={`booking:${order.id}`} className="business-trip-event trip-order-row">
+                return <li key={`booking:${order.id}`} className="business-trip-event trip-order-row" data-state={order.state ?? "confirmed"}>
                   <span>{order.start.length === 10 ? "住宿" : timeLabel.format(new Date(order.start))}</span>
                   <span><strong>{[order.number,order.from?.name,order.to.name].filter(Boolean).join(" · ")}</strong>
-                    <small>{state} · {order.provenance?.some(item=>item.source === "gmail") && order.provenance.some(item=>item.source !== "gmail") ? "日历 / Gmail" : order.source}</small></span>
+                    <small className="trip-order-state" data-state={order.state ?? "confirmed"}>{state} · {order.provenance?.some(item=>item.source === "gmail") && order.provenance.some(item=>item.source !== "gmail") ? "日历 / Gmail" : order.source}</small></span>
                 </li>;
               }
               const event=row.event;
