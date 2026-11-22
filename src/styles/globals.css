@@ -3981,6 +3981,32 @@ select:not([multiple]):not([size]) {
   .calendar-hint-search button,
   .calendar-hint-search input,
   .calendar-hint-ignore { min-height: 44px; }
+  /* 手机上面板会长高盖住地图角标：缺地点提示改为面板内的一行，避免提示不可点。 */
+  .workspace-sidebar > .calendar-place-hint {
+    position: static;
+    inset: auto;
+    flex: 0 0 auto;
+    max-width: none;
+    margin: 0 12px 8px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--control-fill);
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+  .workspace-sidebar > .calendar-place-hint .calendar-hint-toggle { width: 100%; }
+  .workspace-sidebar > .calendar-place-hint .calendar-hint-list { max-height: min(32dvh, 300px); }
+  /* 手机端把演示横幅放进面板，避免被顶部标题与地图控件遮挡；折叠时保留横幅以便随时退出。 */
+  .workspace-sidebar > .demo-banner {
+    position: static;
+    inset: auto;
+    transform: none;
+    flex: 0 0 auto;
+    max-width: none;
+    margin: 0 12px 8px;
+    z-index: auto;
+  }
+  .sheet-collapsed .workspace-sidebar:has(> .demo-banner) { height: auto; }
 }
 
 .today-panel {
@@ -4130,6 +4156,9 @@ select:not([multiple]):not([size]) {
   background: var(--surface, transparent); color: inherit; font: inherit;
 }
 .demo-banner-actions button:hover { background: var(--surface-subtle); }
+@media (max-width: 700px) {
+  .demo-banner-actions button { min-height: 44px; padding: 8px 14px; }
+}
 
 /* RC.4 unified action items */
 .today-actions { margin: 4px 8px 8px; }

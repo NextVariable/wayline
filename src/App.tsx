@@ -239,8 +239,24 @@ export default function App() {
   const account = useAccount();
   const [localUser, setActiveUser] = useState<AppUser>(() => loadActiveUser());
   const [showLocalSpace, setShowLocalSpace] = useState(false);
-  const [demoActive, setDemoActive] = useState(() => readDemoMode());
-  const [demoNow, setDemoNow] = useState(() => Date.now());
+  const [demoBoot] = useState(() => {
+    const active = readDemoMode();
+    const now = Date.now();
+    // 刷新后重新锚定演示日期，避免继续显示上次进入时的相对日程。
+    if (active) resetDemo(now);
+    return { active, now };
+  });
+  const [demoActive, setDemoActive] = useState(demoBoot.active);
+  const [demoNow, setDemoNow] = useState(demoBoot.now);
+  // 手机上的底部面板会随内容长高盖住地图角标，缺地点提示因此移入面板内渲染。
+  const [compactLayout, setCompactLayout] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia("(max-width: 700px)").matches);
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 700px)");
+    const sync = () => setCompactLayout(media.matches);
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
   // Signed in → the account's own owner; otherwise the local space or guest (never a stale account).
   const accountKey = account.status === "signed-in" ? account.account.id : "";
   const accountEmail = account.status === "signed-in" ? account.account.email : "";
@@ -323,6 +339,11 @@ export default function App() {
   const [userPlaces, setUserPlaces] = useState<Place[]>(() =>
     loadUserPlaces(loadActiveUser()),
   );
+  useEffect(() => {
+    if (!demoActive) return;
+    setActiveCity(DEMO_HOME);
+    setCityScope("current");
+  }, [demoActive, setActiveCity, setCityScope]);
   const footprints = useFootprints(activeUser.id, userPlaces);
   const visitedResourcePlaces = useMemo(() => footprints.snapshot.visits
     .filter(v => !v.deletedAt)
@@ -491,6 +512,7 @@ export default function App() {
   }, [addToast, setActiveOverlay]);
   const resourceCity = cityScope === "current" && activeOverlay !== "footprints" ? city.name : "";
   useEffect(() => {
+    if (demoActive) return;
     if (!resourceCity || !activeLayers.length) return;
     const controller = new AbortController();
     setCityResources(previous => previous.city === resourceCity ? previous : { city: resourceCity, layers: {} });
@@ -508,7 +530,7 @@ export default function App() {
       }).catch(() => update([], `${label}暂时无法加载`));
     }
     return () => controller.abort();
-  }, [resourceCity, activeLayers]);
+  }, [resourceCity, activeLayers, demoActive]);
   const resourceSearchError = cityResources.city === resourceCity
     ? activeLayers.map(layer => cityResources.layers[layer]?.message).filter(Boolean).join("。")
     : "";
@@ -653,14 +675,25 @@ export default function App() {
     .filter(risk => risk.type === "overlap" && !todaySegments.some(({pair,verdict}) =>
       verdict.status === "overlap" && pair.from.event.id === risk.eventIds[0] && pair.to.event.id === risk.eventIds[1])),
     [calendarEvents,freshness,today,todayKey,todaySegments]);
+  const todayEventIds = useMemo(() => new Set(calendarEvents
+    .filter(event => localDateKey(event.start) === todayKey).map(event => event.id)),
+  [calendarEvents, todayKey]);
+  // 今天的订单风险需要同时出现在 Today 与 Trips，避免两个入口结论不一致。
+  const todayTripRisks = useMemo(() => {
+    if (!todayEventIds.size) return [];
+    return [...model.tripModels.values()].flatMap(trip => assessTrip(trip, freshness, [], {})
+      .filter(risk => risk.eventIds.some(id => todayEventIds.has(id)) &&
+        ["booking-change", "booking-conflict", "missing-stay", "missing-transport"].includes(risk.type)));
+  }, [model, freshness, todayEventIds]);
   const todayActions = useMemo(() => buildTripActions({
     risks: [
       ...todayConflicts,
+      ...todayTripRisks,
       ...todaySegments.flatMap(segment => segment.risk ? [segment.risk] : []),
     ],
     events: calendarEvents,
     now: clockNow,
-  }), [todayConflicts, todaySegments, calendarEvents, clockNow]);
+  }), [todayConflicts, todayTripRisks, todaySegments, calendarEvents, clockNow]);
   const showTodayOnMap = todayVisible && calendarLayer && todayStops.length > 0;
   const todayRoutes = useMemo(() => showTodayOnMap ? todaySegments.flatMap(({ pair, result, verdict }) =>
     result && isCurrentRoute(result,clockNow) ? [{ id: pair.id, points: result.points, late: verdict.status === "late" || verdict.status === "overlap" }] : []
@@ -1094,11 +1127,13 @@ export default function App() {
     setBusinessSelection(null);
     setSelectedPlace(null);
     setDetailOrigin(null);
+    setScheduleOrigin(null);
     setSettingsOpen(false);
     setActiveOverlay(null);
     setActiveCity(DEMO_HOME);
     setCityScope("current");
     setLocationFocus(0);
+    setSidebarOpen(true);
   };
   const leaveDemoWorkspace = () => {
     exitDemo();
@@ -1106,6 +1141,7 @@ export default function App() {
     setBusinessSelection(null);
     setSelectedPlace(null);
     setDetailOrigin(null);
+    setScheduleOrigin(null);
     setSettingsOpen(false);
     setActiveOverlay(null);
   };
@@ -1123,6 +1159,9 @@ export default function App() {
       if (action.segmentId) rememberLegFocus(action.segmentId);
       return;
     }
+    const trip = [...model.tripModels.values()].find(candidate => candidate.days
+      .some(day => day.events.some(event => action.eventIds.includes(event.id))));
+    if (trip) setBusinessSelection({ owner: activeUser.id, id: trip.id });
     if (activeOverlay !== "business-trips") presentWorkspace(showTrip, "forward");
   };
   const footprintActive =
@@ -1227,6 +1266,27 @@ export default function App() {
     allCities,
   ]);
 
+  const demoBannerNode = demoActive ? (
+    <div className="demo-banner" role="status">
+      <span><strong>演示工作区</strong> 全部为合成数据，不连接 Google、Gmail 或地图供应服务。</span>
+      <div className="demo-banner-actions">
+        <button type="button" onClick={() => enterDemoWorkspace(true)}>重置演示</button>
+        <button type="button" onClick={leaveDemoWorkspace}>退出演示</button>
+      </div>
+    </div>
+  ) : null;
+
+  const calendarHintNode = !footprintActive ? (
+    <CalendarPlaceHint
+      pending={pendingCalendarPlaces}
+      onConfirm={(id, place) => fixCalendarPlace(events => confirmPlace(events, placeAliases, id, place))}
+      onAccept={id => fixCalendarPlace(events => ({ events: acceptSuggestion(events, id) }))}
+      onReject={id => fixCalendarPlace(events => ({ events: rejectSuggestion(events, id) }))}
+      onIgnore={id => fixCalendarPlace(events => ({ events: ignorePlace(events, id) }))}
+      onSearch={text => searchPlaceCandidates(text, calendarSearchCity(text, city), {quick:true, aiFallback:false})}
+    />
+  ) : null;
+
   return (
     <main
       ref={workspaceRef}
@@ -1248,13 +1308,7 @@ export default function App() {
       </button>
       <div className="workspace-rail-surface" aria-hidden="true" />
       <OfflineNotice />
-      {demoActive && <div className="demo-banner" role="status">
-        <span><strong>演示工作区</strong> 全部为合成数据，不连接 Google、Gmail 或地图供应服务。</span>
-        <div className="demo-banner-actions">
-          <button type="button" onClick={() => enterDemoWorkspace(true)}>重置演示</button>
-          <button type="button" onClick={leaveDemoWorkspace}>退出演示</button>
-        </div>
-      </div>}
+      {demoBannerNode && !compactLayout && demoBannerNode}
       <header className="workspace-header">
         {loadingWorkflow && <span className="workspace-loading-indicator" role="status"><span className="sr-only">正在打开页面</span></span>}
         <a
@@ -1409,16 +1463,7 @@ export default function App() {
               <button onClick={requestCurrentLocation}>重试</button>
             </div>
           )}
-        {!footprintActive && (
-          <CalendarPlaceHint
-            pending={pendingCalendarPlaces}
-            onConfirm={(id, place) => fixCalendarPlace(events => confirmPlace(events, placeAliases, id, place))}
-            onAccept={id => fixCalendarPlace(events => ({ events: acceptSuggestion(events, id) }))}
-            onReject={id => fixCalendarPlace(events => ({ events: rejectSuggestion(events, id) }))}
-            onIgnore={id => fixCalendarPlace(events => ({ events: ignorePlace(events, id) }))}
-            onSearch={text => searchPlaceCandidates(text, calendarSearchCity(text, city), {quick:true, aiFallback:false})}
-          />
-        )}
+        {calendarHintNode && !compactLayout && calendarHintNode}
         <div className="map-controls">
           <MapCompass rotation={mapRotation} onReset={() => setNorthCommand(n => n + 1)} />
           <div className="map-control-group">
@@ -1513,6 +1558,8 @@ export default function App() {
       <Sidebar
         key={`sidebar-${activeUser.id}`}
         ownerId={activeUser.id}
+        calendarHint={compactLayout ? calendarHintNode : undefined}
+        demoBanner={compactLayout ? demoBannerNode : undefined}
         storageHealthy={
           storageHealthy && routeSaved && citiesSaved
         }

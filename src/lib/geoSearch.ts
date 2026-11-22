@@ -35,6 +35,7 @@ export function calendarSearchCity(location: string, fallback: City): City {
 }
 
 export async function geocodeCity(keyword: string, fallback: City): Promise<City> {
+  if (readDemoMode()) return fallback;
   const name = keyword.trim();
   if (!name) return fallback;
   const browser = await geocodeCityStrict(name);

@@ -57,8 +57,14 @@ export function buildTripActions({ risks, events, now }: {
   const byId = new Map(events.map(event => [event.id, event]));
   const seen = new Map<string, TripAction>();
   for (const risk of risks) {
-    const key = `${risk.type}|${risk.segmentId ?? ""}|${[...risk.eventIds].sort().join(",")}|${risk.title}`;
-    if (seen.has(key)) continue;
+    // 证据记录也参与去重：同一会议下不同订单的同类风险不能被合并。
+    const evidenceKey = [...new Set(risk.evidence.map(item => `${item.source}:${item.recordId}`))].sort().join(",");
+    const key = `${risk.type}|${risk.segmentId ?? ""}|${[...risk.eventIds].sort().join(",")}|${risk.title}|${evidenceKey}`;
+    const existing = seen.get(key);
+    if (existing) {
+      if (!existing.riskIds.includes(risk.id)) existing.riskIds.push(risk.id);
+      continue;
+    }
     const refs = risk.eventIds.map(id => byId.get(id)).filter((event): event is CalendarEvent => !!event).map(eventRef);
     const uncertainty = uncertaintyOf(risk);
     const dueAt = earliest(refs);
@@ -87,6 +93,8 @@ export function buildTripActions({ risks, events, now }: {
     const aDue = a.dueAt ?? Number.POSITIVE_INFINITY;
     const bDue = b.dueAt ?? Number.POSITIVE_INFINITY;
     if (aDue !== bDue) return aDue - bDue;
+    // 同等严重度和时间下，先给出已确认事实，再给出待核实推断。
+    if (a.uncertain !== b.uncertain) return a.uncertain ? 1 : -1;
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
   });
 }

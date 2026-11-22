@@ -47,7 +47,8 @@ export function TodayPanel({ heading, stops, segments, loading, focused, onSelec
         {onOpenSchedule && <button type="button" className="text-action" onClick={onOpenSchedule}>查看日程</button>}
       </div>
       {syncWarning && <p className="field-help" role="status">日历待同步，暂不判断能否准时</p>}
-      {conflicts.length > 0 && <p className="field-help" role="status">
+      {/* 有统一行动项时不再重复展示同一条冲突摘要，避免同一风险出现两次。 */}
+      {conflicts.length > 0 && !actions.length && <p className="field-help" role="status">
         {conflicts.some(conflict => conflict.status === "uncertain") && "待确认 · "}
         {conflicts[0].title} · {conflicts[0].basis}{conflicts.length>1 && ` 等 ${conflicts.length} 项`}
       </p>}

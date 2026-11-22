@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { TodayPanel, type TodaySegment } from "../components/TodayPanel";
 import type { CalendarEntry } from "../lib/calendarEvents";
 import type { TravelRisk } from "../lib/tripDomain";
+import type { TripAction } from "../lib/actionItems";
 import { initialUserPlaces } from "./fixtures/userPlaces";
 
 const place = { ...initialUserPlaces[0], id: "venue", name: "国家会展中心", city: "上海", lat: 31.191, lng: 121.305 };
@@ -42,4 +43,23 @@ it("marks unresolved conflicts as pending instead of certain", () => {
     segments={[]} loading={false} focused={null} onSelectStop={noop} onChooseMode={noop}
     onFocus={noop} onRetry={noop} conflicts={[conflict]} />);
   expect(html).toContain("待确认 · 通勤时间待核实");
+});
+
+it("shows a risk once when unified actions already carry it", () => {
+  const conflict: TravelRisk = {
+    id: "risk-1", type: "commute-time", severity: "info", status: "uncertain",
+    title: "通勤时间待核实", basis: "尚无可用于判断的路线", action: { kind: "review-route", label: "查询路线" },
+    eventIds: ["a"], evidence: [], stale: false,
+  };
+  const action: TripAction = {
+    id: "action-1", riskIds: ["risk-1"], type: "commute-time", severity: "info", status: "uncertain",
+    title: "通勤时间待核实", problem: "尚无可用于判断的路线", evidence: [], eventIds: ["a"],
+    events: [{ id: "a", title: "客户会议", start: first.start, end: first.end, location: first.location }],
+    nextStep: { kind: "review-route", label: "查询路线" }, uncertain: true, stale: false,
+  };
+  const html = renderToStaticMarkup(<TodayPanel heading="今天" stops={[{ event: first, place }]}
+    segments={[]} loading={false} focused={null} onSelectStop={noop} onChooseMode={noop}
+    onFocus={noop} onRetry={noop} conflicts={[conflict]} actions={[action]} onAction={noop} />);
+  expect(html).not.toContain("待确认 · 通勤时间待核实");
+  expect(html.split("通勤时间待核实").length - 1).toBe(1);
 });

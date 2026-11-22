@@ -45,6 +45,7 @@ export function AuthPanel({
   const [pending, setPending] = useState<WorkspaceBackup | null>(null);
   const [busy, setBusy] = useState(false);
   const [restoreError, setRestoreError] = useState("");
+  const demoSpace = user.id.startsWith("demo:");
   const { addToast } = useToast();
   
   const ref = usePanelFocus(open);
@@ -126,9 +127,9 @@ export function AuthPanel({
       </div>}
       <details className="workspace-backup">
         <summary>备份与迁移</summary>
-        <p className="field-help">可将地点、日程和足迹带到其他浏览器。恢复时创建独立空间。</p>
+        <p className="field-help">可将地点、日程和足迹带到其他浏览器。恢复时创建独立空间。{demoSpace ? " 演示工作区为合成数据，不可导出。" : ""}</p>
         <div className="backup-actions">
-          <button className="secondary-action" disabled={busy} onClick={async () => {
+          <button className="secondary-action" disabled={busy || demoSpace} onClick={async () => {
             setBusy(true);
             try {
               const text = createWorkspaceBackup(user, await getFootprints());

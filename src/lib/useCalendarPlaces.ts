@@ -55,6 +55,8 @@ export function useCalendarPlaces({ owner, events, aliases, city, day, commit }:
   const latestCommit = useRef(commit);
   latestCommit.current = commit;
   useEffect(() => {
+    // 演示工作区的地点均为预置合成数据，不调用地点解析服务。
+    if (owner.startsWith("demo:")) return;
     const current = runner.current;
     const run = () => { void current.run({ owner, events, aliases, city, commit: next => latestCommit.current(next) }); };
     const timer = window.setTimeout(run, DEBOUNCE_MS);

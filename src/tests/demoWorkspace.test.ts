@@ -1,8 +1,9 @@
-import { afterEach, beforeEach, expect, it } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   DEMO_OWNER, DEMO_USER, createDemoMailbox, demoCalendarEntries, demoDay, demoLegResults,
   enterDemo, exitDemo, readDemoMode, resetDemo, seedDemoWorkspace,
 } from "../lib/demoWorkspace";
+import { geocodeCity, searchPlaceCandidates } from "../lib/geoSearch";
 import { calendarKey } from "../lib/calendarEvents";
 import { localDateKey, type TodayLegPair } from "../lib/todayMap";
 import type { Place } from "../types/place";
@@ -44,9 +45,11 @@ it("keeps demo data in a dedicated owner and never touches another space", () =>
   expect(localStorage.getItem(`whatto.userPlaces.${DEMO_OWNER}`)).toBeNull();
   expect(JSON.parse(localStorage.getItem(calendarKey(DEMO_OWNER)) ?? "[]")).toHaveLength(10);
   expect(localStorage.getItem(`wayline.businessTrips.${DEMO_OWNER}`)).toContain("上海");
+  localStorage.setItem(`whereto:city-view:${DEMO_OWNER}`, JSON.stringify({city: "上海"}));
   exitDemo();
   expect(readDemoMode()).toBe(false);
   expect(localStorage.getItem(calendarKey(DEMO_OWNER))).toBeNull();
+  expect(localStorage.getItem(`whereto:city-view:${DEMO_OWNER}`)).toBeNull();
   expect(localStorage.getItem("whatto.userPlaces.guest")).toContain("real-place");
 });
 
@@ -98,4 +101,18 @@ it("labels demo legs as estimates, never as provider routes", () => {
 it("uses a local-only demo user", () => {
   expect(DEMO_USER.method).toBe("local");
   expect(DEMO_OWNER.startsWith("demo:")).toBe(true);
+});
+
+it("never reaches place providers while the demo is active", async () => {
+  const fetchSpy = vi.fn(async () => new Response("{}", { status: 200 }));
+  vi.stubGlobal("fetch", fetchSpy);
+  const city = { name: "上海", lat: 31.2, lng: 121.5, zoom: 11 };
+  try {
+    enterDemo(NOW);
+    expect(await searchPlaceCandidates("任意地点", city)).toEqual([]);
+    expect((await geocodeCity("苏州", city)).name).toBe("上海");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });

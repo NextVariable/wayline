@@ -69,6 +69,8 @@ const categoryIcons = {
 
 type Props = {
   todayPanel?: React.ReactNode;
+  calendarHint?: React.ReactNode;
+  demoBanner?: React.ReactNode;
   placeAliases?: Record<string, Place>;
   onRemovePlaceAlias?: (phrase:string) => void;
   ownerId: string;
@@ -329,6 +331,8 @@ export function Sidebar(props: Props) {
       >
         <span />
       </button>
+      {props.demoBanner}
+      {props.calendarHint}
       <div className="places-search-toolbar">
         <div className="place-search">
           {searching ? <Loader2 size={17} className="animate-spin" aria-hidden="true" /> : <Search size={17} />}

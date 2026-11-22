@@ -71,6 +71,23 @@ it("does not duplicate the same risk arriving from Today and Trips", () => {
   expect(actions).toHaveLength(1);
 });
 
+it("does not merge different orders that share a meeting and title", () => {
+  const shared = risk({ id: "order-a", type: "booking-conflict", severity: "high", eventIds: ["a"],
+    evidence: [{ source: "gmail", recordId: "order-a", confidence: "recorded" }] });
+  const other = risk({ id: "order-b", type: "booking-conflict", severity: "high", eventIds: ["a"],
+    evidence: [{ source: "gmail", recordId: "order-b", confidence: "recorded" }] });
+  const actions = buildTripActions({ risks: [shared, other], events, now });
+  expect(actions.map(action => action.id).sort()).toEqual(["order-a", "order-b"]);
+});
+
+it("keeps confirmed facts ahead of equally severe, equally timed uncertainty", () => {
+  const actions = buildTripActions({ risks: [
+    risk({ id: "uncertain", type: "commute-time", severity: "medium", eventIds: ["a"], status: "uncertain" }),
+    risk({ id: "confirmed", type: "missing-stay", severity: "medium", eventIds: ["a"] }),
+  ], events, now });
+  expect(actions.map(action => action.id)).toEqual(["confirmed", "uncertain"]);
+});
+
 it("only calls an action imminent when it falls inside the window", () => {
   const [soon, later] = buildTripActions({ risks: [
     risk({ id: "soon", type: "overlap", severity: "high", eventIds: ["a"] }),

@@ -138,7 +138,8 @@ export function demoLegResults(pairs: TodayLegPair[], now = Date.now()): Record<
 
 function removeDemoKeys() {
   try {
-    const keys = Object.keys(localStorage).filter(key => key.endsWith(`.${DEMO_OWNER}`));
+    // 覆盖所有以演示 owner 结尾的键（含 whereto:city-view:demo:wayline 这类非点号分隔的键）。
+    const keys = Object.keys(localStorage).filter(key => key.endsWith(DEMO_OWNER));
     for (const key of keys) localStorage.removeItem(key);
   } catch { /* storage may be blocked; demo still runs in memory */ }
 }
