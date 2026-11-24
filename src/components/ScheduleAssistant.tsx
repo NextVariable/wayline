@@ -8,7 +8,26 @@ import type { CalendarEntry } from "../lib/calendarEvents";
 import { ChevronLeft, MapPin, Plus } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CityName, Place } from "../types/place";
-import { localDay } from "../lib/quickIntent";
+import { systemPlaces } from "../data/systemPlaces";
+import { localDay, matchIntentPlaces } from "../lib/quickIntent";
+import {
+  FIXTURE_MODEL_LABEL,
+  RULE_PROVIDER_LABEL,
+  parseIntakeWithFallback,
+  recordIntakeModelCall,
+  resolveIntakeModel,
+} from "../lib/intakeModel";
+import {
+  buildIntakeSchedules,
+  intakeSessionId,
+  parseIntakeText,
+  pendingLabels,
+  readSavedIntakeSessions,
+  readyIntakeItems,
+  rememberIntakeSession,
+  type IntakeItem,
+  type IntakePendingField,
+} from "../lib/smartIntake";
 import { routeCandidates } from "../lib/routeInteractions";
 import { usePanelFocus } from "../lib/usePanelFocus";
 
@@ -21,6 +40,8 @@ export function ScheduleAssistant({
   onClose,
   backLabel,
   onCreateSchedule,
+  onCreateSchedules,
+  owner = "",
   onSearchPlaces,
   onSelectPlace,
   onDeletePlace,
@@ -40,6 +61,8 @@ export function ScheduleAssistant({
   onClose: () => void;
   backLabel: string;
   onCreateSchedule: (place: Place) => void;
+  onCreateSchedules?: (places: Place[]) => void;
+  owner?: string;
   onSearchPlaces: (keyword: string) => Promise<Place[]>;
   onSelectPlace: (place: Place) => void;
   onDeletePlace: (id: string) => void;
@@ -49,7 +72,7 @@ export function ScheduleAssistant({
 }) {
   const ref = usePanelFocus(open);
   const heading = useRef<HTMLHeadingElement>(null);
-  const [view, setView] = useState<"agenda" | "sources" | "import" | "compose">("agenda");
+  const [view, setView] = useState<"agenda" | "sources" | "import" | "compose" | "intake">("agenda");
   const [notice, setNotice] = useState("");
   const [showPast, setShowPast] = useState(false);
   const screen = editSchedule ? "compose" : view;
@@ -59,6 +82,7 @@ export function ScheduleAssistant({
     requestAnimationFrame(() => {
       if (ref.current) ref.current.scrollTop = 0;
       if (next === "compose") document.getElementById("schedule-content")?.focus({ preventScroll: true });
+      else if (next === "intake") document.getElementById("intake-text")?.focus({ preventScroll: true });
       else heading.current?.focus({ preventScroll: true });
     });
   };
@@ -81,6 +105,17 @@ export function ScheduleAssistant({
   const [searchError, setSearchError] = useState(false);
   const searchRef = useRef(onSearchPlaces);
   searchRef.current = onSearchPlaces;
+  const [intakeText, setIntakeText] = useState("");
+  const [intakeItems, setIntakeItems] = useState<IntakeItem[]>([]);
+  const [intakeWarnings, setIntakeWarnings] = useState<string[]>([]);
+  const [intakeProvider, setIntakeProvider] = useState<"" | "rule" | "fixture">("");
+  const [intakeParsing, setIntakeParsing] = useState(false);
+  const [intakeSession, setIntakeSession] = useState("");
+  const [intakeNotice, setIntakeNotice] = useState("");
+  const [savedIntakeSessions, setSavedIntakeSessions] = useState<string[]>(
+    () => readSavedIntakeSessions(owner),
+  );
+  const intakeSaving = useRef(false);
   const cityPlaces = useMemo(
     () =>
       places.filter(
@@ -108,6 +143,91 @@ export function ScheduleAssistant({
     [],
     effectiveQuery,
   );
+  const intakePool = useMemo(() => {
+    const pool = [...systemPlaces, ...contextPlaces, ...places].filter(
+      (place) => !place.tags.includes("日程助手"),
+    );
+    return pool.filter(
+      (place, index) => pool.findIndex((other) => other.id === place.id) === index,
+    );
+  }, [contextPlaces, places]);
+  const intakePlaceOptions = useMemo(() => {
+    const preferred = [
+      ...intakeItems.flatMap((item) => matchIntentPlaces(item.raw, intakePool)),
+      ...intakePool.filter((place) => place.city === activeCity),
+    ];
+    return preferred
+      .filter(
+        (place, index) =>
+          preferred.findIndex((other) => other.id === place.id) === index,
+      )
+      .slice(0, 80);
+  }, [intakeItems, intakePool, activeCity]);
+  const intakeReady = readyIntakeItems(intakeItems);
+  const updateIntakeItem = (id: string, patch: Partial<IntakeItem>) => {
+    setIntakeItems((items) =>
+      items.map((item) => {
+        if (item.id !== id) return item;
+        const next = { ...item, ...patch };
+        const pending: IntakePendingField[] = [];
+        if (!next.date) pending.push("date");
+        if (!next.time) pending.push("time");
+        if (!next.placeId) pending.push("place");
+        return { ...next, pending };
+      }),
+    );
+  };
+  const runIntake = async () => {
+    if (!intakeText.trim() || intakeParsing) return;
+    setIntakeParsing(true);
+    setIntakeNotice("");
+    const now = new Date();
+    const model = resolveIntakeModel();
+    const { result, usedFallback } = await parseIntakeWithFallback(
+      intakeText,
+      { now, places: intakePool, activeCity },
+      model,
+    );
+    if (model && !usedFallback) recordIntakeModelCall(owner);
+    setIntakeItems(result.items);
+    setIntakeWarnings(result.warnings);
+    setIntakeProvider(result.provider);
+    setIntakeSession(intakeSessionId(now));
+    if (usedFallback)
+      setIntakeNotice("模型暂不可用，已改用本地规则解析，可继续手动调整。");
+    else if (result.provider === "fixture")
+      setIntakeNotice("当前为固定测试响应，预览内容与输入无关。");
+    setIntakeParsing(false);
+  };
+  const removeIntakeItem = (id: string) =>
+    setIntakeItems((items) => items.filter((item) => item.id !== id));
+  const saveIntake = () => {
+    if (intakeSaving.current) return;
+    if (!intakeSession || savedIntakeSessions.includes(intakeSession)) return;
+    if (!intakeReady.length) return;
+    intakeSaving.current = true;
+    const created = buildIntakeSchedules(intakeItems, intakePool, {
+      sessionId: intakeSession,
+    });
+    if (created.length) {
+      if (onCreateSchedules) onCreateSchedules(created);
+      else created.forEach(onCreateSchedule);
+      rememberIntakeSession(owner, intakeSession);
+      setSavedIntakeSessions(readSavedIntakeSessions(owner));
+      const undated = created.filter((place) =>
+        place.tags.includes("时间待确认"),
+      ).length;
+      setNotice(
+        `已保存 ${created.length} 条安排${undated ? `，其中 ${undated} 条时间待确认` : ""}`,
+      );
+      setIntakeItems([]);
+      setIntakeText("");
+      setIntakeWarnings([]);
+      setIntakeSession("");
+      moveTo("agenda");
+    }
+    intakeSaving.current = false;
+  };
   useEffect(() => {
     setCandidates([]);
     setSearchError(false);
@@ -203,9 +323,10 @@ export function ScheduleAssistant({
     >
       <div className="schedule-intro panel-heading">
         <button type="button" className="icon-button" aria-label={screen === "agenda" ? backLabel : screen === "import" ? "返回日历来源" : "返回日程"} onClick={back}><ChevronLeft size={17} aria-hidden="true" /></button>
-        <h1 ref={heading} tabIndex={-1}>{screen === "compose" ? editSchedule ? "编辑安排" : "新建安排" : screen === "import" ? "导入日历" : screen === "sources" ? "日历来源" : "日程"}</h1>
+        <h1 ref={heading} tabIndex={-1}>{screen === "compose" ? editSchedule ? "编辑安排" : "新建安排" : screen === "import" ? "导入日历" : screen === "sources" ? "日历来源" : screen === "intake" ? "智能录入" : "日程"}</h1>
         {screen === "agenda" && <>
           {(googleCalendar || onCalendarChange || gmailAccount) && <button type="button" className="text-action" onClick={() => moveTo("sources")}>来源</button>}
+          <button type="button" className="text-action" onClick={() => { setNotice(""); moveTo("intake"); }}>智能录入</button>
           <button type="button" className="text-action" onClick={() => { setNotice(""); moveTo("compose"); }}><Plus size={15} aria-hidden="true" />新建</button>
         </>}
       </div>
@@ -227,6 +348,98 @@ export function ScheduleAssistant({
         setNotice(`已导入 ${imported.length} 条日程`);
         moveTo("agenda");
       }} />}
+      {screen === "intake" && <div className="intake-panel">
+        <label htmlFor="intake-text">用一句话或一段话描述安排</label>
+        <textarea
+          id="intake-text"
+          rows={4}
+          value={intakeText}
+          onChange={(event) => setIntakeText(event.target.value)}
+          placeholder="例如：明天下午三点去海上世界见客户，后天上午十点去深圳湾开会"
+        />
+        <div className="intake-actions">
+          <button type="button" className="primary-action" onClick={runIntake} disabled={!intakeText.trim() || intakeParsing}>
+            {intakeParsing ? "解析中…" : "解析安排"}
+          </button>
+          <button type="button" className="text-action" onClick={() => { setNotice(""); moveTo("compose"); }}>改用手动录入</button>
+        </div>
+        <p className="field-help" role="status">
+          {intakeProvider === "fixture"
+            ? FIXTURE_MODEL_LABEL
+            : intakeProvider === "rule"
+              ? RULE_PROVIDER_LABEL
+              : "模型未配置，解析将使用本地规则"}
+        </p>
+        {intakeNotice && <p className="field-help" role="status">{intakeNotice}</p>}
+        {intakeWarnings.length > 0 && (
+          <ul className="field-help" aria-label="解析提示">
+            {intakeWarnings.map((warning) => <li key={warning}>{warning}</li>)}
+          </ul>
+        )}
+        {intakeItems.length === 0 && intakeProvider !== "" ? (
+          <p className="field-help" role="status">未识别到安排，请补充日期、时间或地点后重试，或改用手动录入。</p>
+        ) : null}
+        {intakeItems.length > 0 && <>
+          <p className="field-help">识别到 {intakeItems.length} 条安排；确认前不会写入日程。</p>
+          <ul className="intake-preview">
+            {intakeItems.map((item, index) => (
+              <li className="intake-item" key={item.id} data-pending={item.pending.length > 0 || undefined}>
+                <div className="intake-item-head">
+                  <strong>#{index + 1}</strong>
+                  <input
+                    aria-label={`第 ${index + 1} 条安排名称`}
+                    value={item.title}
+                    onChange={(event) => updateIntakeItem(item.id, { title: event.target.value })}
+                  />
+                  <button type="button" className="text-action" onClick={() => removeIntakeItem(item.id)}>移除</button>
+                </div>
+                <div className="intake-fields">
+                  <label>日期
+                    <input type="date" value={item.date} onChange={(event) => updateIntakeItem(item.id, { date: event.target.value })} />
+                  </label>
+                  <label>时间
+                    <input type="time" value={item.time} onChange={(event) => updateIntakeItem(item.id, { time: event.target.value })} />
+                  </label>
+                  <label className="intake-place">地点
+                    <select value={item.placeId} onChange={(event) => updateIntakeItem(item.id, { placeId: event.target.value })}>
+                      <option value="">待确认地点</option>
+                      {item.placeId && !intakePlaceOptions.some((place) => place.id === item.placeId) && (
+                        <option value={item.placeId}>已选地点</option>
+                      )}
+                      {intakePlaceOptions.map((place) => (
+                        <option key={place.id} value={place.id}>{place.name} · {place.city}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                {item.pending.length > 0 && (
+                  <p className="field-help">待确认：{pendingLabels(item).join("、")}</p>
+                )}
+                {item.raw && <p className="field-help">原文：{item.raw}</p>}
+              </li>
+            ))}
+          </ul>
+          <p className="field-help">
+            将保存 {intakeReady.length} 条
+            {intakeItems.length - intakeReady.length > 0
+              ? `，${intakeItems.length - intakeReady.length} 条因缺少日期或地点暂不保存`
+              : ""}
+            。
+          </p>
+          <button
+            type="button"
+            className="primary-action"
+            onClick={saveIntake}
+            disabled={
+              intakeReady.length === 0 ||
+              !intakeSession ||
+              savedIntakeSessions.includes(intakeSession)
+            }
+          >
+            确认保存 {intakeReady.length} 条
+          </button>
+        </>}
+      </div>}
       {composingSchedule && <form
         className="workspace-form quick-schedule-form"
         onSubmit={(event) => {

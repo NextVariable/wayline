@@ -15,6 +15,11 @@ interface Recommendation {
   area?: { place: Place; minutes:number; count:number; checkedAt:string } | null;
 }
 const time = new Intl.DateTimeFormat("zh-CN", {timeZone:"Asia/Shanghai", hour:"2-digit", minute:"2-digit", hourCycle:"h23"});
+/**
+ * M1 product scope: train/flight purchase lookups and hotel-area suggestions
+ * are removed from the user flow. Booked orders keep rendering below.
+ */
+const RECOMMENDATIONS_VISIBLE: boolean = false;
 const when = (value: string) => time.format(new Date(value));
 const date = (value: string) => value.slice(5).replace("-", "/");
 const routeLabel = (leg: TravelGap) => leg.from + " → " + leg.to;
@@ -126,7 +131,7 @@ export function BusinessTripConnections({ trip, legs, nights, places, onPlace, o
         {leg.orders.length > 0 && <ul>{leg.orders.map(orderRow)}</ul>}
         {transfers.filter(transfer=>transfer.segmentId===leg.id).map(transfer=>
           <TransferLookup key={transfer.key} transfer={transfer} onTransfer={onTransfer} />)}
-        {!active && leg.date >= localDateKey(new Date()) && <TransportOptions key={JSON.stringify([leg.date,leg.before,leg.after])} leg={leg} />}
+        {RECOMMENDATIONS_VISIBLE && !active && leg.date >= localDateKey(new Date()) && <TransportOptions key={JSON.stringify([leg.date,leg.before,leg.after])} leg={leg} />}
       </section>;
     })}
     {nights.map(night => {
@@ -140,7 +145,7 @@ export function BusinessTripConnections({ trip, legs, nights, places, onPlace, o
       return <section key={night.date} data-trip-segment={`stay:${night.date}:${night.city}`} className="business-trip-day">
         <header><h3>{date(night.date)} · {night.city}</h3><small>{night.orders.some(order => !order.state || order.state === "confirmed") ? "已有住宿安排" : night.orders.length ? "住宿待核对" : "住宿未定"}</small></header>
         {night.orders.length > 0 && <ul>{night.orders.map(orderRow)}</ul>}
-        {!night.orders.some(order => !order.state || order.state === "confirmed") && night.date >= localDateKey(new Date()) && anchors.length > 0 &&
+        {RECOMMENDATIONS_VISIBLE && !night.orders.some(order => !order.state || order.state === "confirmed") && night.date >= localDateKey(new Date()) && anchors.length > 0 &&
           <RecommendationAction key={JSON.stringify(anchors.map(p=>[p.id,p.lat,p.lng]))} label="看住哪一带" input={{kind:"stay", city:night.city, anchors}}>
             {value => value.area ? <div>
               <button type="button" className="text-action" onClick={() => onArea(value.area!.place)}>{value.area.place.name}附近 · 地图</button>

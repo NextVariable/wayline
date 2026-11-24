@@ -4192,3 +4192,22 @@ select:not([multiple]):not([size]) {
 .trip-action-uncertain { color: var(--text-secondary); font-style: italic; }
 .trip-action-lifecycle { color: var(--text-secondary); font-size: var(--font-secondary); font-weight: 500; }
 .trip-risk-list li[data-lifecycle="expired"] { opacity: 0.75; }
+
+/* M1 Smart Intake */
+.intake-panel { display: grid; gap: 10px; }
+.intake-panel > label { font-weight: 600; }
+.intake-panel textarea { width: 100%; resize: vertical; }
+.intake-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.intake-preview { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.intake-item { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--line, #dcdce2); border-radius: 10px; }
+.intake-item[data-pending="true"] { border-color: #c08a36; }
+.intake-item-head { display: flex; gap: 8px; align-items: center; }
+.intake-item-head input { flex: 1; min-width: 0; }
+.intake-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.intake-fields label { display: grid; gap: 4px; font-size: var(--font-secondary); }
+.intake-place { grid-column: 1 / -1; }
+.intake-place select { width: 100%; }
+@media (max-width: 640px) {
+  .intake-fields { grid-template-columns: 1fr; }
+}
+

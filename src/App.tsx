@@ -1036,6 +1036,24 @@ export default function App() {
     addToast(`已添加日程「${normalized.name}」`, "success");
   };
 
+  const createSchedulePlaces = (places: Place[]) => {
+    const normalized = places.map(normalizePlace);
+    if (!normalized.length) return;
+    addMissingCitiesFromPlaces(normalized);
+    setUserPlaces((current) => {
+      const existing = new Set(current.map((place) => place.id));
+      return [
+        ...normalized.filter((place) => !existing.has(place.id)),
+        ...current,
+      ];
+    });
+    setActiveCity(normalized[0].city);
+    setSelectedPlace(normalized[0]);
+    setActiveFilter(defaultFilter);
+    setFocusNonce((value) => value + 1);
+    addToast(`已添加 ${normalized.length} 条安排`, "success");
+  };
+
   const updatePlace = (place: Place, reveal = false) => {
     setUserPlaces((places) =>
       places.map((item) => (item.id === place.id ? place : item)),
@@ -1811,6 +1829,8 @@ export default function App() {
           onDeletePlace={deletePlace}
           onUpdateSchedule={(place) => updatePlace(place)}
           onCreateSchedule={createSchedulePlace}
+          onCreateSchedules={createSchedulePlaces}
+          owner={activeUser.id}
           onSearchPlaces={async (keyword) =>
             searchPlaceCandidates(keyword, calendarSearchCity(keyword, city))
           }
