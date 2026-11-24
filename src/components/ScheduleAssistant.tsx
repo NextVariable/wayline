@@ -19,12 +19,14 @@ import {
 } from "../lib/intakeModel";
 import {
   buildIntakeSchedules,
+  draftIntakeItems,
   intakeSessionId,
-  parseIntakeText,
   pendingLabels,
+  readIntakeDrafts,
   readSavedIntakeSessions,
   readyIntakeItems,
   rememberIntakeSession,
+  writeIntakeDrafts,
   type IntakeItem,
   type IntakePendingField,
 } from "../lib/smartIntake";
@@ -96,6 +98,7 @@ export function ScheduleAssistant({
   const [candidate, setCandidate] = useState<Place | null>(null);
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [content, setContent] = useState("");
   const [query, setQuery] = useState("");
@@ -172,6 +175,7 @@ export function ScheduleAssistant({
         const pending: IntakePendingField[] = [];
         if (!next.date) pending.push("date");
         if (!next.time) pending.push("time");
+        else if (!next.endTime) pending.push("end");
         if (!next.placeId) pending.push("place");
         return { ...next, pending };
       }),
@@ -185,11 +189,15 @@ export function ScheduleAssistant({
     const model = resolveIntakeModel();
     const { result, usedFallback } = await parseIntakeWithFallback(
       intakeText,
-      { now, places: intakePool, activeCity },
+      { now, places: intakePool, activeCity, idPrefix: `intake-${intakeSessionId(now)}` },
       model,
     );
     if (model && !usedFallback) recordIntakeModelCall(owner);
-    setIntakeItems(result.items);
+    const kept = [...draftIntakeItems(intakeItems), ...readIntakeDrafts(owner)];
+    const merged = [...result.items];
+    for (const item of kept)
+      if (!merged.some((existing) => existing.id === item.id)) merged.push(item);
+    setIntakeItems(merged);
     setIntakeWarnings(result.warnings);
     setIntakeProvider(result.provider);
     setIntakeSession(intakeSessionId(now));
@@ -217,17 +225,38 @@ export function ScheduleAssistant({
       const undated = created.filter((place) =>
         place.tags.includes("时间待确认"),
       ).length;
-      setNotice(
-        `已保存 ${created.length} 条安排${undated ? `，其中 ${undated} 条时间待确认` : ""}`,
-      );
-      setIntakeItems([]);
-      setIntakeText("");
+      const drafts = draftIntakeItems(intakeItems);
+      writeIntakeDrafts(owner, drafts);
+      setIntakeItems(drafts);
       setIntakeWarnings([]);
-      setIntakeSession("");
-      moveTo("agenda");
+      const summary = `已保存 ${created.length} 条安排${undated ? `，其中 ${undated} 条时间待确认` : ""}`;
+      if (drafts.length) {
+        setIntakeSession(intakeSessionId());
+        setIntakeNotice(`${summary}；${drafts.length} 条待确认草稿已保留`);
+        moveTo("intake");
+      } else {
+        setNotice(summary);
+        setIntakeText("");
+        setIntakeSession("");
+        moveTo("agenda");
+      }
     }
     intakeSaving.current = false;
   };
+  const saveDrafts = () => {
+    const drafts = draftIntakeItems(intakeItems);
+    if (!drafts.length) return;
+    writeIntakeDrafts(owner, drafts);
+    setIntakeNotice(`已保存 ${drafts.length} 条待确认草稿，补全后可再确认`);
+    setNotice(`已保存 ${drafts.length} 条待确认草稿`);
+  };
+  useEffect(() => {
+    if (!open || view !== "intake" || intakeItems.length) return;
+    const drafts = readIntakeDrafts(owner);
+    if (!drafts.length) return;
+    setIntakeItems(drafts);
+    setIntakeNotice(`已恢复 ${drafts.length} 条待确认草稿`);
+  }, [open, view, owner, intakeItems.length]);
   useEffect(() => {
     setCandidates([]);
     setSearchError(false);
@@ -264,12 +293,13 @@ export function ScheduleAssistant({
     candidate: Place | null;
     date: string;
     time: string;
+    endTime: string;
     content: string;
     query: string;
   } | null>(null);
   const editing = useRef(false);
-  const currentDraft = useRef({ type, placeId, candidate, date, time, content, query, cityPlaces });
-  currentDraft.current = { type, placeId, candidate, date, time, content, query, cityPlaces };
+  const currentDraft = useRef({ type, placeId, candidate, date, time, endTime, content, query, cityPlaces });
+  currentDraft.current = { type, placeId, candidate, date, time, endTime, content, query, cityPlaces };
   useLayoutEffect(() => {
     (
       document.getElementById("schedule-content") as HTMLInputElement | null
@@ -282,6 +312,7 @@ export function ScheduleAssistant({
         setCandidate(previous.candidate);
         setDate(previous.date);
         setTime(previous.time);
+        setEndTime(previous.endTime);
         setContent(previous.content);
         setQuery(previous.query);
       }
@@ -301,6 +332,7 @@ export function ScheduleAssistant({
     const [d, t] = editSchedule.distanceText.split(" ");
     if (d) setDate(d);
     setTime(t ?? "");
+    setEndTime(editSchedule.schedule?.endTime ?? "");
     setContent(
       editSchedule.reason.split(" · ").slice(2).join(" · ") ||
         editSchedule.reason,
@@ -400,6 +432,9 @@ export function ScheduleAssistant({
                   <label>时间
                     <input type="time" value={item.time} onChange={(event) => updateIntakeItem(item.id, { time: event.target.value })} />
                   </label>
+                  <label>结束
+                    <input type="time" value={item.endTime} onChange={(event) => updateIntakeItem(item.id, { endTime: event.target.value })} />
+                  </label>
                   <label className="intake-place">地点
                     <select value={item.placeId} onChange={(event) => updateIntakeItem(item.id, { placeId: event.target.value })}>
                       <option value="">待确认地点</option>
@@ -415,6 +450,7 @@ export function ScheduleAssistant({
                 {item.pending.length > 0 && (
                   <p className="field-help">待确认：{pendingLabels(item).join("、")}</p>
                 )}
+                <p className="field-help">时区：{item.timezone}（北京时间）；未知字段不会自动补全</p>
                 {item.raw && <p className="field-help">原文：{item.raw}</p>}
               </li>
             ))}
@@ -422,7 +458,7 @@ export function ScheduleAssistant({
           <p className="field-help">
             将保存 {intakeReady.length} 条
             {intakeItems.length - intakeReady.length > 0
-              ? `，${intakeItems.length - intakeReady.length} 条因缺少日期或地点暂不保存`
+              ? `；${intakeItems.length - intakeReady.length} 条待确认草稿会保留在本机`
               : ""}
             。
           </p>
@@ -438,6 +474,11 @@ export function ScheduleAssistant({
           >
             确认保存 {intakeReady.length} 条
           </button>
+          {intakeReady.length === 0 && (
+            <button type="button" className="text-action" onClick={saveDrafts}>
+              保存 {intakeItems.length} 条待确认草稿
+            </button>
+          )}
         </>}
       </div>}
       {composingSchedule && <form
@@ -461,6 +502,10 @@ export function ScheduleAssistant({
             return;
           }
           const scheduleTime = `${effectiveDate}${effectiveTime ? " " + effectiveTime : ""}`;
+          const carried = editSchedule?.tags.includes("智能录入") ? ["智能录入"] : [];
+          const pendingTags = effectiveTime
+            ? (endTime ? [] : ["结束时间待确认"])
+            : ["时间待确认"];
           const next: Place = {
             ...selected,
             id: editSchedule?.id ?? `schedule-${Date.now()}-${selected.id}`,
@@ -468,11 +513,16 @@ export function ScheduleAssistant({
             source: "manual",
             category: "custom",
             guideCategories: ["custom"],
-            tags: ["日程助手", type === "todo" ? "待办事项" : "备忘录"],
+            tags: ["日程助手", type === "todo" ? "待办事项" : "备忘录", ...carried, ...pendingTags],
             reason: `${type === "todo" ? "待办事项" : "备忘录"} · ${scheduleTime} · ${content.trim()}`,
             description: `关联地点：${selected.name}`,
             status: editSchedule?.status ?? "want_to_go",
             isSaved: true,
+            schedule: {
+              startTime: effectiveTime,
+              endTime: effectiveTime ? endTime : "",
+              timezone: editSchedule?.schedule?.timezone ?? "Asia/Shanghai",
+            },
             distanceText: scheduleTime,
           };
           if (editSchedule) onUpdateSchedule(next);
@@ -486,6 +536,7 @@ export function ScheduleAssistant({
           if (!editSchedule) {
             setDate("");
             setTime("");
+            setEndTime("");
           }
           setNotice(editSchedule ? "已保存修改" : "");
           setShowPast(effectiveDate < localDay());
@@ -608,7 +659,17 @@ export function ScheduleAssistant({
                   onChange={(event) => setTime(event.target.value)}
                 />
               </label>
+              <label htmlFor="schedule-end-time">
+                结束（选填）
+                <input
+                  id="schedule-end-time"
+                  type="time"
+                  value={endTime}
+                  onChange={(event) => setEndTime(event.target.value)}
+                />
+              </label>
             </div>
+            <p className="field-help">时区：Asia/Shanghai（北京时间）</p>
             <fieldset>
               <legend>类型</legend>
               <div className="segmented-control">

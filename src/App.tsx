@@ -25,6 +25,7 @@ import { readBusinessTripSettings, tripPlaces, writeBusinessTripSettings, type B
 import { DEMO_USER, DEMO_HOME, createDemoMailbox, demoDay, demoLegResults, enterDemo, exitDemo, readDemoMode, resetDemo } from "./lib/demoWorkspace";
 import { eventDay } from "./lib/tripDay";
 import { buildTripActions, type TripAction } from "./lib/actionItems";
+import { mergeWorkspaceEvents } from "./lib/scheduleEvents";
 const calendarLayerKey = (owner: string) => `whatto.mapCalendarLayer.${owner}`;
 const readCalendarLayer = (owner: string) => { try { return localStorage.getItem(calendarLayerKey(owner)) !== "off"; } catch { return true; } };
 const placePairKey = (pair: TodayLegPair) => JSON.stringify([pair.from.place.id, pair.to.place.id]);
@@ -342,6 +343,12 @@ export default function App() {
   const [userPlaces, setUserPlaces] = useState<Place[]>(() =>
     loadUserPlaces(loadActiveUser()),
   );
+  // Local schedules join synced calendar events as workspace events, keeping
+  // their Wayline identity instead of pretending to be external calendar data.
+  const workspaceEvents = useMemo(
+    () => mergeWorkspaceEvents(calendarEvents, userPlaces),
+    [calendarEvents, userPlaces],
+  );
   useEffect(() => {
     if (!demoActive) return;
     setActiveCity(DEMO_HOME);
@@ -476,14 +483,14 @@ export default function App() {
   useEffect(() => {
     if (!selectedPlace?.calendarEventIds?.length) return;
     const eventIds = selectedPlace.calendarEventIds.filter(id =>
-      calendarEvents.some(event => event.id === id && event.place && samePlace(event.place, selectedPlace)));
+      workspaceEvents.some(event => event.id === id && event.place && samePlace(event.place, selectedPlace)));
     if (!eventIds.length) {
       setSelectedPlace(null);
       setDetailOrigin(null);
     } else if (eventIds.length !== selectedPlace.calendarEventIds.length) {
       setSelectedPlace({ ...selectedPlace, calendarEventIds: eventIds });
     }
-  }, [calendarEvents, selectedPlace]);
+  }, [workspaceEvents, selectedPlace]);
   const todayDate = useMemo(() => new Date(`${effectiveTodayKey}T00:00:00`), [effectiveTodayKey]);
   useCalendarPlaces({owner:activeUser.id,events:calendarEvents,aliases:placeAliases,city:String(city.name),day:effectiveTodayKey,commit:events=>commitCalendarEvents(events)});
   const pendingCalendarPlaces = useMemo(() => pendingPlaces(calendarEvents, { now: todayDate }), [calendarEvents, todayDate]);
@@ -624,8 +631,8 @@ export default function App() {
 
 
   const bookingCities = useMemo(() => allCities.map(city => city.name), [allCities]);
-  const model = useMemo(() => buildTravelWorkspace({events:calendarEvents,settings:businessSettings,day:todayDate,mailbox:mailbox?.singleSample ? undefined : mailbox,cities:bookingCities,todayKey:effectiveTodayKey,dayOf:demoActive ? eventDay : undefined}),
-    [calendarEvents,businessSettings,todayDate,effectiveTodayKey,demoActive,mailbox,bookingCities]);
+  const model = useMemo(() => buildTravelWorkspace({events:workspaceEvents,settings:businessSettings,day:todayDate,mailbox:mailbox?.singleSample ? undefined : mailbox,cities:bookingCities,todayKey:effectiveTodayKey,dayOf:demoActive ? eventDay : undefined}),
+    [workspaceEvents,businessSettings,todayDate,effectiveTodayKey,demoActive,mailbox,bookingCities]);
   const {today,stops:todayStops,pairs,trips:businessTrips,plans:bookingPlan} = model;
   const effectiveBusinessSettings = {...businessSettings,home:model.home};
   const [clockNow, setClockNow] = useState(Date.now);
@@ -674,13 +681,13 @@ export default function App() {
     const options = Object.values(todayLegResults[pair.id] ?? {});
     return {pair, mode, result:todayLegResults[pair.id]?.[mode], ...assessCommute(pair, options, mode, freshness)};
   }), [pairs, choices, todayLegResults, freshness]);
-  const todayConflicts = useMemo(() => calendarRisks(calendarEvents,freshness,today?.dateKey ?? effectiveTodayKey)
+  const todayConflicts = useMemo(() => calendarRisks(workspaceEvents,freshness,today?.dateKey ?? effectiveTodayKey)
     .filter(risk => risk.type === "overlap" && !todaySegments.some(({pair,verdict}) =>
       verdict.status === "overlap" && pair.from.event.id === risk.eventIds[0] && pair.to.event.id === risk.eventIds[1])),
-    [calendarEvents,freshness,today,effectiveTodayKey,todaySegments]);
-  const todayEventIds = useMemo(() => new Set(calendarEvents
+    [workspaceEvents,freshness,today,effectiveTodayKey,todaySegments]);
+  const todayEventIds = useMemo(() => new Set(workspaceEvents
     .filter(event => (demoActive ? eventDay(event) : localDateKey(event.start)) === effectiveTodayKey).map(event => event.id)),
-  [calendarEvents, effectiveTodayKey, demoActive]);
+  [workspaceEvents, effectiveTodayKey, demoActive]);
   // 今天的订单风险需要同时出现在 Today 与 Trips，避免两个入口结论不一致。
   const todayTripRisks = useMemo(() => {
     if (!todayEventIds.size) return [];
@@ -694,9 +701,9 @@ export default function App() {
       ...todayTripRisks,
       ...todaySegments.flatMap(segment => segment.risk ? [segment.risk] : []),
     ],
-    events: calendarEvents,
+    events: workspaceEvents,
     now: clockNow,
-  }), [todayConflicts, todayTripRisks, todaySegments, calendarEvents, clockNow]);
+  }), [todayConflicts, todayTripRisks, todaySegments, workspaceEvents, clockNow]);
   const showTodayOnMap = todayVisible && calendarLayer && todayStops.length > 0;
   const todayRoutes = useMemo(() => showTodayOnMap ? todaySegments.flatMap(({ pair, result, verdict }) =>
     result && isCurrentRoute(result,clockNow) ? [{ id: pair.id, points: result.points, late: verdict.status === "late" || verdict.status === "overlap" }] : []
@@ -742,8 +749,8 @@ export default function App() {
   const tripRisks = useMemo(() => selectedModel ? assessTrip(selectedModel,freshness,transfers,
     transferState?.owner===activeUser.id?transferState.routes:{}) : [],
     [selectedModel,freshness,transfers,transferState,activeUser.id]);
-  const tripActions = useMemo(() => buildTripActions({ risks: tripRisks, events: calendarEvents, now: clockNow }),
-    [tripRisks, calendarEvents, clockNow]);
+  const tripActions = useMemo(() => buildTripActions({ risks: tripRisks, events: workspaceEvents, now: clockNow }),
+    [tripRisks, workspaceEvents, clockNow]);
   const storeTransfer = (key:string,route:LegResult|null) => {
     setTransferState(previous => {
       const routes = previous?.owner===activeUser.id ? {...previous.routes} : {};
@@ -786,8 +793,8 @@ export default function App() {
   };
 
   const calendarOnMap = useMemo(
-    () => (calendarLayer ? calendarMapPlaces(calendarEvents, { now: todayDate }) : []),
-    [calendarEvents, calendarLayer, todayDate],
+    () => (calendarLayer ? calendarMapPlaces(workspaceEvents, { now: todayDate }) : []),
+    [workspaceEvents, calendarLayer, todayDate],
   );
   const mapPlaces = useMemo(() => {
     const places = [
@@ -1606,7 +1613,7 @@ export default function App() {
           </p>}
           {(today || todayConflicts.length > 0) && <TodayPanel
           heading={!today ? "今天" : today.isToday ? `今天 · ${dayLabel.format(new Date(today.dateKey + "T00:00:00"))}`
-            : `${calendarEvents.some(event => !event.google?.stale && (demoActive ? eventDay(event) : localDateKey(event.start)) === effectiveTodayKey)
+            : `${workspaceEvents.some(event => !event.google?.stale && (demoActive ? eventDay(event) : localDateKey(event.start)) === effectiveTodayKey)
               ? "下一个有地点的日程" : "今天没有安排 · 下一天是"} ${today.nextLabel}`}
           onOpenSchedule={() => openWorkflow("schedule", () => {
             setScheduleOrigin(null);
@@ -1674,7 +1681,7 @@ export default function App() {
           transfers={transfers} onTransfer={storeTransfer}
           onPlace={selectBusinessPlace}
           onArea={place => { setStayArea({ revision:stayRevision, place }); selectBusinessPlace(place, true); }} /></>}
-        cities={uniqueCities([city, ...calendarEvents.flatMap(event => event.place ? [{
+        cities={uniqueCities([city, ...workspaceEvents.flatMap(event => event.place ? [{
           name: event.place.city, lat: event.place.lat, lng: event.place.lng, zoom: 12,
         }] : []), ...allCities])}
         trips={businessTrips}

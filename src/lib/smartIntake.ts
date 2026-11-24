@@ -1,7 +1,7 @@
 import type { Place } from "../types/place";
 import { localDay, matchIntentPlaces, parseQuickIntent } from "./quickIntent";
 
-export type IntakePendingField = "date" | "time" | "place";
+export type IntakePendingField = "date" | "time" | "end" | "place";
 
 export interface IntakeItem {
   id: string;
@@ -9,6 +9,9 @@ export interface IntakeItem {
   title: string;
   date: string;
   time: string;
+  endTime: string;
+  /** IANA zone used to place the arrangement on a timeline. */
+  timezone: string;
   placeQuery: string;
   placeId: string;
   pending: IntakePendingField[];
@@ -93,6 +96,69 @@ function resolvePlace(segment: string, places: Place[]) {
   return matches.length === 1 ? matches[0] : null;
 }
 
+const DIGITS: Record<string, number> = {
+  零: 0, 〇: 0, 一: 1, 二: 2, 两: 2, 三: 3, 四: 4,
+  五: 5, 六: 6, 七: 7, 八: 8, 九: 9,
+};
+
+function clockNumber(text: string): number {
+  if (/^\d+$/.test(text)) return Number(text);
+  if (text.includes("十")) {
+    const [tens, ones] = text.split("十");
+    return (tens ? (DIGITS[tens] ?? NaN) : 1) * 10 + (ones ? (DIGITS[ones] ?? NaN) : 0);
+  }
+  return DIGITS[text] ?? NaN;
+}
+
+function clockHour(hour: number, period?: string) {
+  if (["下午", "晚上", "中午"].includes(period ?? "") && hour < 12) return hour + 12;
+  if (["上午", "早上", "凌晨"].includes(period ?? "") && hour === 12) return 0;
+  return hour;
+}
+
+function clockText(period: string | undefined, hourText: string, minute: string | undefined, marker: string | undefined) {
+  const rawHour = clockNumber(hourText);
+  const minutes = marker ? ({ 半: 30, 一刻: 15, 三刻: 45 }[marker] ?? 0) : minute ? clockNumber(minute) : 0;
+  const hour = clockHour(rawHour, period);
+  if (!Number.isFinite(hour) || hour < 0 || hour > 23 || !Number.isFinite(minutes) || minutes < 0 || minutes > 59) return "";
+  return `${String(hour).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+const numericRange =
+  /(?<!\d)(\d{1,2})[:：](\d{2})\s*(?:到|至|~|～|-|—)\s*(\d{1,2})[:：](\d{2})(?!\d)/;
+const spokenRange =
+  /(?:(上午|下午|晚上|中午|早上|凌晨)\s*)?([零〇一二两三四五六七八九十\d]{1,3})[点时](?:(半|一刻|三刻)|([零〇一二两三四五六七八九十\d]{1,3})分?)?\s*(?:到|至|~|～|-|—)\s*(?:(上午|下午|晚上|中午|早上|凌晨)\s*)?([零〇一二两三四五六七八九十\d]{1,3})[点时](?:(半|一刻|三刻)|([零〇一二两三四五六七八九十\d]{1,3})分?)?/;
+
+/**
+ * Reads an explicit start and end time. The matched phrase is removed from the
+ * segment so the single-time fallback parser cannot report two conflicting times.
+ * Unknown parts stay empty.
+ */
+export function extractIntakeRange(segment: string) {
+  const numeric = segment.match(numericRange);
+  if (numeric) {
+    const start = `${numeric[1].padStart(2, "0")}:${numeric[2]}`;
+    const end = `${numeric[3].padStart(2, "0")}:${numeric[4]}`;
+    if (Number(numeric[1]) < 24 && Number(numeric[2]) < 60 && Number(numeric[3]) < 24 && Number(numeric[4]) < 60)
+      return { start, end, rest: segment.replace(numeric[0], " ") };
+  }
+  const spoken = segment.match(spokenRange);
+  if (spoken) {
+    const start = clockText(spoken[1], spoken[2], spoken[4], spoken[3]);
+    // "下午三点到五点": an end without its own period shares the start period.
+    const end = clockText(spoken[5] ?? spoken[1], spoken[6], spoken[8], spoken[7]);
+    if (start && end) return { start, end, rest: segment.replace(spoken[0], " ") };
+  }
+  return null;
+}
+
+function intakeTimezone(segment: string) {
+  const warnings: string[] = [];
+  if (/(?:东京|日本)时间|UTC\+9|GMT\+9/.test(segment))
+    warnings.push("时区暂只支持北京时间，已按 Asia/Shanghai 解析");
+  return { timezone: "Asia/Shanghai", warnings };
+}
+
 export function parseIntakeText(
   text: string,
   options: IntakeParseOptions = {},
@@ -104,14 +170,19 @@ export function parseIntakeText(
   const items: IntakeItem[] = [];
   let inheritedDate = "";
   for (const [index, segment] of segments.entries()) {
-    const intent = parseQuickIntent(segment, now);
+    const range = extractIntakeRange(segment);
+    const intent = parseQuickIntent(range?.rest ?? segment, now);
     const place = resolvePlace(segment, places);
     const date = intent.date ?? inheritedDate;
     if (intent.date) inheritedDate = intent.date;
     const placeQuery = intent.placeQuery || place?.name || "";
+    const time = range?.start ?? intent.time ?? "";
+    const endTime = range?.end ?? "";
+    const zone = intakeTimezone(segment);
     const pending: IntakePendingField[] = [];
     if (!date) pending.push("date");
-    if (!intent.time) pending.push("time");
+    if (!time) pending.push("time");
+    else if (!endTime) pending.push("end");
     if (!place) pending.push("place");
     const title = titleFromSegment(segment, place?.name ?? placeQuery);
     items.push({
@@ -119,11 +190,13 @@ export function parseIntakeText(
       raw: segment,
       title,
       date,
-      time: intent.time ?? "",
+      time,
+      endTime,
+      timezone: zone.timezone,
       placeQuery,
       placeId: place?.id ?? "",
       pending,
-      warnings: intent.warnings,
+      warnings: [...intent.warnings, ...zone.warnings],
     });
   }
   return {
@@ -138,7 +211,13 @@ export function parseIntakeText(
 export function pendingLabels(item: IntakeItem): string[] {
   return item.pending
     .map((field) =>
-      field === "date" ? "日期" : field === "time" ? "时间" : "地点",
+      field === "date"
+        ? "日期"
+        : field === "time"
+          ? "时间"
+          : field === "end"
+            ? "结束时间"
+            : "地点",
     )
     .filter(Boolean);
 }
@@ -162,8 +241,9 @@ export function buildIntakeSchedules(
   for (const [index, item] of readyIntakeItems(items).entries()) {
     const place = places.find((candidate) => candidate.id === item.placeId);
     if (!place) continue;
-    const scheduleTime = `${item.date}${item.time ? ` ${item.time}` : ""}`;
+    const scheduleTime = `${item.date}${item.time ? ` ${item.time}` : ""}${item.endTime ? `-${item.endTime}` : ""}`;
     const kind = item.time ? "待办事项" : "备忘录";
+    const endNote = item.time && !item.endTime ? "（结束时间待确认）" : "";
     created.push({
       ...place,
       id: `schedule-intake-${options.sessionId}-${index}`,
@@ -171,12 +251,23 @@ export function buildIntakeSchedules(
       source: "manual",
       category: "custom",
       guideCategories: ["custom"],
-      tags: ["日程助手", kind, "智能录入", ...(item.time ? [] : ["时间待确认"])],
-      reason: `${kind} · ${scheduleTime} · ${item.title}${item.time ? "" : "（时间待确认）"}`,
+      tags: [
+        "日程助手",
+        kind,
+        "智能录入",
+        ...(item.time ? [] : ["时间待确认"]),
+        ...(item.time && !item.endTime ? ["结束时间待确认"] : []),
+      ],
+      reason: `${kind} · ${scheduleTime} · ${item.title}${item.time ? endNote : "（时间待确认）"}`,
       description: `关联地点：${place.name}`,
       status: "want_to_go",
       isSaved: true,
-      distanceText: scheduleTime,
+      schedule: {
+        startTime: item.time,
+        endTime: item.endTime,
+        timezone: item.timezone,
+      },
+      distanceText: `${item.date}${item.time ? ` ${item.time}` : ""}`,
     });
   }
   return created;
@@ -212,4 +303,51 @@ export function intakeSessionId(now = new Date()) {
       ? crypto.randomUUID()
       : `${now.getTime()}`;
   return `${localDay(now)}-${random.slice(0, 8)}`;
+}
+
+/** Items that still miss a date or place stay as drafts instead of becoming schedules. */
+export function draftIntakeItems(items: IntakeItem[]): IntakeItem[] {
+  const ready = new Set(readyIntakeItems(items).map((item) => item.id));
+  return items.filter((item) => !ready.has(item.id));
+}
+
+const draftsKey = (owner: string) => `wayline.intake.drafts.${owner}`;
+const PENDING_FIELDS: IntakePendingField[] = ["date", "time", "end", "place"];
+
+function isIntakeItem(value: unknown): value is IntakeItem {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Record<string, unknown>;
+  return (
+    ["id", "raw", "title", "date", "time", "endTime", "timezone", "placeQuery", "placeId"].every(
+      (key) => typeof item[key] === "string",
+    ) &&
+    Array.isArray(item.pending) &&
+    item.pending.every((field) => PENDING_FIELDS.includes(field as IntakePendingField)) &&
+    Array.isArray(item.warnings) &&
+    item.warnings.every((warning) => typeof warning === "string")
+  );
+}
+
+export function readIntakeDrafts(owner: string): IntakeItem[] {
+  if (!owner || typeof localStorage === "undefined") return [];
+  try {
+    const value = JSON.parse(localStorage.getItem(draftsKey(owner)) ?? "[]");
+    return Array.isArray(value) ? value.filter(isIntakeItem).slice(0, 50) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function writeIntakeDrafts(owner: string, items: IntakeItem[]) {
+  if (!owner || typeof localStorage === "undefined") return;
+  try {
+    if (items.length === 0) localStorage.removeItem(draftsKey(owner));
+    else localStorage.setItem(draftsKey(owner), JSON.stringify(items.slice(0, 50)));
+  } catch {
+    // storage unavailable: drafts stay in memory for this session
+  }
+}
+
+export function clearIntakeDrafts(owner: string) {
+  writeIntakeDrafts(owner, []);
 }

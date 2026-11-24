@@ -26,6 +26,14 @@ export interface ExternalLinks {
   apple?: string;
 }
 
+/** Timing captured when a schedule is written, kept separate from external calendars. */
+export interface ScheduleTiming {
+  startTime?: string;
+  endTime?: string;
+  /** IANA zone; local schedules currently use Asia/Shanghai. */
+  timezone?: string;
+}
+
 export interface Place {
   id: string;
   name: string;
@@ -46,6 +54,7 @@ export interface Place {
   isSaved: boolean;
   distanceText: string;
   externalLinks: ExternalLinks;
+  schedule?: ScheduleTiming;
   calendarEventIds?: string[];
   resourceEvidence?:
     | { provider: "天地图"; query: string; retrievedAt: string; verification: "unverified" }

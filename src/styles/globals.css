@@ -4210,4 +4210,5 @@ select:not([multiple]):not([size]) {
 @media (max-width: 640px) {
   .intake-fields { grid-template-columns: 1fr; }
 }
+.today-end-pending { font-size: 11px; opacity: 0.7; }
 

@@ -9,6 +9,8 @@ export interface CalendarEntry {
   routeIndex?:number;
   routeReason?:string;
   google?:{connectionId:string;calendarId:string;eventId:string;updated:string;originalStart:string|null;stale?:boolean};
+  /** Set only on events derived in memory from a Wayline schedule, never on synced calendar data. */
+  local?:{source:"schedule";origin:"manual"|"intake";sourcePlaceId:string;endPending:boolean};
 }
 export type PlaceResolutionStatus="auto"|"confirmed"|"ask"|"ambiguous"|"none"|"missing"|"online"|"ignored";
 export interface PlaceResolution { status:PlaceResolutionStatus; text:string; suggestion?:Place; candidates?:Place[] }

@@ -12,13 +12,18 @@ export const isCurrentRoute = (route:RouteEvidence, now:number) =>
 
 
 const eventStale = (event:CalendarEvent, status:Freshness) => !!event.google && (!status.calendarCurrent || !!event.google.stale);
-const eventSource = (event:CalendarEvent, status:Freshness):SourceProvenance => ({
+const eventSource = (event:CalendarEvent, status:Freshness):SourceProvenance => event.local ? {
+  source:"wayline",
+  recordId:event.local.sourcePlaceId,
+  confidence:"recorded",
+  stale:false,
+} : {
   source:event.google ? "google-calendar" : "calendar-file",
   recordId:event.id,
   observedAt:event.google?.updated ? Date.parse(event.google.updated) || undefined : undefined,
   confidence:"recorded",
   stale:eventStale(event,status),
-});
+};
 const timed = (events:CalendarEvent[]) => events.filter(event => !event.allDay &&
   Number.isFinite(Date.parse(event.start)) && Date.parse(event.end)>=Date.parse(event.start))
   .sort((left,right) => Date.parse(left.start)-Date.parse(right.start));

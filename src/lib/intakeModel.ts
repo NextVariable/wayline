@@ -10,6 +10,7 @@ export interface IntakeModelRequest {
   now: Date;
   places: Place[];
   activeCity: string;
+  idPrefix?: string;
 }
 
 export interface IntakeModel {
@@ -83,6 +84,7 @@ export async function parseIntakeWithFallback(
     result: parseIntakeText(text, {
       now: request.now,
       places: request.places,
+      idPrefix: request.idPrefix,
     }),
     usedFallback: !!model,
   };

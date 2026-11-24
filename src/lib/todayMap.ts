@@ -16,6 +16,8 @@ export interface TodayLegPair {
   directKm: number;
   gapMinutes: number;
   departure?: string;
+  /** The previous arrangement has no confirmed end time, so feasibility stays unknown. */
+  endPending?: boolean;
   defaultMode: TravelMode;
 }
 
@@ -94,6 +96,7 @@ export function legPairs(events: CalendarEntry[], dateKey: string, dayOf: (event
       crossCity, directKm,
       gapMinutes: Math.floor((nextStart-departure) / 60000),
       ...(departure > prevEnd && {departure:new Date(departure).toISOString()}),
+      ...(prev.local?.endPending && {endPending:true}),
       defaultMode: defaultMode(directKm, crossCity),
     });
   }
@@ -113,6 +116,7 @@ export function judgeLeg(pair: TodayLegPair, options: LegOption[], chosen: Trave
   if (pair.gapMinutes < 0) return { status: "overlap" };
   if (pair.sameSpot) return { status: "ok" };
   if (!Number.isFinite(pair.gapMinutes)) return { status: "unknown" };
+  if (pair.endPending) return { status: "unknown", advice: "上一场结束时间待确认，补齐后再判断能否赶上" };
   const current = options.find(o => o.mode === chosen);
   if (!current || current.source !== "amap") return { status: "unknown" };
   const shortBy = Math.ceil(current.minutes) - pair.gapMinutes;

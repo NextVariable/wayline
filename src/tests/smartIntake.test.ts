@@ -2,10 +2,13 @@ import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import type { Place } from "../types/place";
 import {
   buildIntakeSchedules,
+  draftIntakeItems,
   parseIntakeText,
   pendingLabels,
+  readIntakeDrafts,
   readyIntakeItems,
   splitIntakeText,
+  writeIntakeDrafts,
 } from "../lib/smartIntake";
 
 const now = new Date(2026, 10, 24, 9);
@@ -70,15 +73,34 @@ describe("smart intake parsing", () => {
       date: "2026-11-25",
       time: "15:00",
       placeId: "p-seaworld",
-      pending: [],
+      pending: ["end"],
     });
     expect(result.items[1]).toMatchObject({
       title: "开会",
       date: "2026-11-26",
       time: "10:00",
       placeId: "p-shenzhenbay",
+      pending: ["end"],
+    });
+  });
+
+  it("reads an explicit start and end time, keeping the timezone", () => {
+    const result = parseIntakeText(
+      "明天下午三点到五点去海上世界见客户",
+      { now, places },
+    );
+    expect(result.items[0]).toMatchObject({
+      date: "2026-11-25",
+      time: "15:00",
+      endTime: "17:00",
+      timezone: "Asia/Shanghai",
       pending: [],
     });
+    const numeric = parseIntakeText("明天 09:30-11:00 去深圳湾开会", {
+      now,
+      places,
+    });
+    expect(numeric.items[0]).toMatchObject({ time: "09:30", endTime: "11:00" });
   });
 
   it("inherits the date when a later arrangement omits it", () => {
@@ -144,6 +166,48 @@ describe("smart intake parsing", () => {
     expect(schedule.tags).toContain("时间待确认");
     expect(schedule.reason).toContain("时间待确认");
     expect(schedule.distanceText).toBe("2026-11-25");
+  });
+
+  it("keeps start, end and timezone on the saved schedule", () => {
+    const result = parseIntakeText("明天下午三点到五点去海上世界见客户", {
+      now,
+      places,
+    });
+    const [schedule] = buildIntakeSchedules(result.items, places, {
+      sessionId: "s1",
+    });
+    expect(schedule.schedule).toEqual({
+      startTime: "15:00",
+      endTime: "17:00",
+      timezone: "Asia/Shanghai",
+    });
+    expect(schedule.distanceText).toBe("2026-11-25 15:00");
+    expect(schedule.tags).not.toContain("结束时间待确认");
+  });
+
+  it("persists drafts per account and restores them", () => {
+    const store = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        store.set(key, value);
+      },
+      removeItem: (key: string) => {
+        store.delete(key);
+      },
+      clear: () => store.clear(),
+    });
+    try {
+      const result = parseIntakeText("下周三拜访客户", { now, places });
+      const drafts = draftIntakeItems(result.items);
+      expect(drafts).toHaveLength(1);
+      writeIntakeDrafts("guest", drafts);
+      expect(readIntakeDrafts("guest")).toHaveLength(1);
+      expect(readIntakeDrafts("demo:wayline")).toHaveLength(0);
+      expect(readIntakeDrafts("")).toHaveLength(0);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
 
