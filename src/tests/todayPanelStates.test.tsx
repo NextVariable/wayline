@@ -5,6 +5,7 @@ import type { CalendarEntry } from "../lib/calendarEvents";
 import type { TravelRisk } from "../lib/tripDomain";
 import type { TripAction } from "../lib/actionItems";
 import { initialUserPlaces } from "./fixtures/userPlaces";
+import { assessLeg } from "../lib/smartRoutes";
 
 const place = { ...initialUserPlaces[0], id: "venue", name: "国家会展中心", city: "上海", lat: 31.191, lng: 121.305 };
 const event = (id: string, start: string, end: string): CalendarEntry => ({
@@ -13,13 +14,14 @@ const event = (id: string, start: string, end: string): CalendarEntry => ({
 });
 const first = event("a", "2026-11-24T10:00:00+08:00", "2026-11-24T11:00:00+08:00");
 const second = event("b", "2026-11-24T12:00:00+08:00", "2026-11-24T13:00:00+08:00");
+const segmentPair = {
+  id: "a-b", from: { event: first, place }, to: { event: second, place },
+  sameSpot: false, crossCity: false, directKm: 2, gapMinutes: 60, departure: second.start, defaultMode: "driving" as const,
+};
 const segment: TodaySegment = {
-  pair: {
-    id: "a-b", from: { event: first, place }, to: { event: second, place },
-    sameSpot: false, crossCity: false, directKm: 2, gapMinutes: 60, defaultMode: "driving",
-  },
+  pair: segmentPair,
   mode: "driving",
-  verdict: { status: "ok" },
+  plan: assessLeg({ pair: segmentPair, mode: "driving", now: Date.now() }),
 };
 
 const noop = () => {};

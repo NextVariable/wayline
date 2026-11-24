@@ -1,9 +1,13 @@
 import type { TravelRisk } from "../lib/tripDomain";
 import type { TripAction } from "../lib/actionItems";
+import { useState } from "react";
 import { Navigation } from "lucide-react";
 import { routeMapLink } from "../lib/navigationLinks";
-import { modeName, type LegVerdict, type TodayLegPair, type TodayStop, type TravelMode } from "../lib/todayMap";
+import { modeName, routeProviderMode, type TodayLegPair, type TodayStop, type TravelMode } from "../lib/todayMap";
 import type { LegResult } from "../lib/useTodayLegs";
+import {
+  LEG_STATUS_LABEL, departureReminder, legClock, sourceLabel, type LegAssessment,
+} from "../lib/smartRoutes";
 import { TripActions } from "./TripActions";
 
 export const todayModes: TravelMode[] = ["walking", "transit", "driving", "selfDrive"];
@@ -12,8 +16,12 @@ export interface TodaySegment {
   pair: TodayLegPair;
   mode: TravelMode;
   result?: LegResult;
-  verdict: LegVerdict;
+  plan: LegAssessment;
   risk?:TravelRisk;
+  /** 用户展开比较时，同一路段其他交通方式的结果。 */
+  options?: Partial<Record<TravelMode, LegResult>>;
+  /** 用户为这一段单独设置的缓冲分钟数。 */
+  bufferOverride?: number;
 }
 
 interface Props {
@@ -28,6 +36,9 @@ interface Props {
   onRetry: () => void;
   onOpenSchedule?: () => void;
   onNavigate?: (id: string) => void;
+  onCompare?: (id: string | null) => void;
+  onBufferChange?: (pair: TodayLegPair, minutes: number | undefined) => void;
+  now?: number;
   syncWarning?: boolean;
   conflicts?: TravelRisk[];
   actions?: TripAction[];
@@ -37,7 +48,7 @@ interface Props {
 
 const clock = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false });
 
-export function TodayPanel({ heading, stops, segments, loading, focused, onSelectStop, onChooseMode, onFocus, onRetry, onOpenSchedule, onNavigate, syncWarning, conflicts = [], actions = [], onAction, nextStopId }: Props) {
+export function TodayPanel({ heading, stops, segments, loading, focused, onSelectStop, onChooseMode, onFocus, onRetry, onOpenSchedule, onNavigate, onCompare, onBufferChange, now = Date.now(), syncWarning, conflicts = [], actions = [], onAction, nextStopId }: Props) {
   if (!stops.length && !conflicts.length) return null;
   const fromEvent = new Map(segments.map(segment => [segment.pair.from.event.id, segment]));
   return (
@@ -78,7 +89,9 @@ export function TodayPanel({ heading, stops, segments, loading, focused, onSelec
                 </span>
               </button>
               {segment && (
-                <TodayLeg segment={segment} loading={loading} focused={focused === segment.pair.id} onChooseMode={onChooseMode} onFocus={onFocus} onRetry={onRetry} onNavigate={onNavigate} />
+                <TodayLeg segment={segment} loading={loading} now={now} focused={focused === segment.pair.id}
+                  onChooseMode={onChooseMode} onFocus={onFocus} onRetry={onRetry} onNavigate={onNavigate}
+                  onCompare={onCompare} onBufferChange={onBufferChange} />
               )}
             </li>
           );
@@ -88,46 +101,90 @@ export function TodayPanel({ heading, stops, segments, loading, focused, onSelec
   );
 }
 
-function TodayLeg({ segment, loading, focused, onChooseMode, onFocus, onRetry, onNavigate }: {
+function TodayLeg({ segment, loading, focused, now, onChooseMode, onFocus, onRetry, onNavigate, onCompare, onBufferChange }: {
   segment: TodaySegment;
   loading: boolean;
   focused: boolean;
+  now: number;
   onChooseMode: Props["onChooseMode"];
   onFocus: Props["onFocus"];
   onRetry: Props["onRetry"];
   onNavigate: Props["onNavigate"];
+  onCompare: Props["onCompare"];
+  onBufferChange: Props["onBufferChange"];
 }) {
-  const { pair, mode, result, verdict, risk } = segment;
-  const late = verdict.status === "late" || verdict.status === "overlap";
+  const { pair, mode, result, plan, risk, options = {}, bufferOverride } = segment;
+  const [open, setOpen] = useState(false);
+  const bad = plan.status === "insufficient" || plan.status === "overlap";
   const navigation = !pair.sameSpot ? routeMapLink(pair.from.place, pair.to.place, mode) : null;
   const failed = !pair.sameSpot && !result && !loading;
-  const timing = result ? `${modeName(mode)} ${result.minutes} 分钟` : loading ? "正在查路线…" : failed ? "路线暂不可用" : "暂未查到路线";
-  const status = verdict.status === "overlap" ? "两个日程时间重叠"
-    : verdict.status === "late" ? `差 ${verdict.shortBy} 分钟` : "";
+  const timing = pair.sameSpot ? "同一地点" : result ? `${modeName(mode)} ${result.minutes} 分钟` : loading ? "正在查路线…" : failed ? "路线暂不可用" : "暂未查到路线";
+  const statusText = plan.status === "insufficient" ? `时间不足 ${plan.shortBy} 分钟`
+    : plan.status === "overlap" ? `日程重叠 ${plan.shortBy} 分钟`
+    : plan.status === "tight" ? `时间紧张 · 余 ${plan.remainingMinutes} 分钟`
+    : plan.status === "stale" ? "路线已过期"
+    : plan.status === "pending" ? "待确认"
+    : plan.status === "reference" ? "参考结果 · 出发前复核"
+    : plan.remainingMinutes !== null ? `时间充足 · 余 ${plan.remainingMinutes} 分钟` : LEG_STATUS_LABEL[plan.status];
+  const reminder = departureReminder(plan, pair, now);
+  const toggle = () => {
+    const next = !open;
+    setOpen(next);
+    if (next && !focused) onFocus(pair.id);
+    if (!next && focused) onFocus(pair.id);
+    onCompare?.(next ? pair.id : null);
+  };
   return (
-    <div className={`today-leg${late ? " is-late" : ""}`} data-status={verdict.status} aria-busy={loading}>
+    <div className={`today-leg${bad ? " is-late" : ""}${plan.status === "tight" ? " is-tight" : ""}`} data-status={plan.status} aria-busy={loading && !result}>
       <div className="today-leg-summary" aria-live="polite">
-        {pair.sameSpot ? <span>同一地点</span> : result ? (
-          <button type="button" aria-pressed={focused} onClick={() => onFocus(pair.id)} title="在地图上查看这段路线">
-            {timing} <small>{result.source === "amap" ? mode === "driving" ? "高德 · 不含等车" : mode === "selfDrive" ? "高德 · 不含停车" : "高德" : "估算"}{result.observedAt && result.observedAt > 0 ? ` · ${new Date(result.observedAt).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })} 查询` : ""}</small>
+        {pair.sameSpot ? <span>{timing}</span> : result ? (
+          <button type="button" aria-pressed={focused} onClick={toggle} title="展开这段路线的详情">
+            {timing} <small>{sourceLabel(result, mode)}{result.observedAt && result.observedAt > 0 ? ` · ${new Date(result.observedAt).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })} 查询` : ""}</small>
           </button>
         ) : <span>{timing}</span>}
         {failed && <button type="button" onClick={onRetry} title="重新查询这段路线">重试路线</button>}
-        {status && <strong>{status}</strong>}
+        <button type="button" className="today-leg-toggle" aria-expanded={open} onClick={toggle}>
+          {statusText}
+        </button>
       </div>
-      {risk?.stale && result && <button type="button" className="text-action" onClick={onRetry}>更新路线参考</button>}
-      {verdict.advice && <p className="today-leg-advice">{verdict.advice}</p>}
-      {!pair.sameSpot && (
+      {plan.status === "stale" && <button type="button" className="text-action" onClick={onRetry}>刷新路线</button>}
+      {reminder && <p className="today-leg-reminder" role="status">{reminder}</p>}
+      {plan.advice && <p className={`today-leg-advice${bad ? " is-bad" : ""}`}>{plan.advice}</p>}
+      {!pair.sameSpot && <div className="today-mode-group" role="group" aria-label={`${pair.from.event.title}至${pair.to.event.title}的交通方式`}>
+        {todayModes.map(value => {
+          const option = options[value] ?? (value === "selfDrive" ? options.driving : undefined);
+          return <button type="button" key={value} aria-pressed={mode === value} onClick={() => onChooseMode(pair, value)}>
+            {modeName(value)}{option ? ` ${option.minutes} 分` : loading ? "" : " 未查询"}
+          </button>;
+        })}
+      </div>}
+      {open && <div className="today-leg-detail">
+        <dl className="today-leg-metrics">
+          <div><dt>可用时间</dt><dd>{plan.availableMinutes === null ? "待确认" : `${plan.availableMinutes} 分钟`}</dd></div>
+          <div><dt>路线耗时</dt><dd>{plan.routeMinutes === null ? "未查询" : `${plan.routeMinutes} 分钟`}</dd></div>
+          <div><dt>额外缓冲</dt><dd>{plan.bufferMinutes} 分钟{plan.bufferOverridden ? "（本段）" : ""}</dd></div>
+          <div><dt>剩余时间</dt><dd data-negative={plan.remainingMinutes !== null && plan.remainingMinutes < 0}>{plan.remainingMinutes === null ? "待确认" : `${plan.remainingMinutes} 分钟`}</dd></div>
+          <div><dt>最迟出发</dt><dd>{plan.latestDeparture ? legClock(plan.latestDeparture) : "待确认"}</dd></div>
+        </dl>
+        <div className="today-buffer">
+          <strong>缓冲组成</strong>
+          <ul>{plan.bufferParts.map(part => <li key={part.label}>{part.label} {part.minutes} 分钟{part.pending ? " · PRD 建议值，待确认" : ""}</li>)}</ul>
+          <small>路线服务已包含的步行、候车不会重复扣除。</small>
+        </div>
+        {onBufferChange && <div className="today-buffer-change" role="group" aria-label="调整这段的额外缓冲">
+          {[0, 5, 10, 15, 20].map(minutes => <button type="button" key={minutes} aria-pressed={(bufferOverride ?? -1) === minutes}
+            onClick={() => onBufferChange(pair, minutes)}>{minutes} 分</button>)}
+          <button type="button" onClick={() => onBufferChange(pair, undefined)}>恢复默认 10 分</button>
+        </div>}
+        {risk && <p className="today-leg-risk"><strong>{risk.title}</strong> · {risk.basis}</p>}
+        {result?.source === "synthetic" && <p className="field-help">合成演示路线，仅用于功能验收，不代表真实高德结果。</p>}
+        {result && <p className="field-help">{sourceLabel(result, mode)} · {routeProviderMode(mode) === "driving" ? "驾车数据不含等车/停车时间" : plan.routeState === "reference" ? "未来或估算路线，仅作参考" : "当前路线"}</p>}
         <div className="today-leg-actions">
-          <div className="today-mode-group" role="group" aria-label={`${pair.from.event.title}至${pair.to.event.title}的交通方式`}>
-            {todayModes.map(value => (
-              <button type="button" key={value} aria-pressed={mode === value} onClick={() => onChooseMode(pair, value)}>{modeName(value)}</button>
-            ))}
-          </div>
+          <button type="button" onClick={onRetry}>刷新路线</button>
           {navigation && <a className="today-navigation" aria-label={`用${navigation.label}导航`} title={`用${navigation.label}导航`}
             href={navigation.href} target={navigation.target} onClick={() => onNavigate?.(pair.id)} rel="noopener noreferrer"><Navigation size={14} aria-hidden="true" /></a>}
         </div>
-      )}
+      </div>}
     </div>
   );
 }

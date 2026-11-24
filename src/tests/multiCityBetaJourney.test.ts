@@ -125,7 +125,7 @@ it("downgrades a tight commute and treats a stale mailbox as unconfirmed", () =>
   const route: RouteEvidence = { mode: "driving", minutes: 45, source: "amap", observedAt: NOW - 60_000, points: [] };
   const verdict = assessCommute((pair as Extract<typeof pair, { kind: "commute" }>).pair, [route], "driving",
     { calendarCurrent: true, mailboxCurrent: true, now: NOW });
-  expect(verdict.verdict.status).toBe("late");
+  expect(verdict.verdict.status).toBe("insufficient");
 
   const stale = assessTrip(trip, { calendarCurrent: true, mailboxCurrent: false, now: NOW });
   expect(stale.every(risk => risk.type === "overlap" || risk.status === "uncertain" || risk.severity === "info")).toBe(true);

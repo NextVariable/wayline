@@ -22,7 +22,7 @@ const three = () => day(
   [guomao, "2026-11-13T15:00:00+08:00", "2026-11-13T16:00:00+08:00"],
 );
 const routeBody = (seconds: number) => ({
-  mode: "transit", source: "amap", observedAt: 1,
+  mode: "transit", source: "amap", observedAt: Date.now(),
   legs: [{ from: "a", to: "b", duration: seconds, distance: 3000, points: [{ latitude: 39.9, longitude: 116.4 }, { latitude: 39.8, longitude: 116.3 }] }],
 });
 const reply = (body: unknown, status = 200) => Promise.resolve(new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } }));

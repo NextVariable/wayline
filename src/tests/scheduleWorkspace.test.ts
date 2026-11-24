@@ -3,7 +3,8 @@ import type { CalendarEntry } from "../lib/calendarEvents";
 import type { Place } from "../types/place";
 import { buildTravelWorkspace } from "../lib/tripIntelligence";
 import { calendarRisks } from "../lib/tripFeasibility";
-import { judgeLeg, legPairs, localDateKey } from "../lib/todayMap";
+import { legPairs, localDateKey } from "../lib/todayMap";
+import { assessLeg } from "../lib/smartRoutes";
 import {
   localScheduleEvent,
   mergeWorkspaceEvents,
@@ -94,7 +95,7 @@ it("keeps an unknown end time unknown instead of inventing one", () => {
     "2026-11-25",
   );
   expect(pair.endPending).toBe(true);
-  expect(judgeLeg(pair, [], "transit").status).toBe("unknown");
+  expect(assessLeg({ pair, mode: "transit", now: Date.parse(pair.to.event.start) }).status).toBe("pending");
 });
 
 it("puts Google, Smart Intake and manual arrangements in one workspace", () => {

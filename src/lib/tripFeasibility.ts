@@ -1,5 +1,6 @@
 import type { CalendarEvent, RouteEvidence, SourceProvenance, TravelRisk, Trip } from "./tripDomain";
-import { judgeLeg, localDateKey, type TodayLegPair, type TravelMode } from "./todayMap";
+import { localDateKey, routeProviderMode, type TodayLegPair, type TravelMode } from "./todayMap";
+import { assessLeg, legClock, type LegAssessment } from "./smartRoutes";
 import type { TripTransfer } from "./tripTransfers";
 import { classifyLocation } from "./calendarPlaces";
 import { eventDay } from "./tripDay";
@@ -7,7 +8,7 @@ import { eventDay } from "./tripDay";
 export interface Freshness { calendarCurrent: boolean; mailboxCurrent: boolean; now:number }
 export const ROUTE_MAX_AGE = 30 * 60_000;
 export const isCurrentRoute = (route:RouteEvidence, now:number) =>
-  route.source === "amap" && Number.isFinite(route.minutes) && route.minutes >= 0 &&
+  (route.source === "amap" || route.source === "synthetic") && Number.isFinite(route.minutes) && route.minutes >= 0 &&
   !!route.observedAt && route.observedAt <= now+60_000 && now-route.observedAt <= ROUTE_MAX_AGE;
 
 
@@ -53,26 +54,49 @@ export function calendarRisks(events:CalendarEvent[], status:Freshness, day?:str
   return risks;
 }
 
-export function assessCommute(pair:TodayLegPair, routes:RouteEvidence[], mode:TravelMode, status:Freshness) {
-  const route=routes.find(item => item.mode === mode);
+export interface CommuteAssessment { verdict: LegAssessment; plan: LegAssessment; risk?: TravelRisk }
+
+/**
+ * Today 与 Trips 共用这一处：先统一算 available/remaining/latestDeparture，再决定是否值得提醒。
+ * 只有真实或明确标注的合成路线能给出确定性结论；估算与未来路线保持参考语义。
+ */
+export function assessCommute(pair:TodayLegPair, routes:RouteEvidence[], mode:TravelMode, status:Freshness,
+  options:{ bufferOverride?:number } = {}):CommuteAssessment {
+  const result = routes.find(item => item.mode === mode)
+    ?? routes.find(item => routeProviderMode(item.mode) === routeProviderMode(mode));
+  const plan = assessLeg({ pair, route:result, mode, now:status.now, bufferOverride:options.bufferOverride });
   const sources=[eventSource(pair.from.event,status), eventSource(pair.to.event,status)];
-  const routeStale=(item:RouteEvidence) => !isCurrentRoute(item,status.now);
-  const stale=sources.some(source => source.stale) || !!(route && routeStale(route));
-  const verdict=stale ? {status:"unknown" as const} :
-    judgeLeg(pair,routes.filter(item => !routeStale(item)),mode);
-  if (verdict.status === "ok") return {verdict};
+  const routeStale=plan.routeState === "stale";
+  const evidenceStale=sources.some(source => source.stale) || routeStale;
+  const verdict:LegAssessment = evidenceStale && (plan.status === "sufficient" || plan.status === "reference")
+    ? { ...plan, status:"pending", advice:"日历或路线证据需要更新，暂不下确定性结论" }
+    : plan;
+  if (verdict.status === "sufficient" || verdict.status === "reference") return {verdict, plan};
   const overlap=verdict.status === "overlap";
-  const confirmed=overlap || verdict.status === "late";
+  const confirmed=overlap || verdict.status === "insufficient";
   const risk:TravelRisk={id:JSON.stringify(["commute",pair.id,mode]),type:overlap?"overlap":pair.crossCity?"intercity":"commute-time",
-    segmentId:pair.id, severity:confirmed?"high":"info",status:confirmed?"confirmed":"uncertain",
-    eventIds:[pair.from.event.id,pair.to.event.id],stale,
-    evidence:route ? [...sources,{source:"amap",recordId:pair.id,observedAt:route.observedAt,
-      confidence:route.source === "amap" ? "recorded" : "inferred",stale:routeStale(route)}] : sources,
-    title:overlap?"日程时间重叠":confirmed?"通勤时间不足":"通勤时间待核实",
-    basis:confirmed && !overlap ? `日历间隔 ${pair.gapMinutes} 分钟，高德查询约 ${route?.minutes} 分钟` :
-      overlap ? "日程占用时间与下一场重叠" : stale ? "日历或路线证据需要更新" : "尚无可用于判断的路线",
-    action:{kind:overlap?"review-calendar":"review-route",label:verdict.advice ?? (overlap?"核对两场日程":"查询路线")}};
-  return {verdict,risk};
+    segmentId:pair.id, severity:confirmed?"high":verdict.status === "tight"?"medium":"info",
+    status:confirmed?"confirmed":"uncertain",
+    eventIds:[pair.from.event.id,pair.to.event.id],stale:evidenceStale,
+    evidence:result ? [...sources,{source:result.source,recordId:pair.id,observedAt:result.observedAt,
+      confidence:result.source === "estimate" ? "inferred" : "recorded",stale:routeStale}] : sources,
+    title:overlap?"日程时间重叠":confirmed?"通勤时间不足":verdict.status === "tight"?"通勤时间紧张":
+      verdict.status === "stale"?"路线参考已过期":"通勤时间待核实",
+    basis:commuteBasis(pair,verdict,result),
+    action:{kind:overlap?"review-calendar":"review-route",
+      label:overlap?"核对两场日程":verdict.status === "stale"?"刷新路线":
+        confirmed && verdict.latestDeparture ? `最迟 ${legClock(verdict.latestDeparture)} 出发` : "查询路线"}};
+  return {verdict,plan,risk};
+}
+
+function commuteBasis(pair:TodayLegPair, plan:LegAssessment, route?:RouteEvidence) {
+  const buffer=plan.bufferMinutes ? `，缓冲 ${plan.bufferMinutes} 分钟` : "";
+  if (plan.status === "overlap") return `日程占用时间与下一场重叠 ${plan.shortBy} 分钟`;
+  if (plan.status === "insufficient") return `可用 ${plan.availableMinutes} 分钟，路线约 ${plan.routeMinutes} 分钟${buffer}，差 ${plan.shortBy} 分钟`;
+  if (plan.status === "tight") return `可用 ${plan.availableMinutes} 分钟，路线约 ${plan.routeMinutes} 分钟${buffer}，仅余 ${plan.remainingMinutes} 分钟`;
+  if (plan.status === "stale") return route ? `路线查询于 ${new Date(route.observedAt ?? 0).toLocaleString("zh-CN")}，已超过时效` : "路线参考已过期";
+  if (plan.routeState === "missing" && !pair.sameSpot) return "尚无可用于判断的路线";
+  return plan.advice || "信息不完整，暂不下结论";
 }
 
 export function assessTrip(trip:Trip,status:Freshness,transfers:TripTransfer[] = [],routes:Record<string,RouteEvidence> = {}):TravelRisk[] {

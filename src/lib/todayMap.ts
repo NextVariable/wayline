@@ -21,8 +21,6 @@ export interface TodayLegPair {
   defaultMode: TravelMode;
 }
 
-const WALK_LIMIT_KM = 1.2;
-
 /** Great-circle distance in kilometres. */
 export function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   const rad = (d: number) => (d * Math.PI) / 180;
@@ -31,8 +29,9 @@ export function haversineKm(a: { lat: number; lng: number }, b: { lat: number; l
   return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-export const defaultMode = (directKm: number, crossCity: boolean): TravelMode =>
-  crossCity ? "driving" : directKm < WALK_LIMIT_KM ? "walking" : "transit";
+/** 用户未选择时的初始展示方式：市内统一公交地铁，跨城只做道路参考。 */
+export const defaultMode = (_directKm: number, crossCity: boolean): TravelMode =>
+  crossCity ? "driving" : "transit";
 
 /** Local calendar day of an instant on this device, as YYYY-MM-DD. */
 export function localDateKey(value: string | number | Date) {
@@ -103,29 +102,8 @@ export function legPairs(events: CalendarEntry[], dateKey: string, dayOf: (event
   return pairs;
 }
 
-export interface LegOption { mode: TravelMode; minutes: number; source: "amap" | "estimate" }
-export interface LegVerdict { status: "ok" | "late" | "overlap" | "unknown"; shortBy?: number; advice?: string }
+export interface LegOption { mode: TravelMode; minutes: number; source: "amap" | "estimate" | "synthetic" }
 
 export const modeName = (mode: TravelMode) => ({ walking: "步行", transit: "地铁公交", driving: "打车", selfDrive: "自驾" })[mode];
-
-/**
- * Can this leg be made? Only a time the map service actually returned can be late: an estimate is shown but never raises
- * an alarm. When it cannot be made, exactly one fix is offered: another looked-up mode that fits (the fastest), else leaving earlier.
- */
-export function judgeLeg(pair: TodayLegPair, options: LegOption[], chosen: TravelMode): LegVerdict {
-  if (pair.gapMinutes < 0) return { status: "overlap" };
-  if (pair.sameSpot) return { status: "ok" };
-  if (!Number.isFinite(pair.gapMinutes)) return { status: "unknown" };
-  if (pair.endPending) return { status: "unknown", advice: "上一场结束时间待确认，补齐后再判断能否赶上" };
-  const current = options.find(o => o.mode === chosen);
-  if (!current || current.source !== "amap") return { status: "unknown" };
-  const shortBy = Math.ceil(current.minutes) - pair.gapMinutes;
-  if (shortBy <= 0) return { status: "ok" };
-  const faster = options
-    .filter(o => routeProviderMode(o.mode) !== routeProviderMode(chosen) && o.source === "amap" && Math.ceil(o.minutes) <= pair.gapMinutes)
-    .sort((a, b) => a.minutes - b.minutes)[0];
-  const advice = faster
-    ? `改用${modeName(faster.mode)}约 ${Math.ceil(faster.minutes)} 分钟`
-    : `如需准时，上一场需提前 ${Math.ceil(shortBy / 5) * 5} 分钟离开`;
-  return { status: "late", shortBy, advice };
-}
+/** 稳定的地点对键：模式偏好、缓冲覆盖都按它存储，改期不影响选择。 */
+export const placePairKey = (pair: Pick<TodayLegPair, "from" | "to">) => JSON.stringify([pair.from.place.id, pair.to.place.id]);

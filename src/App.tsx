@@ -18,7 +18,7 @@ import { GoogleCalendarConnection } from "./components/GoogleCalendarConnection"
 import { CalendarPlaceHint } from "./components/CalendarPlaceHint";
 import { TodayPanel, type TodaySegment } from "./components/TodayPanel";
 import { OfflineNotice } from "./components/OfflineNotice";
-import { localDateKey, type TodayLegPair, type TravelMode } from "./lib/todayMap";
+import { localDateKey, placePairKey, routeProviderMode, type TodayLegPair, type TravelMode } from "./lib/todayMap";
 import { useTodayLegs, type LegResult } from "./lib/useTodayLegs";
 import { BusinessTripsPanel } from "./components/BusinessTripsPanel";
 import { readBusinessTripSettings, tripPlaces, writeBusinessTripSettings, type BusinessTripSettings } from "./lib/businessTrips";
@@ -28,7 +28,6 @@ import { buildTripActions, type TripAction } from "./lib/actionItems";
 import { mergeWorkspaceEvents } from "./lib/scheduleEvents";
 const calendarLayerKey = (owner: string) => `whatto.mapCalendarLayer.${owner}`;
 const readCalendarLayer = (owner: string) => { try { return localStorage.getItem(calendarLayerKey(owner)) !== "off"; } catch { return true; } };
-const placePairKey = (pair: TodayLegPair) => JSON.stringify([pair.from.place.id, pair.to.place.id]);
 const dayLabel = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric" });
 const noTripLines: [] = [];
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -308,6 +307,8 @@ export default function App() {
     return () => { window.clearInterval(timer); document.removeEventListener("visibilitychange", update); };
   }, []);
   const [legPreference, setLegPreference] = useState<{ owner: string; values: Record<string, TravelMode> }>();
+  const [bufferPreference, setBufferPreference] = useState<{ owner: string; values: Record<string, number> }>();
+  const [compareLeg, setCompareLeg] = useState<string | null>(null);
   const [legFocus, setLegFocus] = useState<{ owner: string; id: string | null }>();
   const legFocusKey = `whatto.legFocus.${activeUser.id}`;
   const restoredLegFocus = useMemo(() => {
@@ -654,6 +655,22 @@ export default function App() {
   }, [legPreference, legModeKey, activeUser.id]);
   const choices = useMemo(() => Object.fromEntries(pairs.map(pair =>
     [pair.id, preferences[placePairKey(pair)] ?? pair.defaultMode])), [pairs, preferences]);
+  const bufferKey = `wayline.routeBuffers.${activeUser.id}`;
+  const bufferOverrides = useMemo(() => {
+    if (bufferPreference?.owner === activeUser.id) return bufferPreference.values;
+    try {
+      const stored = JSON.parse(localStorage.getItem(bufferKey) ?? "{}");
+      return Object.fromEntries(Object.entries(stored ?? {}).filter(([, minutes]) =>
+        typeof minutes === "number" && Number.isFinite(minutes) && minutes >= 0 && minutes <= 360)) as Record<string, number>;
+    } catch { return {}; }
+  }, [bufferPreference, bufferKey, activeUser.id]);
+  const chooseBuffer = (pair: TodayLegPair, minutes: number | undefined) => {
+    const values = { ...bufferOverrides };
+    const key = placePairKey(pair);
+    if (minutes === undefined) delete values[key]; else values[key] = minutes;
+    setBufferPreference({ owner: activeUser.id, values });
+    try { localStorage.setItem(bufferKey, JSON.stringify(values)); } catch { /* retain the selection for this session */ }
+  };
   const chooseTodayMode = (pair: TodayLegPair, mode: TravelMode) => {
     const values = { ...preferences, [placePairKey(pair)]: mode };
     setLegPreference({ owner: activeUser.id, values });
@@ -661,7 +678,7 @@ export default function App() {
   };
   const todayVisible = !activeOverlay && !tripActive;
   const { legs: liveTodayLegs, loading: todayLoading } = useTodayLegs({
-    pairs: todayVisible && !demoActive ? pairs : [], choices, owner: activeUser.id, retryCount: retryTodayRoutes,
+    pairs: todayVisible && !demoActive ? pairs : [], choices, owner: activeUser.id, retryCount: retryTodayRoutes, compare: compareLeg,
   });
   const demoTodayLegs = useMemo(() => demoActive && todayVisible ? demoLegResults(pairs, demoNow) : {},
     [demoActive, todayVisible, pairs, demoNow]);
@@ -678,12 +695,16 @@ export default function App() {
   }, [demoActive,demoNow,clockNow,googleCalendar.status,googleCalendar.error,mailbox]);
   const todaySegments = useMemo<TodaySegment[]>(() => pairs.map(pair => {
     const mode = choices[pair.id];
-    const options = Object.values(todayLegResults[pair.id] ?? {});
-    return {pair, mode, result:todayLegResults[pair.id]?.[mode], ...assessCommute(pair, options, mode, freshness)};
-  }), [pairs, choices, todayLegResults, freshness]);
+    const values = todayLegResults[pair.id] ?? {};
+    const options = values;
+    const result = values[mode] ?? values[routeProviderMode(mode)];
+    const bufferOverride = bufferOverrides[placePairKey(pair)];
+    const assessment = assessCommute(pair, Object.values(values), mode, freshness, { bufferOverride });
+    return {pair, mode, result, options, bufferOverride, ...assessment};
+  }), [pairs, choices, todayLegResults, freshness, bufferOverrides]);
   const todayConflicts = useMemo(() => calendarRisks(workspaceEvents,freshness,today?.dateKey ?? effectiveTodayKey)
-    .filter(risk => risk.type === "overlap" && !todaySegments.some(({pair,verdict}) =>
-      verdict.status === "overlap" && pair.from.event.id === risk.eventIds[0] && pair.to.event.id === risk.eventIds[1])),
+    .filter(risk => risk.type === "overlap" && !todaySegments.some(({pair,plan}) =>
+      plan.status === "overlap" && pair.from.event.id === risk.eventIds[0] && pair.to.event.id === risk.eventIds[1])),
     [workspaceEvents,freshness,today,effectiveTodayKey,todaySegments]);
   const todayEventIds = useMemo(() => new Set(workspaceEvents
     .filter(event => (demoActive ? eventDay(event) : localDateKey(event.start)) === effectiveTodayKey).map(event => event.id)),
@@ -705,8 +726,8 @@ export default function App() {
     now: clockNow,
   }), [todayConflicts, todayTripRisks, todaySegments, workspaceEvents, clockNow]);
   const showTodayOnMap = todayVisible && calendarLayer && todayStops.length > 0;
-  const todayRoutes = useMemo(() => showTodayOnMap ? todaySegments.flatMap(({ pair, result, verdict }) =>
-    result && isCurrentRoute(result,clockNow) ? [{ id: pair.id, points: result.points, late: verdict.status === "late" || verdict.status === "overlap" }] : []
+  const todayRoutes = useMemo(() => showTodayOnMap ? todaySegments.flatMap(({ pair, result, plan }) =>
+    result && isCurrentRoute(result,clockNow) ? [{ id: pair.id, points: result.points, late: plan.status === "insufficient" || plan.status === "overlap" }] : []
   ) : undefined, [showTodayOnMap, todaySegments, clockNow]);
   const todayPlaces = useMemo(() => showTodayOnMap ? todayStops
     .filter((stop, index, stops) => stops.findIndex(item => samePlace(item.place, stop.place)) === index)
@@ -1629,6 +1650,9 @@ export default function App() {
           conflicts={todayConflicts}
           actions={todayActions}
           onAction={runAction}
+          now={demoActive ? demoNow : clockNow}
+          onCompare={setCompareLeg}
+          onBufferChange={chooseBuffer}
           nextStopId={todayStops.find(stop => Date.parse(stop.event.start)>=clockNow)?.event.id}
           syncWarning={!freshness.calendarCurrent && todayStops.some(stop => stop.event.google)}
           onNavigate={rememberLegFocus}
@@ -1671,6 +1695,7 @@ export default function App() {
         openConnections={resumedCommute?.owner === activeUser.id && resumedCommute.tripId === selectedModel?.id}
         connections={selectedModel && selectedPlan && <>
           <BusinessTripCommute key={`${businessRevision}:${businessOverviewCommand}`} trip={selectedModel} freshness={freshness}
+            bufferOverrides={bufferOverrides}
             initialChoice={resumedCommute?.owner === activeUser.id && resumedCommute.tripId === selectedModel.id ? resumedCommute.choice : undefined}
             onNavigate={choice => {
               try { sessionStorage.setItem(businessNavKey, JSON.stringify({tripId:selectedModel.id, choice})); } catch { /* retain the current view */ }

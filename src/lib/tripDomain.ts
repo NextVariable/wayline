@@ -8,7 +8,7 @@ export type CalendarEvent = CalendarEntry;
 export type { Place };
 export type Booking = TripBooking;
 export interface SourceProvenance {
-  source: "google-calendar" | "calendar-file" | "gmail" | "amap" | "wayline";
+  source: "google-calendar" | "calendar-file" | "gmail" | "amap" | "wayline" | "synthetic" | "estimate";
   recordId: string;
   observedAt?: number;
   confidence: "recorded" | "inferred";

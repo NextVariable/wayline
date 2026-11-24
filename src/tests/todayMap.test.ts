@@ -3,7 +3,7 @@ process.env.TZ = 'Asia/Shanghai';
 import {describe, it, expect} from 'vitest';
 import {initialUserPlaces} from './fixtures/userPlaces';
 import type {CalendarEntry} from '../lib/calendarEvents';
-import {pickDay, stopsOfDay, legPairs, defaultMode, haversineKm, judgeLeg, modeName, type TravelMode, type TodayLegPair, type LegOption} from '../lib/todayMap';
+import {pickDay, stopsOfDay, legPairs, defaultMode, haversineKm, modeName, placePairKey} from '../lib/todayMap';
 
 // Fixed clock: 13 Nov 2026, 10:00 in Shanghai.
 const now = new Date('2026-11-13T10:00:00+08:00');
@@ -100,11 +100,10 @@ describe('neighbouring events', () => {
     expect(legPairs([a, stale, c], '2026-11-13')).toEqual([]);
   });
 
-  it('picks walking under 1.2 km, transit in a city, driving across cities', () => {
+  it('defaults to transit in a city, road reference across cities', () => {
     expect(haversineKm(guomao, near)).toBeLessThan(0.2);
-    expect(defaultMode(0.5, false)).toBe('walking');
-    expect(defaultMode(1.19, false)).toBe('walking');
-    expect(defaultMode(1.2, false)).toBe('transit');
+    expect(defaultMode(0.5, false)).toBe('transit');
+    expect(defaultMode(1.19, false)).toBe('transit');
     expect(defaultMode(8, false)).toBe('transit');
     expect(defaultMode(0.5, true)).toBe('driving');
     expect(defaultMode(1200, true)).toBe('driving');
@@ -122,81 +121,16 @@ describe('neighbouring events', () => {
   });
 });
 
-describe('whether a leg can be made', () => {
-  const pairWith = (gapMinutes: number, mode: TravelMode = 'transit'): TodayLegPair => {
+describe('leg labels', () => {
+  it('names the modes people use', () => {
+    expect([modeName('walking'), modeName('transit'), modeName('driving'), modeName('selfDrive')]).toEqual(['步行', '地铁公交', '打车', '自驾']);
+  });
+
+  it('builds a stable key from the two places, not the times', () => {
     const a = placed(guomao, '2026-11-13T09:00:00+08:00', '2026-11-13T10:00:00+08:00');
     const b = placed(beijingSouth, '2026-11-13T12:00:00+08:00', '2026-11-13T13:00:00+08:00');
     const [pair] = legPairs([a, b], '2026-11-13');
-    return {...pair, gapMinutes, defaultMode: mode};
-  };
-  const opt = (mode: TravelMode, minutes: number, source: 'amap' | 'estimate' = 'amap'): LegOption => ({mode, minutes, source});
-
-  it('is fine when the trip fits the gap exactly or with room to spare', () => {
-    expect(judgeLeg(pairWith(30), [opt('transit', 30)], 'transit')).toEqual({status: 'ok'});
-    expect(judgeLeg(pairWith(30), [opt('transit', 12)], 'transit')).toEqual({status: 'ok'});
-  });
-
-  it('flags a leg that runs over and says by how many minutes', () => {
-    const verdict = judgeLeg(pairWith(30), [opt('transit', 42)], 'transit');
-    expect(verdict.status).toBe('late');
-    expect(verdict.shortBy).toBe(12);
-  });
-
-  it('suggests switching to the fastest other mode that makes it', () => {
-    const options = [opt('walking', 40), opt('transit', 20), opt('driving', 15)];
-    const verdict = judgeLeg(pairWith(30), options, 'walking');
-    expect(verdict.advice).toBe('改用打车约 15 分钟');
-    const onlyTransit = judgeLeg(pairWith(30), [opt('walking', 40), opt('transit', 20)], 'walking');
-    expect(onlyTransit.advice).toBe('改用地铁公交约 20 分钟');
-  });
-
-  it('otherwise suggests leaving earlier, rounded up to 5 minutes', () => {
-    const options = [opt('walking', 70), opt('transit', 47), opt('driving', 45)];
-    const verdict = judgeLeg(pairWith(30), options, 'transit');
-    expect(verdict.shortBy).toBe(17);
-    expect(verdict.advice).toBe('如需准时，上一场需提前 20 分钟离开');
-  });
-
-  it('gives one piece of advice, never a list', () => {
-    const verdict = judgeLeg(pairWith(30), [opt('walking', 90), opt('transit', 40), opt('driving', 50)], 'walking');
-    expect(typeof verdict.advice).toBe('string');
-    expect(Object.keys(verdict).sort()).toEqual(['advice', 'shortBy', 'status']);
-  });
-
-  it('distinguishes back-to-back meetings from overlapping meetings', () => {
-    const verdict = judgeLeg(pairWith(0), [opt('transit', 10)], 'transit');
-    expect(verdict).toMatchObject({status: 'late', shortBy:10});
-    expect(judgeLeg({...pairWith(0), sameSpot:true}, [], 'transit')).toEqual({status:'ok'});
-    expect(judgeLeg(pairWith(-15), [opt('transit', 10)], 'transit')).toEqual({status: 'overlap'});
-  });
-
-  it('never flags an estimated leg', () => {
-    expect(judgeLeg(pairWith(10), [opt('transit', 90, 'estimate')], 'transit')).toEqual({status: 'unknown'});
-  });
-
-  it('is unknown when the chosen mode has not been looked up', () => {
-    expect(judgeLeg(pairWith(10), [opt('walking', 5)], 'transit')).toEqual({status: 'unknown'});
-    expect(judgeLeg(pairWith(10), [], 'transit')).toEqual({status: 'unknown'});
-  });
-
-  it('does not suggest a mode that was only estimated', () => {
-    const verdict = judgeLeg(pairWith(30), [opt('transit', 42), opt('driving', 10, 'estimate')], 'transit');
-    expect(verdict.advice).toBe('如需准时，上一场需提前 15 分钟离开');
-  });
-
-  it('names the modes people use', () => {
-    expect([modeName('walking'), modeName('transit'), modeName('driving')]).toEqual(['步行', '地铁公交', '打车']);
-  });
-});
-
-describe('leaving earlier rounds up to the next 5 minutes', () => {
-  it('keeps an exact multiple of 5 and rounds anything else up', () => {
-    const a = placed(guomao, '2026-11-13T09:00:00+08:00', '2026-11-13T10:00:00+08:00');
-    const b = placed(beijingSouth, '2026-11-13T12:00:00+08:00', '2026-11-13T13:00:00+08:00');
-    const [base] = legPairs([a, b], '2026-11-13');
-    const advice = (minutes: number) => judgeLeg({...base, gapMinutes: 30}, [{mode: 'transit', minutes, source: 'amap'}], 'transit').advice;
-    expect(advice(35)).toBe('如需准时，上一场需提前 5 分钟离开');
-    expect(advice(36)).toBe('如需准时，上一场需提前 10 分钟离开');
-    expect(advice(30.2)).toBe('如需准时，上一场需提前 5 分钟离开');
+    const moved = {...pair, gapMinutes: 99};
+    expect(placePairKey(moved)).toBe(placePairKey(pair));
   });
 });

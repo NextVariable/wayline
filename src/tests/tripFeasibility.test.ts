@@ -39,10 +39,10 @@ it("uses current route evidence and accounts for an intervening online meeting",
   expect(pair.departure).toBe("2026-11-20T01:50:00.000Z");
   const route:RouteEvidence={mode:"transit",source:"amap",minutes:25,points:[],observedAt:freshness.now};
   expect(assessCommute(pair,[route],"transit",freshness)).toMatchObject({
-    verdict:{status:"late",shortBy:15},risk:{severity:"high",status:"confirmed",eventIds:["A","B"]},
+    verdict:{status:"insufficient",shortBy:25},risk:{severity:"high",status:"confirmed",eventIds:["A","B"]},
   });
   expect(assessCommute(pair,[{...route,observedAt:freshness.now-31*60_000}],"transit",freshness)).toMatchObject({
-    verdict:{status:"unknown"},risk:{status:"uncertain",stale:true},
+    verdict:{status:"stale"},risk:{status:"uncertain",stale:true},
   });
   expect(assessCommute(pair,[],"transit",freshness).risk).toMatchObject({status:"uncertain",type:"commute-time"});
 });
