@@ -84,6 +84,15 @@ describe("smart intake parsing", () => {
     });
   });
 
+  it("keeps a reminder clause out of the next arrangement title", () => {
+    const result = parseIntakeText(
+      "明天上午十点在上海中心见客户，下午两点去虹桥机场 T2，提前十分钟提醒",
+      { now },
+    );
+    expect(result.items).toHaveLength(2);
+    expect(result.items[1]).toMatchObject({ time: "14:00", title: "前往虹桥机场 T2" });
+  });
+
   it("reads an explicit start and end time, keeping the timezone", () => {
     const result = parseIntakeText(
       "明天下午三点到五点去海上世界见客户",

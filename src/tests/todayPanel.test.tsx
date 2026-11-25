@@ -24,13 +24,13 @@ const options: LegResult[] = [
   { mode: "transit", minutes: 38, points: [], source: "amap", observedAt: NOW },
   { mode: "driving", minutes: 20, points: [], source: "amap", observedAt: NOW },
 ];
-const render = (mode: TravelMode, loading = false, routes = options) => renderToStaticMarkup(
+const render = (mode: TravelMode, loading = false, routes = options, focused?: string) => renderToStaticMarkup(
   <TodayPanel heading="今天 · 11月13日" stops={stops}
     segments={[{ pair, mode, result: routes.find(route => route.mode === mode), plan: assessLeg({ pair, route: routes.find(route => route.mode === mode), mode, now: NOW }) }]}
-    loading={loading} focused={null} now={NOW} onOpenSchedule={() => {}} onSelectStop={() => {}} onChooseMode={() => {}} onFocus={() => {}} onRetry={() => {}} />,
+    loading={loading} focused={focused ?? null} now={NOW} onOpenSchedule={() => {}} onSelectStop={() => {}} onChooseMode={() => {}} onFocus={() => {}} onRetry={() => {}} />,
 );
 
-it("renders the selected route and its verdict together", () => {
+it("keeps the default leg to mode, duration and the necessary risk", () => {
   const transit = render("transit");
   expect(transit).toContain(">查看日程<");
   expect(transit).toContain("地铁公交 38 分钟");
@@ -38,10 +38,22 @@ it("renders the selected route and its verdict together", () => {
   expect(transit).toContain('data-status="insufficient"');
   const taxi = render("driving");
   expect(taxi).toContain("打车 20 分钟");
-  expect(taxi).toContain("时间充足 · 余 15 分钟");
   expect(taxi).toContain('data-status="sufficient"');
   expect(taxi).not.toContain("时间不足");
-  expect(taxi).toContain('aria-pressed="true">打车');
+  // 缓冲、余量与来源默认收起，按需展开。
+  expect(taxi).not.toContain("剩余时间");
+  expect(taxi).not.toContain("缓冲组成");
+  expect(taxi).not.toContain("查询");
+});
+
+it("reveals buffer, remaining time and mode comparison only when opened", () => {
+  const open = render("driving", false, options, pair.id);
+  expect(open).toContain("可用时间");
+  expect(open).toContain("剩余时间");
+  expect(open).toContain("15 分钟");
+  expect(open).toContain("缓冲组成");
+  expect(open).toContain('aria-pressed="true">打车');
+  expect(open).toContain("高德");
 });
 
 it("offers a retry for an unavailable route without inventing a time", () => {
@@ -54,7 +66,8 @@ it("offers a retry for an unavailable route without inventing a time", () => {
   expect(unavailable).not.toContain('data-status="insufficient"');
 });
 
-it('shows when the selected route was observed', () => {
-  const markup=render('driving',false,options);
-  expect(markup).toContain('查询</small>');
+it('shows when the selected route was observed after expanding', () => {
+  const markup = render("driving", false, options, pair.id);
+  expect(markup).toContain("查询");
+  expect(markup).toContain("高德");
 });

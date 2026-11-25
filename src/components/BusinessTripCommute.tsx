@@ -2,11 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import type { Trip } from "../lib/tripDomain";
 import { assessCommute, isCurrentRoute, type Freshness } from "../lib/tripFeasibility";
 import { fetchLeg, type LegResult } from "../lib/useTodayLegs";
-import { modeName, placePairKey, type TravelMode } from "../lib/todayMap";
+import { placePairKey, type TravelMode } from "../lib/todayMap";
 import { routeMapLink } from "../lib/navigationLinks";
-import { LEG_STATUS_LABEL, legClock, sourceLabel } from "../lib/smartRoutes";
-
-const queryTime = new Intl.DateTimeFormat("zh-CN", {hour:"2-digit", minute:"2-digit", hour12:false});
+import { sourceLabel } from "../lib/smartRoutes";
+import { RouteLeg } from "./RouteLeg";
 
 export type CommuteChoice = { id:string; mode:TravelMode };
 
@@ -49,30 +48,42 @@ export function BusinessTripCommute({ trip, onRoute, initialChoice, onNavigate, 
     });
     return () => controller.abort();
   }, [pair, selection]);
-  return <>{trip.segments.flatMap(segment => segment.kind === "commute" && !segment.pair.sameSpot ? [segment.pair] : [])
-    .map(pair => {
+  const links = trip.segments.flatMap(segment => segment.kind === "commute" && !segment.pair.sameSpot ? [segment.pair] : []);
+  if (!links.length) return null;
+  return <section className="business-trip-connections">
+    <h2>路段</h2>
+    {links.map(pair => {
       const current = selection?.id === pair.id ? selection : undefined;
       const currentPlan = current ? plan : undefined;
       const routeRisk = current ? risk : undefined;
-      const link = current && routeMapLink(pair.from.place, pair.to.place, current.mode);
-      return <section className="business-trip-day" key={pair.id}>
-        <h3>{pair.from.place.name} → {pair.to.place.name}</h3>
-        <div className="business-trip-modes">
-          {(["walking","transit","driving","selfDrive"] as const).map(mode => <button key={mode} type="button" className="text-action"
-            aria-pressed={current?.mode === mode} disabled={current?.mode === mode && current.result === undefined} onClick={() => { onRoute(null); setSelection({id:pair.id, mode}); }}>
-            {mode === "selfDrive" ? "自驾" : modeName(mode)}</button>)}
-        </div>
-        {current && <small role="status">{current.result === undefined ? "查询中…" : current.result ?
-          `约 ${current.result.minutes} 分钟 · ${sourceLabel(current.result, current.mode)}${current.result.observedAt ? ` ${queryTime.format(current.result.observedAt)} 查询` : ""}` : "暂未查到路线"} {current.result && link &&
-          <a className="business-commute-navigation" href={link.href} target={link.target} rel="noreferrer" onClick={() => { if (!link.target) onNavigate({ id:pair.id, mode:current.mode }); }}>导航</a>}</small>}
-        {currentPlan && <p className="business-commute-plan" data-status={currentPlan.status}>
-          <strong>{LEG_STATUS_LABEL[currentPlan.status]}</strong>
-          {currentPlan.remainingMinutes !== null && ` · 余 ${currentPlan.remainingMinutes} 分钟`}
-          {currentPlan.latestDeparture && ` · 最迟 ${legClock(currentPlan.latestDeparture)} 出发`}
-          {` · 缓冲 ${currentPlan.bufferMinutes} 分钟`}
-        </p>}
-        {currentPlan?.advice && <p className="field-help">{currentPlan.advice}</p>}
-        {routeRisk && <p className={routeRisk.severity === "high" ? "inline-error" : "field-help"}>{routeRisk.title} · {routeRisk.basis} · {routeRisk.action.label}</p>}
-      </section>;
-    })}</>;
+      const link = current?.result ? routeMapLink(pair.from.place, pair.to.place, current.mode) : null;
+      return <div className="trip-leg-row" key={pair.id}>
+        <p className="trip-leg-route">{pair.from.place.name}<span aria-hidden="true"> → </span>{pair.to.place.name}</p>
+        <RouteLeg
+          mode={current?.mode ?? "transit"}
+          minutes={current?.result?.minutes}
+          plan={currentPlan}
+          loading={Boolean(current && current.result === undefined)}
+          failed={Boolean(current && current.result === null)}
+          focused={Boolean(current)}
+          risk={routeRisk}
+          source={current?.result ? sourceLabel(current.result, current.mode) : undefined}
+          observedAt={current?.result?.observedAt}
+          bufferOverride={pair ? bufferOverrides[placePairKey(pair)] : undefined}
+          options={(["walking","transit","driving","selfDrive"] as const).map(mode => ({
+            mode,
+            minutes: mode === current?.mode ? current?.result?.minutes : undefined,
+          }))}
+          onChooseMode={mode => { onRoute(null); setSelection({ id: pair.id, mode }); }}
+          onRetry={() => { onRoute(null); setSelection({ id: pair.id, mode: current?.mode ?? "transit" }); }}
+          onToggle={open => { if (!open) onRoute(null); }}
+          navigation={link ? { href: link.href, label: "导航", target: link.target } : null}
+          onNavigate={() => { if (current && !link?.target) onNavigate({ id: pair.id, mode: current.mode }); }}
+          note={current?.result?.source === "synthetic"
+            ? <p className="leg-note">合成演示路线，仅用于功能验收，不代表真实高德结果。</p>
+            : null}
+        />
+      </div>;
+    })}
+  </section>;
 }

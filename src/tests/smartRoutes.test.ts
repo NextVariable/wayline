@@ -85,6 +85,41 @@ describe("统一可行性计算", () => {
     expect(plan.shortBy).toBe(90);
     expect(plan.advice).toContain("需查询实时路线复核");
   });
+
+  it("未来参考路线即使算不过来也不输出确定的时间不足", () => {
+    const pair = makePair({ start: "2026-11-25T11:45:00+08:00", end: "2026-11-25T12:45:00+08:00", departure: "2026-11-25T11:00:00+08:00" });
+    const plan = assessLeg({ pair, route: route(90), mode: "transit", now: NOW });
+    expect(plan.status).toBe("reference");
+    expect(plan.shortBy).toBe(55);
+    expect(plan.advice).toContain("参考路线可能不足 55 分钟");
+    expect(plan.advice).not.toContain("仍差 55 分钟");
+  });
+
+  it("车站与机场预留未确认时保持待确认，不直接判定不足", () => {
+    const pair = makePair({ gapMinutes: 45, toPlace: place("airport", "虹桥机场T2") });
+    const plan = assessLeg({ pair, route: route(20), mode: "transit", now: NOW });
+    expect(plan).toMatchObject({ status: "pending", bufferPending: true });
+    expect(plan.advice).toContain("确认后再判断");
+  });
+
+  it("结束时间早于开始时间视为无效输入，不擅自跨到次日", () => {
+    const pair = makePair();
+    const broken = { ...pair, from: { ...pair.from, event: { ...pair.from.event, start: "2026-11-24T11:00:00+08:00", end: "2026-11-24T10:00:00+08:00" } } };
+    expect(assessLeg({ pair: broken, route: route(10), mode: "transit", now: NOW }))
+      .toMatchObject({ status: "pending", remainingMinutes: null });
+  });
+
+  it("跨午夜的相邻安排按真实时间差计算", () => {
+    const from = event("night", "2026-11-23T23:50:00+08:00", "2026-11-24T00:00:00+08:00");
+    const to = event("dawn", "2026-11-24T00:30:00+08:00", "2026-11-24T01:30:00+08:00");
+    const pair: TodayLegPair = {
+      id: "night>dawn", from: { event: from, place: place("a", "A") }, to: { event: to, place: place("b", "B") },
+      sameSpot: false, crossCity: false, directKm: 3, gapMinutes: 30, departure: from.end,
+      defaultMode: "driving",
+    };
+    const plan = assessLeg({ pair, route: route(10, { mode: "driving" }), mode: "driving", now: NOW });
+    expect(plan).toMatchObject({ status: "sufficient", availableMinutes: 30, remainingMinutes: 10 });
+  });
 });
 
 describe("路线时效", () => {

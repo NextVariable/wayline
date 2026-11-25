@@ -97,7 +97,7 @@ export function bufferPlan(pair: TodayLegPair, override?: number): BufferPlan {
 /** 这段安排是否发生在本地时间的未来某天。未来路线只能作为参考。 */
 export function isFutureLeg(pair: TodayLegPair, now: number) {
   const departure = pair.departure ?? pair.from.event.end;
-  return localDateKey(departure) !== localDateKey(now);
+  return localDateKey(departure) > localDateKey(now);
 }
 
 /** 路线的时效语义。缺失与过期分开，未来路线单独标记参考。 */
@@ -165,8 +165,14 @@ export function assessLeg(input: {
   const unknown = (status: LegStatus, advice: string, shortBy = 0): LegAssessment => ({
     ...base, status, remainingMinutes: null, latestDeparture: null, shortBy, advice,
   });
-  if (available === null || !Number.isFinite(Date.parse(pair.from.event.end))) {
+  const fromStart = Date.parse(pair.from.event.start);
+  const fromEnd = Date.parse(pair.from.event.end);
+  if (available === null || !Number.isFinite(fromEnd) || !Number.isFinite(fromStart)) {
     return unknown("pending", "上一场结束时间无效或不完整，先补齐时间");
+  }
+  // 结束早于开始属于无效时间，不做“解释成次日”的猜测。
+  if (fromEnd < fromStart) {
+    return unknown("pending", "上一场结束时间早于开始时间，先核对原始日程");
   }
   if (available < 0) {
     return { ...unknown("overlap", "两场日程时间重叠，先调整会议时间", Math.abs(available)) };
@@ -184,27 +190,38 @@ export function assessLeg(input: {
   const remaining = available - minutes - buffer.minutes;
   const latestDeparture = new Date(Date.parse(pair.to.event.start) - (minutes + buffer.minutes) * MINUTE).toISOString();
   const estimateOnly = route?.source === "estimate";
+  // 未来日期与估算路线只给参考语义：即使按参考值算不过来，也不输出确定的风险结论。
+  if (reference) {
+    return {
+      ...base, status: "reference", remainingMinutes: remaining, latestDeparture,
+      shortBy: remaining < 0 ? -remaining : 0,
+      advice: estimateOnly
+        ? `估算${remaining < 0 ? `可能不足 ${-remaining} 分钟` : `约余 ${remaining} 分钟`}，需查询实时路线复核`
+        : remaining < 0
+          ? `参考路线可能不足 ${-remaining} 分钟，出发前需复核`
+          : `按参考路线约余 ${remaining} 分钟，出发前需复核`,
+    };
+  }
+  // 车站/机场预留采用 PRD 建议值而非供应商规则，未确认前保持待确认。
+  if (buffer.pending) {
+    return {
+      ...base, status: "pending", remainingMinutes: remaining, latestDeparture: null, shortBy: 0,
+      advice: `车站/机场预留按建议值 ${buffer.minutes} 分钟，确认后再判断`,
+    };
+  }
   if (remaining < 0) {
     const shortBy = -remaining;
     const departure = legClock(latestDeparture);
-    const advice = estimateOnly
-      ? `估算可能不足 ${shortBy} 分钟，需查询实时路线复核`
-      : `按${sourceLabel(route, mode)} ${minutes} 分钟，留出 ${buffer.minutes} 分钟缓冲后仍差 ${shortBy} 分钟；最迟 ${departure} 出发，或改用更快方式`;
     return {
-      ...base, status: estimateOnly ? "reference" : "insufficient",
-      remainingMinutes: remaining, latestDeparture, shortBy, advice,
+      ...base, status: "insufficient",
+      remainingMinutes: remaining, latestDeparture, shortBy,
+      advice: `按${sourceLabel(route, mode)} ${minutes} 分钟，留出 ${buffer.minutes} 分钟缓冲后仍差 ${shortBy} 分钟；最迟 ${departure} 出发，或改用更快方式`,
     };
   }
   if (remaining < TIGHT_REMAINING_MINUTES) {
     return {
       ...base, status: "tight", remainingMinutes: remaining, latestDeparture, shortBy: 0,
       advice: `剩余 ${remaining} 分钟，低于 ${TIGHT_REMAINING_MINUTES} 分钟建议缓冲，最迟 ${legClock(latestDeparture)} 出发`,
-    };
-  }
-  if (reference) {
-    return {
-      ...base, status: "reference", remainingMinutes: remaining, latestDeparture, shortBy: 0,
-      advice: `按参考路线约余 ${remaining} 分钟，出发前需复核`,
     };
   }
   return {

@@ -23,7 +23,7 @@ it("offers one trip entry and removes the old planning shortcut", () => {
 
 it("keeps the home as compact destinations without guide collections or invented recent places",()=>{
  const html=render({activeFilter:{kind:"status",value:"all",label:"全部地点"}});
- expect(html).toContain('aria-label="行程与地点"');expect(html).toContain('data-library-destination="saved"');expect(html).toContain('行程');expect(html).not.toContain('>指南<');
+ expect(html).toContain('aria-label="工作区与地点"');expect(html).toContain('data-library-destination="saved"');expect(html).toContain('行程');expect(html).not.toContain('>指南<');
  expect(html).not.toContain('最近搜索');expect(html).not.toContain('暂无保存地点');
  expect(html).toContain('placeholder="搜索地点或地址"');
 });

@@ -21,7 +21,8 @@ import { OfflineNotice } from "./components/OfflineNotice";
 import { localDateKey, placePairKey, routeProviderMode, type TodayLegPair, type TravelMode } from "./lib/todayMap";
 import { useTodayLegs, type LegResult } from "./lib/useTodayLegs";
 import { BusinessTripsPanel } from "./components/BusinessTripsPanel";
-import { readBusinessTripSettings, tripPlaces, writeBusinessTripSettings, type BusinessTripSettings } from "./lib/businessTrips";
+import { HistoryPanel } from "./components/HistoryPanel";
+import { groupBusinessTrips, readBusinessTripSettings, tripPlaces, writeBusinessTripSettings, type BusinessTripSettings } from "./lib/businessTrips";
 import { DEMO_USER, DEMO_HOME, createDemoMailbox, demoDay, demoLegResults, enterDemo, exitDemo, readDemoMode, resetDemo } from "./lib/demoWorkspace";
 import { eventDay } from "./lib/tripDay";
 import { buildTripActions, type TripAction } from "./lib/actionItems";
@@ -125,7 +126,7 @@ const defaultFilter: UserFilter = {
   label: "地点",
 };
 type OverlayPanel =
-  "account" | "schedule" | "footprints" | "business-trips";
+  "account" | "schedule" | "footprints" | "business-trips" | "history";
 
 export default function App() {
   const mode = useMapAppearance();
@@ -289,6 +290,7 @@ export default function App() {
     ? calendarState.events : readCalendarEntries(activeUser.id), [calendarState, activeUser.id]);
   const [tripSettingsOverride, setTripSettingsOverride] = useState<{ owner: string; settings: BusinessTripSettings }>();
   const [businessSelection, setBusinessSelection] = useState<{ owner: string; id: string } | null>(null);
+  const [historySelection, setHistorySelection] = useState<{ owner: string; id: string } | null>(null);
   const businessSettings = useMemo(() => tripSettingsOverride?.owner === activeUser.id
     ? tripSettingsOverride.settings : readBusinessTripSettings(activeUser.id), [activeUser.id, tripSettingsOverride]);
   const saveBusinessSettings = (settings: BusinessTripSettings) => {
@@ -806,6 +808,22 @@ export default function App() {
     return pins.filter((place, index) => pins.findIndex(other => samePlace(place, other)) === index);
   }, [selectedBusinessTrip, calendarLayer, businessPlaces, placeLayers, bookingMapPlaces, savedLocations, visitedResourcePlaces]);
   const showingBusinessTrip = activeOverlay === "business-trips" && !!selectedBusinessTrip;
+  const businessHome = effectiveBusinessSettings.home;
+  const businessBoundaries = businessSettings.boundaries;
+  const pastTrips = useMemo(() => {
+    if (!businessHome) return [];
+    return groupBusinessTrips(workspaceEvents, { home: businessHome, boundaries: businessBoundaries }, "0000-01-01", { includePast: true })
+      .filter(trip => trip.days.at(-1)!.date < effectiveTodayKey)
+      .sort((a, b) => b.days[0].date.localeCompare(a.days[0].date));
+  }, [workspaceEvents, businessHome, businessBoundaries, effectiveTodayKey]);
+  const selectedHistoryTrip = historySelection?.owner === activeUser.id
+    ? pastTrips.find(trip => trip.id === historySelection.id) : undefined;
+  const showingHistoryTrip = activeOverlay === "history" && !!selectedHistoryTrip;
+  const historyPlaces = useMemo(() => tripPlaces(selectedHistoryTrip), [selectedHistoryTrip]);
+  const historyMapPlaces = useMemo(() => showingHistoryTrip ? historyPlaces : pastTrips.flatMap(tripPlaces), [showingHistoryTrip, historyPlaces, pastTrips]);
+  const historyMapIndices = useMemo(() => Object.fromEntries(historyPlaces.flatMap((place, index) =>
+    (place.calendarEventIds ?? []).map(id => [id, index + 1]))), [historyPlaces]);
+  const [historyOverviewCommand, setHistoryOverviewCommand] = useState(0);
   const selectBusinessPlace = (place: Place, keepArea = false) => {
     if (!keepArea) setStayArea(null);
     setLocationFocus(0);
@@ -918,6 +936,10 @@ export default function App() {
         if (businessSelection) { setBusinessSelection(null); setSelectedPlace(null); }
         else setActiveOverlay(null);
       }
+      else if (activeOverlay === "history") {
+        if (historySelection) { setHistorySelection(null); setSelectedPlace(null); }
+        else setActiveOverlay(null);
+      }
       else if (activeOverlay) setActiveOverlay(null);
       else {
         setSelectedPlace(null);
@@ -927,7 +949,7 @@ export default function App() {
     };
     window.addEventListener("keydown", dismiss);
     return () => window.removeEventListener("keydown", dismiss);
-  }, [activeOverlay, settingsOpen, detailOrigin, scheduleOrigin, businessSelection,
+  }, [activeOverlay, settingsOpen, detailOrigin, scheduleOrigin, businessSelection, historySelection,
     cancelPendingWorkflow, closeAuxiliary, closeMapSettings, setActiveOverlay, settingsRef]);
 
   const togglePlaceSelection = (place: Place) => {
@@ -1150,8 +1172,9 @@ export default function App() {
     setSettingsOpen(false);
     setSidebarOpen(true);
   };
-  const returnFromWorkflow = (destination: "footprints" | "business-trips") => presentWorkspace(() => {
+  const returnFromWorkflow = (destination: "footprints" | "business-trips" | "history") => presentWorkspace(() => {
     if (destination === "business-trips") setBusinessSelection(null);
+    if (destination === "history") setHistorySelection(null);
     showPlaces();
     requestAnimationFrame(() => {
       document.querySelector<HTMLButtonElement>(`[data-library-destination="${destination}"]`)?.focus({ preventScroll: true });
@@ -1162,6 +1185,16 @@ export default function App() {
     setLocationFocus(0);
     auxiliaryOrigin.current = [];
     setActiveOverlay("business-trips");
+    setSelectedPlace(null);
+    setDetailOrigin(null);
+    setSettingsOpen(false);
+    setSidebarOpen(true);
+  };
+  const showHistory = () => {
+    setWorkspaceCollapsed(false);
+    setLocationFocus(0);
+    auxiliaryOrigin.current = [];
+    setActiveOverlay("history");
     setSelectedPlace(null);
     setDetailOrigin(null);
     setSettingsOpen(false);
@@ -1414,15 +1447,15 @@ export default function App() {
       </header>
       <nav className="workspace-nav" aria-label="工作区">
         <button
-          className={!tripActive && !footprintActive && activeOverlay !== "business-trips" ? "is-active" : ""}
-          aria-current={!tripActive && !footprintActive && activeOverlay !== "business-trips" ? "page" : undefined}
+          className={!tripActive && !footprintActive && activeOverlay !== "business-trips" && activeOverlay !== "history" ? "is-active" : ""}
+          aria-current={!tripActive && !footprintActive && activeOverlay !== "business-trips" && activeOverlay !== "history" ? "page" : undefined}
           onClick={() => {
             setActiveFilter(defaultFilter);
             setGuidesHomeRequest(value => value + 1);
             showPlaces();
           }}
         >
-          地点
+          今天
         </button>
         <button
           className={tripActive || activeOverlay === "business-trips" ? "is-active" : ""}
@@ -1430,6 +1463,24 @@ export default function App() {
           onClick={showTrip}
         >
           行程
+        </button>
+        <button
+          className={activeOverlay === "history" ? "is-active" : ""}
+          aria-current={activeOverlay === "history" ? "page" : undefined}
+          onClick={showHistory}
+        >
+          历史
+        </button>
+        <button
+          className="is-aux"
+          title="地点搜索与收藏"
+          onClick={() => {
+            setActiveFilter(defaultFilter);
+            setGuidesHomeRequest(value => value + 1);
+            showPlaces();
+          }}
+        >
+          地点
         </button>
       </nav>
       <div className="workspace-map">
@@ -1447,9 +1498,9 @@ export default function App() {
           >
             <MapView
               city={city}
-              places={footprintActive ? [] : showingBusinessTrip ? tripVisiblePlaces : mapPlaces}
+              places={footprintActive ? [] : showingBusinessTrip ? tripVisiblePlaces : activeOverlay === "history" ? historyMapPlaces : mapPlaces}
               selectedPlace={selectedPlace}
-              onSelectPlace={showingBusinessTrip ? selectBusinessPlace : togglePlaceSelection}
+              onSelectPlace={showingBusinessTrip || showingHistoryTrip ? selectBusinessPlace : togglePlaceSelection}
               mode={mode}
               mapMode={mapMode}
               focusNonce={focusNonce}
@@ -1457,13 +1508,13 @@ export default function App() {
               onRotationChange={setMapRotation}
               zoomCommand={zoomCommand}
               onZoomStateChange={setZoomState}
-              routePlaces={showingBusinessTrip ? businessMapPlaces : todayPlaces}
-              todayRoutes={showingBusinessTrip ? (activeBusinessRoad ? [activeBusinessRoad] : noTripLines) : todayRoutes}
+              routePlaces={showingBusinessTrip ? businessMapPlaces : showingHistoryTrip ? historyPlaces : activeOverlay === "history" ? historyMapPlaces : todayPlaces}
+              todayRoutes={showingBusinessTrip ? (activeBusinessRoad ? [activeBusinessRoad] : noTripLines) : showingHistoryTrip ? noTripLines : todayRoutes}
               stayArea={activeStayArea}
-              todayFocus={showingBusinessTrip ? activeBusinessRoad?.id : focusedTodayLeg}
+              todayFocus={showingBusinessTrip ? activeBusinessRoad?.id : showingHistoryTrip ? null : focusedTodayLeg}
               routeOverview={!!activeOverlay || !!selectedPlace}
-              routeFitCommand={showingBusinessTrip ? businessOverviewCommand : 0}
-              scopeCities={!tripActive && !showingBusinessTrip && !showTodayOnMap && !footprintActive && cityScope === "selected"
+              routeFitCommand={showingBusinessTrip ? businessOverviewCommand : showingHistoryTrip ? historyOverviewCommand : 0}
+              scopeCities={!tripActive && !showingBusinessTrip && !showingHistoryTrip && !showTodayOnMap && !footprintActive && cityScope === "selected"
                 ? allCities.filter(city => selectedCityNames?.some(name => cityKey(name) === cityKey(city.name))) : undefined}
               myPosition={currentLocation.position}
               locationFocus={locationFocus}
@@ -1680,6 +1731,12 @@ export default function App() {
         onNavigatePanel={presentWorkspace}
         openingEntry={loadingWorkflow}
         onOpenBusinessTrips={() => presentWorkspace(showTrip, "forward")}
+        onOpenHistory={() => presentWorkspace(showHistory, "forward")}
+        onHome={() => {
+          setActiveFilter(defaultFilter);
+          setGuidesHomeRequest(value => value + 1);
+          showPlaces();
+        }}
         onOpenSearch={showPlaces}
       />
       {activeOverlay === "business-trips" && <BusinessTripsPanel
@@ -1744,6 +1801,30 @@ export default function App() {
           setSelectedPlace(null);
           if (value === "join" && previous) setBusinessSelection({ owner: activeUser.id, id: previous.id });
         }}
+      />}
+      {activeOverlay === "history" && <HistoryPanel
+        key={selectedHistoryTrip?.id ?? "history"}
+        trips={pastTrips}
+        selected={selectedHistoryTrip}
+        selectedEventIds={selectedPlace?.calendarEventIds}
+        mapIndices={historyMapIndices}
+        onTrip={id => presentWorkspace(() => {
+          setSelectedPlace(null);
+          setHistorySelection(id ? { owner: activeUser.id, id } : null);
+        }, id ? "forward" : "back")}
+        onBack={() => returnFromWorkflow("history")}
+        onEvent={id => {
+          const place = historyPlaces.find(item => item.calendarEventIds?.includes(id));
+          if (place) selectBusinessPlace(place);
+        }}
+        onOverview={() => {
+          setSelectedPlace(null);
+          setHistoryOverviewCommand(value => value + 1);
+        }}
+        onSchedule={() => openWorkflow("schedule", () => {
+          setScheduleOrigin(null);
+          setActiveOverlay("schedule");
+        }, "forward")}
       />}
       {selectedPlace && !activeOverlay && (
         <Suspense

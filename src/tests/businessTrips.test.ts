@@ -32,8 +32,14 @@ it("groups an away itinerary across one free day and splits when a home event in
   expect(tripPlaces(trips[0]).find(place => place.city === "上海")?.calendarEventIds).toEqual(["上海一", "上海二"]);
 });
 
-it("uses saved split and join overrides without changing event objects", () => {
-  const before = JSON.stringify(sample);
+it("history can include past trips without changing the current trip list", () => {
+  expect(groupBusinessTrips(sample, home, "2026-11-20")).toEqual([]);
+  const history = groupBusinessTrips(sample, home, "2026-11-20", { includePast: true });
+  expect(history.map(trip => trip.id)).toEqual(["上海一", "下一趟"]);
+  expect(history.every(trip => trip.days.at(-1)!.date < "2026-11-20")).toBe(true);
+});
+
+it("uses saved split and join overrides without changing event objects", () => {  const before = JSON.stringify(sample);
   const split = groupBusinessTrips(sample, { ...home, boundaries: { 杭州会议: "split" } }, date);
   expect(split.map(trip => trip.id)).toEqual(["上海一", "杭州会议", "下一趟"]);
   const joined = groupBusinessTrips(sample, { ...home, boundaries: { 下一趟: "join" } }, date);

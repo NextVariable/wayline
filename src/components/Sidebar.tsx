@@ -23,7 +23,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ListFilter,
-  Route,
 } from "lucide-react";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { getCitiesGuidePlaces, groupSavedPlacesByCity, placeBelongsToGuide, savedPlaceAddress } from "../lib/guideFilters";
@@ -98,6 +97,8 @@ type Props = {
   accountStatus?: AccountState["status"];
   accountEmail?: string;
   onOpenBusinessTrips?: () => void;
+  onOpenHistory?: () => void;
+  onHome?: () => void;
   onOpenSearch: () => void;
   onNavigatePanel: (update: () => void, direction?: "forward" | "back") => void;
   openingEntry?: string | null;
@@ -307,7 +308,7 @@ export function Sidebar(props: Props) {
   return (
     <aside
       className={`workspace-sidebar ${props.isOpen ? "is-expanded" : ""} ${query.trim() ? "is-searching" : ""} ${query.trim() && !suggestionsOpen ? "suggestions-dismissed" : ""} `}
-      aria-label="地点"
+      aria-label="工作区与地点"
       onBlurCapture={event => {
         if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) setSuggestionsOpen(false);
       }}
@@ -462,10 +463,14 @@ export function Sidebar(props: Props) {
         
         {guideHome && <div className="guide-library is-library-home">
           <>
+            <nav className="workspace-tabs" aria-label="工作区">
+              <button type="button" className="is-active" aria-current="page" onClick={props.onHome}>今天</button>
+              {props.onOpenBusinessTrips && <button type="button" data-library-destination="business-trips" onClick={props.onOpenBusinessTrips}>行程</button>}
+              {props.onOpenHistory && <button type="button" data-library-destination="history" onClick={props.onOpenHistory}>历史</button>}
+            </nav>
             {props.todayPanel}
-            <nav className="place-home-navigation" aria-label="行程与地点">
-              {props.onOpenBusinessTrips && <button type="button" data-library-destination="business-trips" onClick={props.onOpenBusinessTrips}><Route size={20}/><span>行程</span><ChevronRight size={14}/></button>}
-              <LibraryHoverEntry label="已存地点" preview={<>{scoped.map(place=><button key={place.id} onClick={()=>props.onSelectPlace(place)}><strong>{place.name}</strong>{place.city !== place.name && <small>{place.city}</small>}</button>)}<button className="text-action" onClick={openSavedPlaces}>查看全部地点</button></>}><button type="button" data-library-destination="saved" onClick={openSavedPlaces}><Bookmark size={20}/><span>地点</span><ChevronRight size={14}/></button></LibraryHoverEntry>
+            <nav className="place-home-navigation is-aux" aria-label="地点">
+              <LibraryHoverEntry label="已存地点" preview={<>{scoped.map(place=><button key={place.id} onClick={()=>props.onSelectPlace(place)}><strong>{place.name}</strong>{place.city !== place.name && <small>{place.city}</small>}</button>)}<button className="text-action" onClick={openSavedPlaces}>查看全部地点</button></>}><button type="button" data-library-destination="saved" onClick={openSavedPlaces}><span>地点搜索与收藏</span><span className="place-count">{scoped.length}</span><ChevronRight size={14}/></button></LibraryHoverEntry>
               {!!scoped.length && <div className="saved-place-preview" aria-label="已存地点快捷访问">
                 {scoped.slice(0,3).map(place => <button className="recent-place-row" key={place.id} onClick={()=>props.onSelectPlace(place)}>
                   <span><strong>{place.name}</strong><small>{place.address && place.address!==place.name ? place.address : place.city}</small></span>

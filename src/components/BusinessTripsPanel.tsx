@@ -35,6 +35,11 @@ const dates = new Intl.DateTimeFormat("zh-CN", {
   month: "numeric", day: "numeric",
 });
 const dateLabel = (date: string) => dates.format(new Date(date + "T12:00:00"));
+const rangeLabel = (trip: { days: { date: string }[] }) => {
+  const first = trip.days[0].date;
+  const last = trip.days.at(-1)!.date;
+  return first === last ? dateLabel(first) : `${dateLabel(first)}–${dateLabel(last)}`;
+};
 const timeLabel = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false });
 
 export function BusinessTripsPanel({ home, cities, trips, selected, selectedEventIds, mapIndices, onHome, onTrip, onBack, onEvent, onOverview, onBoundary, connections, onSchedule, timeline, actions = [], onAction, openConnections, now = Date.now() }: Props) {
@@ -60,13 +65,16 @@ export function BusinessTripsPanel({ home, cities, trips, selected, selectedEven
     <section className="workspace-panel business-trips-panel" ref={panel} aria-label="行程">
       <header className="panel-heading">
         <button className="text-action" type="button" onClick={selected ? () => onTrip(null) : onBack}>
-          <ChevronLeft size={15} aria-hidden="true" />{selected ? "行程" : "地点"}
+          <ChevronLeft size={15} aria-hidden="true" />{selected ? "行程" : "今天"}
         </button>
         <h1>{selected ? selected.cities.join(" → ") : "行程"}</h1>
         {selected
           ? <button type="button" className="text-action" onClick={onOverview}>全程地图</button>
           : <button type="button" className="text-action" onClick={onSchedule}>日程</button>}
       </header>
+      {selected && <p className="trip-range">
+        {rangeLabel(selected)} · {selected.days.reduce((total, day) => total + day.events.length, 0)} 项安排
+      </p>}
       {selected ? <>
         <TripActions actions={actions} onAction={action => {
           if (onAction) { onAction(action); return; }
@@ -80,27 +88,34 @@ export function BusinessTripsPanel({ home, cities, trips, selected, selectedEven
               <h2>{dateLabel(date)}</h2>
               {index > 0 && <button type="button" className="text-action" onClick={() => onBoundary(selected.days[index].events[0].id, "split")}>从这天拆开</button>}
             </header>
-            <ul>{rows.map(row => {
+            <ol className="wayline-timeline trip-timeline">{rows.map(row => {
               if (row.kind === "booking") {
                 const order=row.booking;
                 const state=order.state === "cancelled" ? "收到取消通知" : order.state === "changed" ? "收到改签通知" :
                   order.state === "review" ? "待核对" : !!order.end && Date.parse(order.end)<now ? "时段已过" : order.source === "日历" ? "日历安排" : "订单记录";
-                return <li key={`booking:${order.id}`} className="business-trip-event trip-order-row" data-state={order.state ?? "confirmed"}>
-                  <span>{order.start.length === 10 ? "住宿" : timeLabel.format(new Date(order.start))}</span>
-                  <span><strong>{[order.number,order.from?.name,order.to.name].filter(Boolean).join(" · ")}</strong>
-                    <small className="trip-order-state" data-state={order.state ?? "confirmed"}>{state} · {order.provenance?.some(item=>item.source === "gmail") && order.provenance.some(item=>item.source !== "gmail") ? "日历 / Gmail" : order.source}</small></span>
+                return <li key={`booking:${order.id}`} className="timeline-item is-booking trip-order-row" data-state={order.state ?? "confirmed"}>
+                  <span className="tl-time">{order.start.length === 10 ? "住宿" : timeLabel.format(new Date(order.start))}</span>
+                  <span className="tl-rail" aria-hidden="true" />
+                  <span className="tl-body">
+                    <strong>{[order.number,order.from?.name,order.to.name].filter(Boolean).join(" · ")}</strong>
+                    <small className="trip-order-state" data-state={order.state ?? "confirmed"}>{state} · {order.provenance?.some(item=>item.source === "gmail") && order.provenance.some(item=>item.source !== "gmail") ? "日历 / Gmail" : order.source}</small>
+                  </span>
                 </li>;
               }
               const event=row.event;
-              return <li key={`event:${event.id}`}>
-                <button type="button" className="business-trip-event" aria-pressed={selectedEventIds?.includes(event.id) ?? false}
+              return <li key={`event:${event.id}`} className="timeline-item is-stop">
+                <span className="tl-time">
+                  <time dateTime={event.start}>{timeLabel.format(new Date(event.start))}</time>
+                  <small>{Date.parse(event.end)<now ? "已过日程" : "日历"}</small>
+                </span>
+                <span className="tl-rail" aria-hidden="true" />
+                <button type="button" className="tl-body business-trip-event" aria-pressed={selectedEventIds?.includes(event.id) ?? false}
                   onClick={() => onEvent(event.id)}>
-                  <span><time dateTime={event.start}>{timeLabel.format(new Date(event.start))}</time><small>{Date.parse(event.end)<now ? "已过日程" : "日历"}</small></span>
                   <span><strong>{event.title}</strong>{event.place?.name !== event.title && <small>{event.place?.name}</small>}</span>
                   <span className="business-trip-index" aria-label={`地图点位 ${mapIndices[event.id]}`}>{mapIndices[event.id]}</span>
                 </button>
               </li>;
-            })}</ul>
+            })}</ol>
           </section>;
         })}
         {connections && <details className="trip-connections" ref={details} open={openConnections || undefined}><summary>通勤与预订详情</summary>{connections}</details>}

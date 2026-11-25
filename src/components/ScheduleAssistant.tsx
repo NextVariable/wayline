@@ -381,7 +381,8 @@ export function ScheduleAssistant({
         moveTo("agenda");
       }} />}
       {screen === "intake" && <div className="intake-panel">
-        <label htmlFor="intake-text">用一句话或一段话描述安排</label>
+        <label htmlFor="intake-text" className="intake-lead">直接描述你的安排</label>
+        <p className="intake-sub">写成一段话即可。识别后会逐条列出，修改并确认后才写入日程。</p>
         <textarea
           id="intake-text"
           rows={4}
@@ -412,7 +413,7 @@ export function ScheduleAssistant({
           <p className="field-help" role="status">未识别到安排，请补充日期、时间或地点后重试，或改用手动录入。</p>
         ) : null}
         {intakeItems.length > 0 && <>
-          <p className="field-help">识别到 {intakeItems.length} 条安排；确认前不会写入日程。</p>
+          <p className="field-help">识别到 {intakeItems.length} 条安排。</p>
           <ul className="intake-preview">
             {intakeItems.map((item, index) => (
               <li className="intake-item" key={item.id} data-pending={item.pending.length > 0 || undefined}>

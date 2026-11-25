@@ -22,7 +22,7 @@ declare global {
   interface Window { __WAYLINE_SYNTHETIC_ROUTES__?: SyntheticRoutes }
 }
 function syntheticMinutes(places: [Place, Place], mode: TravelMode, departure?: string) {
-  if (typeof window === "undefined") return undefined;
+  if (!import.meta.env.DEV || typeof window === "undefined") return undefined;
   const table = window.__WAYLINE_SYNTHETIC_ROUTES__;
   if (!table) return undefined;
   const providerMode = routeProviderMode(mode);
@@ -85,6 +85,15 @@ interface RunInput {
 export function createTodayLegsRunner({ fetchImpl = fetch }: { fetchImpl?: FetchLike } = {}) {
   const done = new Map<string, {leg:LegResult; fetchedAt:number; ttl:number}>();
   let active: AbortController | null = null;
+  // 一天可能有多段路，比较时还会补查其他模式：限制同时进行的路线请求，避免一次打出十几个调用。
+  let running = 0;
+  const waiting: (() => void)[] = [];
+  const limited = async <T,>(task: () => Promise<T>): Promise<T> => {
+    if (running >= 3) await new Promise<void>(resolve => waiting.push(resolve));
+    running += 1;
+    try { return await task(); }
+    finally { running -= 1; waiting.shift()?.(); }
+  };
   const cancel = () => { active?.abort(); active = null; };
   const key = (pair: TodayLegPair, mode: TravelMode) => JSON.stringify([
     ...[pair.from.place, pair.to.place].map(p => [p.id, p.city, p.lat, p.lng]),
@@ -101,7 +110,7 @@ export function createTodayLegsRunner({ fetchImpl = fetch }: { fetchImpl?: Fetch
         const entry = done.get(key(pair, mode));
         const ttl = isFutureLeg(pair, Date.now()) ? ROUTE_TTLS.walking : ROUTE_TTLS[mode];
         const cached = !force && entry && Date.now()-entry.fetchedAt < Math.min(entry.ttl, ttl) ? entry.leg : undefined;
-        const leg = cached ? (cached.mode === mode ? cached : { ...cached, mode }) : await fetchLeg(pair, mode, { fetchImpl, signal: controller.signal });
+        const leg = cached ? (cached.mode === mode ? cached : { ...cached, mode }) : await limited(() => fetchLeg(pair, mode, { fetchImpl, signal: controller.signal }));
         if (!live()) return null;
         if (leg) {
           if (!cached) done.set(key(pair, mode), {leg,fetchedAt:Date.now(),ttl});

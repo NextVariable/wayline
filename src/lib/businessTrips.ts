@@ -18,7 +18,8 @@ export interface BusinessTripSettings {
 }
 export const emptyTripSettings: BusinessTripSettings = { home: "", boundaries: {} };
 
-export function groupBusinessTrips(events: CalendarEntry[], settings: BusinessTripSettings, today: string): BusinessTrip[] {
+export function groupBusinessTrips(events: CalendarEntry[], settings: BusinessTripSettings, today: string,
+  options: { includePast?: boolean } = {}): BusinessTrip[] {
   const home = cityKey(settings.home);
   if (!home) return [];
   const trips: BusinessTrip[] = [];
@@ -47,7 +48,7 @@ export function groupBusinessTrips(events: CalendarEntry[], settings: BusinessTr
     if (!current.cities.length || cityKey(current.cities.at(-1)!) !== city) current.cities.push(String(event.place.city));
     homeBetween = false;
   }
-  return trips.filter(trip => trip.days.at(-1)!.date >= today);
+  return options.includePast ? trips : trips.filter(trip => trip.days.at(-1)!.date >= today);
 }
 
 export function tripPlaces(trip: BusinessTrip | undefined): Place[] {

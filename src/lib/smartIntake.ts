@@ -80,6 +80,7 @@ function titleFromSegment(segment: string, placeName: string): string {
       /(?:去|在|到|拜访)\s*[^，,。；;\n]+?(?=见|会面|拜访|开会|参加|商谈|讨论|，|,|。|；|;|$)/g,
       "",
     )
+    .replace(/(?:提前|提早)\s*[\d零〇一二两三四五六七八九十]+分钟?提醒/g, "")
     .replace(/^(然后|接着|再|之后|随后|另外|还有)\s*/, "")
     .replace(/^[，,、\s]+|[，,、\s]+$/g, "")
     .trim();
@@ -88,6 +89,8 @@ function titleFromSegment(segment: string, placeName: string): string {
   )?.[1];
   const title = (action ?? cleaned).trim();
   if (title) return title.slice(0, 30);
+  const destination = segment.match(/(?:去|前往|飞往)\s*([^，,。；;\n]+)/)?.[1]?.trim();
+  if (destination) return `前往${destination}`.slice(0, 30);
   return placeName ? `拜访${placeName}` : "商务安排";
 }
 
