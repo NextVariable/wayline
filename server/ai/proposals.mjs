@@ -55,7 +55,8 @@ export function createProposalStore({ now = Date.now, ttlMs = TTL_MS } = {}) {
         proposals.delete(record.proposalId);
         return { ok: false, code: "proposal_expired", status: 410, message: "提案已过期，请重新生成预览" };
       }
-      if (baseVersion !== undefined && String(baseVersion) !== record.baseVersion)
+      // A confirm that omits the version must not bypass the stale check.
+      if (record.baseVersion && String(baseVersion ?? "") !== record.baseVersion)
         return { ok: false, code: "stale_proposal", status: 409, message: "来源已更新，请重新预览后再确认" };
       if (payloadHash && payloadHash !== record.payloadHash)
         return { ok: false, code: "payload_changed", status: 409, message: "提案内容不一致，请重新预览" };

@@ -209,6 +209,10 @@ describe("Proposal store and AI routes", () => {
     expect(store.confirm({ owner: "u1", proposalId: proposal.proposalId, baseVersion: "rev-9" }))
       .toMatchObject({ ok: false, code: "already_confirmed" });
 
+    const noVersion = store.create({ owner: "u1", payload: { operation: "create", baseVersion: "rev-9" } });
+    expect(store.confirm({ owner: "u1", proposalId: noVersion.proposalId }))
+      .toMatchObject({ ok: false, code: "stale_proposal" });
+
     const expiring = store.create({ owner: "u1", payload: { operation: "create", baseVersion: "rev-9" } });
     clock += 200;
     expect(store.confirm({ owner: "u1", proposalId: expiring.proposalId, baseVersion: "rev-9" }))

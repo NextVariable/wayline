@@ -31,7 +31,7 @@ const COPILOT_SYSTEM = `你是 Wayline 出行 Copilot，只回答与当前日程
 6. 回答用中文，先结论后依据，尽量不超过 120 字；不确定时明确说不知道并给出下一步。
 7. 只输出 JSON：{"message":"回答","proposal":null} 或 {"message":"回答","proposal":{"operation":"create|update","targetId":"","placeId":"","date":"YYYY-MM-DD","startTime":"HH:MM","endTime":"HH:MM","title":"","reason":""}}`;
 
-const SUSPICIOUS = /(ignore\s+(all|previous|above)|忽略(之前|以上|前面)|系统提示|system\s*prompt|developer\s*message|delete\s+all|执行命令|rm\s+-rf)/i;
+const SUSPICIOUS = /(ignore\s+(all|previous|above)|忽略(之前|以上|前面|所有)|系统提示|system\s*prompt|developer\s*message|delete\s+all|执行命令|shell|bash|rm\s+-rf|google\s*calendar|gmail|取消.{0,6}订单|退款|所有邮件|全部邮件|数据库|管理员|跳过确认|其他(账号|用户)|api\s*key|deepseek_api_key|密钥)/i;
 
 const clean = (value, max) => String(value ?? "").replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, max);
 

@@ -1,0 +1,7025 @@
+{
+  "generatedAt": "2026-11-25T13:49:02.827Z",
+  "model": "deepseek-flash",
+  "thinking": "disabled",
+  "totalCases": 100,
+  "cases": [
+    {
+      "id": "c1",
+      "category": "absolute",
+      "text": "11月26日上午九点在静安嘉里中心见客户",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "09:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "见客户"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "见客户",
+          "date": "2026-11-26",
+          "time": "09:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "静安嘉里中心",
+          "placeId": "p-jingan",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "09:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "见客户"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c2",
+      "category": "absolute",
+      "text": "11月27日上午十点在人民广场来福士开会",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-27",
+          "start": "10:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "人民广场来福士开会",
+          "date": "2026-11-27",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "人民广场来福士",
+          "placeId": "p-raffles",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-27",
+          "start": "10:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c3",
+      "category": "absolute",
+      "text": "11月28日上午十一点半在虹桥机场T2产品评审",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-28",
+          "start": "11:30",
+          "end": "",
+          "place": "p-hongqiao",
+          "keywords": [
+            "产品评审"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "产品评审",
+          "date": "2026-11-28",
+          "time": "11:30",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥机场T2",
+          "placeId": "p-hongqiao",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-28",
+          "start": "11:30",
+          "end": "",
+          "place": "p-hongqiao",
+          "keywords": [
+            "产品评审"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c4",
+      "category": "absolute",
+      "text": "11月29日下午两点在虹桥火车站培训",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-29",
+          "start": "14:00",
+          "end": "",
+          "place": "p-rail",
+          "keywords": [
+            "培训"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "培训",
+          "date": "2026-11-29",
+          "time": "14:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥火车站",
+          "placeId": "p-rail",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-29",
+          "start": "14:00",
+          "end": "",
+          "place": "p-rail",
+          "keywords": [
+            "培训"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c5",
+      "category": "absolute",
+      "text": "11月30日下午三点在上海中心大厦面试",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-30",
+          "start": "15:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "面试"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "面试",
+          "date": "2026-11-30",
+          "time": "15:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-sh-tower",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-30",
+          "start": "15:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "面试"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c6",
+      "category": "absolute",
+      "text": "12月1日下午四点半在静安嘉里中心签约",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-12-01",
+          "start": "16:30",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "签约"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "签约",
+          "date": "2026-12-01",
+          "time": "16:30",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "静安嘉里中心",
+          "placeId": "p-jingan",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-12-01",
+          "start": "16:30",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "签约"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c7",
+      "category": "absolute",
+      "text": "12月2日晚上七点在人民广场来福士复盘",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-12-02",
+          "start": "19:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "复盘"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "复盘",
+          "date": "2026-12-02",
+          "time": "19:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "人民广场来福士",
+          "placeId": "p-raffles",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-12-02",
+          "start": "19:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "复盘"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c8",
+      "category": "absolute",
+      "text": "12月3日晚上八点在虹桥机场T2接客户",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-12-03",
+          "start": "20:00",
+          "end": "",
+          "place": "p-hongqiao",
+          "keywords": [
+            "接客户"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "虹桥机场T2接客户",
+          "date": "2026-12-03",
+          "time": "20:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥机场T2",
+          "placeId": "p-hongqiao",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-12-03",
+          "start": "20:00",
+          "end": "",
+          "place": "p-hongqiao",
+          "keywords": [
+            "接客户"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c9",
+      "category": "absolute",
+      "text": "12月4日上午九点在虹桥火车站见客户",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-12-04",
+          "start": "09:00",
+          "end": "",
+          "place": "p-rail",
+          "keywords": [
+            "见客户"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "在虹桥火车站见客户",
+          "date": "2026-12-04",
+          "time": "09:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥火车站",
+          "placeId": "p-rail",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-12-04",
+          "start": "09:00",
+          "end": "",
+          "place": "p-rail",
+          "keywords": [
+            "见客户"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c10",
+      "category": "absolute",
+      "text": "12月5日上午十点在上海中心大厦开会",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-12-05",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "开会",
+          "date": "2026-12-05",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-sh-tower",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-12-05",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c11",
+      "category": "absolute",
+      "text": "12月6日上午十一点半在静安嘉里中心产品评审",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-12-06",
+          "start": "11:30",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "产品评审"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "产品评审",
+          "date": "2026-12-06",
+          "time": "11:30",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "静安嘉里中心",
+          "placeId": "p-jingan",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-12-06",
+          "start": "11:30",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "产品评审"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c12",
+      "category": "absolute",
+      "text": "12月7日下午两点在人民广场来福士培训",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-12-07",
+          "start": "14:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "培训"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "培训",
+          "date": "2026-12-07",
+          "time": "14:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "人民广场来福士",
+          "placeId": "p-raffles",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-12-07",
+          "start": "14:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "培训"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c13",
+      "category": "absolute",
+      "text": "12月8日下午三点在虹桥机场T2面试",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-12-08",
+          "start": "15:00",
+          "end": "",
+          "place": "p-hongqiao",
+          "keywords": [
+            "面试"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "面试",
+          "date": "2026-12-08",
+          "time": "15:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥机场T2",
+          "placeId": "p-hongqiao",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-12-08",
+          "start": "15:00",
+          "end": "",
+          "place": "p-hongqiao",
+          "keywords": [
+            "面试"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c14",
+      "category": "absolute",
+      "text": "12月9日下午四点半在虹桥火车站签约",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-12-09",
+          "start": "16:30",
+          "end": "",
+          "place": "p-rail",
+          "keywords": [
+            "签约"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "签约",
+          "date": "2026-12-09",
+          "time": "16:30",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥火车站",
+          "placeId": "p-rail",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-12-09",
+          "start": "16:30",
+          "end": "",
+          "place": "p-rail",
+          "keywords": [
+            "签约"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c15",
+      "category": "absolute",
+      "text": "11月26日晚上七点在上海中心大厦复盘",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "复盘"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "复盘",
+          "date": "2026-11-26",
+          "time": "19:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-sh-tower",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "复盘"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c16",
+      "category": "absolute",
+      "text": "11月27日晚上八点在静安嘉里中心接客户",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-27",
+          "start": "20:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "接客户"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "接客户",
+          "date": "2026-11-27",
+          "time": "20:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "静安嘉里中心",
+          "placeId": "p-jingan",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-27",
+          "start": "20:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "接客户"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c17",
+      "category": "absolute",
+      "text": "11月28日上午九点在人民广场来福士见客户",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-28",
+          "start": "09:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "见客户"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "见客户",
+          "date": "2026-11-28",
+          "time": "09:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "人民广场来福士",
+          "placeId": "p-raffles",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-28",
+          "start": "09:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "见客户"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c18",
+      "category": "absolute",
+      "text": "11月29日上午十点在虹桥机场T2开会",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-29",
+          "start": "10:00",
+          "end": "",
+          "place": "p-hongqiao",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "虹桥机场T2开会",
+          "date": "2026-11-29",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥机场T2",
+          "placeId": "p-hongqiao",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-29",
+          "start": "10:00",
+          "end": "",
+          "place": "p-hongqiao",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c19",
+      "category": "absolute",
+      "text": "11月30日上午十一点半在虹桥火车站产品评审",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-30",
+          "start": "11:30",
+          "end": "",
+          "place": "p-rail",
+          "keywords": [
+            "产品评审"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "产品评审",
+          "date": "2026-11-30",
+          "time": "11:30",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥火车站",
+          "placeId": "p-rail",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-30",
+          "start": "11:30",
+          "end": "",
+          "place": "p-rail",
+          "keywords": [
+            "产品评审"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c20",
+      "category": "absolute",
+      "text": "12月1日下午两点在上海中心大厦培训",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-12-01",
+          "start": "14:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "培训"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "培训",
+          "date": "2026-12-01",
+          "time": "14:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-sh-tower",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-12-01",
+          "start": "14:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "培训"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c21",
+      "category": "relative",
+      "text": "明天上午十一点半在人民广场来福士培训",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "11:30",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "培训"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "培训",
+          "date": "2026-11-26",
+          "time": "11:30",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "人民广场来福士",
+          "placeId": "p-raffles",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "11:30",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "培训"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c22",
+      "category": "relative",
+      "text": "后天下午两点在虹桥机场T2面试",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-27",
+          "start": "14:00",
+          "end": "",
+          "place": "p-hongqiao",
+          "keywords": [
+            "面试"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "面试",
+          "date": "2026-11-27",
+          "time": "14:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥机场T2",
+          "placeId": "p-hongqiao",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-27",
+          "start": "14:00",
+          "end": "",
+          "place": "p-hongqiao",
+          "keywords": [
+            "面试"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c23",
+      "category": "relative",
+      "text": "周五下午三点在虹桥火车站签约",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-27",
+          "start": "15:00",
+          "end": "",
+          "place": "p-rail",
+          "keywords": [
+            "签约"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "签约",
+          "date": "2026-11-27",
+          "time": "15:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥火车站",
+          "placeId": "p-rail",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-27",
+          "start": "15:00",
+          "end": "",
+          "place": "p-rail",
+          "keywords": [
+            "签约"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c24",
+      "category": "relative",
+      "text": "下周三下午四点半在上海中心大厦复盘",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-12-02",
+          "start": "16:30",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "复盘"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "复盘",
+          "date": "2026-12-02",
+          "time": "16:30",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-sh-tower",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-12-02",
+          "start": "16:30",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "复盘"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c25",
+      "category": "relative",
+      "text": "明天晚上七点在静安嘉里中心接客户",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "接客户"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "接客户",
+          "date": "2026-11-26",
+          "time": "19:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "静安嘉里中心",
+          "placeId": "p-jingan",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "接客户"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c26",
+      "category": "relative",
+      "text": "后天晚上八点在人民广场来福士见客户",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-27",
+          "start": "20:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "见客户"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "见客户",
+          "date": "2026-11-27",
+          "time": "20:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "人民广场来福士",
+          "placeId": "p-raffles",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-27",
+          "start": "20:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "见客户"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c27",
+      "category": "relative",
+      "text": "周五上午九点在虹桥机场T2开会",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-27",
+          "start": "09:00",
+          "end": "",
+          "place": "p-hongqiao",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "虹桥机场T2开会",
+          "date": "2026-11-27",
+          "time": "09:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥机场T2",
+          "placeId": "p-hongqiao",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-27",
+          "start": "09:00",
+          "end": "",
+          "place": "p-hongqiao",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c28",
+      "category": "relative",
+      "text": "下周三上午十点在虹桥火车站产品评审",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-12-02",
+          "start": "10:00",
+          "end": "",
+          "place": "p-rail",
+          "keywords": [
+            "产品评审"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "产品评审",
+          "date": "2026-12-02",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥火车站",
+          "placeId": "p-rail",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-12-02",
+          "start": "10:00",
+          "end": "",
+          "place": "p-rail",
+          "keywords": [
+            "产品评审"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c29",
+      "category": "relative",
+      "text": "明天上午十一点半在上海中心大厦培训",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "11:30",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "培训"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "培训",
+          "date": "2026-11-26",
+          "time": "11:30",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-sh-tower",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "11:30",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "培训"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c30",
+      "category": "relative",
+      "text": "后天下午两点在静安嘉里中心面试",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-27",
+          "start": "14:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "面试"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "面试",
+          "date": "2026-11-27",
+          "time": "14:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "静安嘉里中心",
+          "placeId": "p-jingan",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-27",
+          "start": "14:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "面试"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c31",
+      "category": "relative",
+      "text": "周五下午三点在人民广场来福士签约",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-27",
+          "start": "15:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "签约"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "签约",
+          "date": "2026-11-27",
+          "time": "15:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "人民广场来福士",
+          "placeId": "p-raffles",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-27",
+          "start": "15:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "签约"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c32",
+      "category": "relative",
+      "text": "下周三下午四点半在虹桥机场T2复盘",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-12-02",
+          "start": "16:30",
+          "end": "",
+          "place": "p-hongqiao",
+          "keywords": [
+            "复盘"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "复盘",
+          "date": "2026-12-02",
+          "time": "16:30",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥机场T2",
+          "placeId": "p-hongqiao",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-12-02",
+          "start": "16:30",
+          "end": "",
+          "place": "p-hongqiao",
+          "keywords": [
+            "复盘"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c33",
+      "category": "relative",
+      "text": "明天晚上七点在虹桥火车站接客户",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-rail",
+          "keywords": [
+            "接客户"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "虹桥火车站接客户",
+          "date": "2026-11-26",
+          "time": "19:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥火车站",
+          "placeId": "p-rail",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-rail",
+          "keywords": [
+            "接客户"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c34",
+      "category": "relative",
+      "text": "后天晚上八点在上海中心大厦见客户",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-27",
+          "start": "20:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "见客户"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "在上海中心大厦见客户",
+          "date": "2026-11-27",
+          "time": "20:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-sh-tower",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-27",
+          "start": "20:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "见客户"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c35",
+      "category": "relative",
+      "text": "周五上午九点在静安嘉里中心开会",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-27",
+          "start": "09:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "开会",
+          "date": "2026-11-27",
+          "time": "09:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "静安嘉里中心",
+          "placeId": "p-jingan",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-27",
+          "start": "09:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c36",
+      "category": "colloquial",
+      "text": "明天上午十点在虹桥机场T2签约",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-hongqiao",
+          "keywords": [
+            "签约"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "签约",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥机场T2",
+          "placeId": "p-hongqiao",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-hongqiao",
+          "keywords": [
+            "签约"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c37",
+      "category": "colloquial",
+      "text": "明天下午三点半在虹桥火车站复盘",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "15:30",
+          "end": "",
+          "place": "p-rail",
+          "keywords": [
+            "复盘"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "虹桥火车站复盘",
+          "date": "2026-11-26",
+          "time": "15:30",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥火车站",
+          "placeId": "p-rail",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "15:30",
+          "end": "",
+          "place": "p-rail",
+          "keywords": [
+            "复盘"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c38",
+      "category": "colloquial",
+      "text": "明天晚上七点在上海中心大厦接客户",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "接客户"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "接客户",
+          "date": "2026-11-26",
+          "time": "19:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-sh-tower",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "接客户"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c39",
+      "category": "colloquial",
+      "text": "明天早上八点在静安嘉里中心见客户",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "08:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "见客户"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "见客户",
+          "date": "2026-11-26",
+          "time": "08:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "静安嘉里中心",
+          "placeId": "p-jingan",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "08:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "见客户"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c40",
+      "category": "colloquial",
+      "text": "明天晚上八点半在人民广场来福士开会",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "20:30",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "开会",
+          "date": "2026-11-26",
+          "time": "20:30",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "人民广场来福士",
+          "placeId": "p-raffles",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "20:30",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c41",
+      "category": "colloquial",
+      "text": "明天下午四点在虹桥机场T2产品评审",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "16:00",
+          "end": "",
+          "place": "p-hongqiao",
+          "keywords": [
+            "产品评审"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "产品评审",
+          "date": "2026-11-26",
+          "time": "16:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥机场T2",
+          "placeId": "p-hongqiao",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "16:00",
+          "end": "",
+          "place": "p-hongqiao",
+          "keywords": [
+            "产品评审"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c42",
+      "category": "colloquial",
+      "text": "明天上午十一点在虹桥火车站培训",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "11:00",
+          "end": "",
+          "place": "p-rail",
+          "keywords": [
+            "培训"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "培训",
+          "date": "2026-11-26",
+          "time": "11:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥火车站",
+          "placeId": "p-rail",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "11:00",
+          "end": "",
+          "place": "p-rail",
+          "keywords": [
+            "培训"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c43",
+      "category": "colloquial",
+      "text": "明天中午在上海中心大厦面试",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "面试"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "面试",
+          "date": "2026-11-26",
+          "time": "",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-sh-tower",
+          "pending": [
+            "time"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "面试"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c44",
+      "category": "colloquial",
+      "text": "明天傍晚在静安嘉里中心签约",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "签约"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "签约",
+          "date": "2026-11-26",
+          "time": "",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "静安嘉里中心",
+          "placeId": "p-jingan",
+          "pending": [
+            "time"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "签约"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c45",
+      "category": "colloquial",
+      "text": "明天下午三点左右在人民广场来福士复盘",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "15:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "复盘"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "复盘",
+          "date": "2026-11-26",
+          "time": "15:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "人民广场来福士",
+          "placeId": "p-raffles",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "15:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "复盘"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c46",
+      "category": "colloquial",
+      "text": "明天上午十点在虹桥机场T2接客户",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-hongqiao",
+          "keywords": [
+            "接客户"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "虹桥机场T2接客户",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥机场T2",
+          "placeId": "p-hongqiao",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-hongqiao",
+          "keywords": [
+            "接客户"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c47",
+      "category": "colloquial",
+      "text": "明天下午三点半在虹桥火车站见客户",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "15:30",
+          "end": "",
+          "place": "p-rail",
+          "keywords": [
+            "见客户"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "在虹桥火车站见客户",
+          "date": "2026-11-26",
+          "time": "15:30",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥火车站",
+          "placeId": "p-rail",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "15:30",
+          "end": "",
+          "place": "p-rail",
+          "keywords": [
+            "见客户"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c48",
+      "category": "colloquial",
+      "text": "明天晚上七点在上海中心大厦开会",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "开会",
+          "date": "2026-11-26",
+          "time": "19:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-sh-tower",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c49",
+      "category": "colloquial",
+      "text": "明天早上八点在静安嘉里中心产品评审",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "08:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "产品评审"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "产品评审",
+          "date": "2026-11-26",
+          "time": "08:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "静安嘉里中心",
+          "placeId": "p-jingan",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "08:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "产品评审"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c50",
+      "category": "colloquial",
+      "text": "明天晚上八点半在人民广场来福士培训",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "20:30",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "培训"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "培训",
+          "date": "2026-11-26",
+          "time": "20:30",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "人民广场来福士",
+          "placeId": "p-raffles",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "20:30",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "培训"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c51",
+      "category": "duplicate",
+      "text": "明天上午十点去海上世界开会",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sea-sz",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "海上世界开会",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "海上世界",
+          "placeId": "p-sea-sz",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sea-sz",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c52",
+      "category": "duplicate",
+      "text": "明天上午十点去海上世界产品评审",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sea-sh",
+          "keywords": [
+            "产品评审"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "产品评审",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "海上世界",
+          "placeId": "p-sea-sh",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sea-sh",
+          "keywords": [
+            "产品评审"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c53",
+      "category": "duplicate",
+      "text": "明天上午十点去海上世界培训",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sea-sz",
+          "keywords": [
+            "培训"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "培训",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "海上世界",
+          "placeId": "p-sea-sz",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sea-sz",
+          "keywords": [
+            "培训"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c54",
+      "category": "duplicate",
+      "text": "明天上午十点去海上世界面试",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sea-sh",
+          "keywords": [
+            "面试"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "面试",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "海上世界",
+          "placeId": "p-sea-sh",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sea-sh",
+          "keywords": [
+            "面试"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c55",
+      "category": "duplicate",
+      "text": "明天上午十点去海上世界签约",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sea-sz",
+          "keywords": [
+            "签约"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "签约",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "海上世界",
+          "placeId": "p-sea-sz",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sea-sz",
+          "keywords": [
+            "签约"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c56",
+      "category": "duplicate",
+      "text": "明天上午十点去海上世界复盘",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sea-sh",
+          "keywords": [
+            "复盘"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "海上世界复盘",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "海上世界",
+          "placeId": "p-sea-sh",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sea-sh",
+          "keywords": [
+            "复盘"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c57",
+      "category": "duplicate",
+      "text": "明天上午十点去海上世界接客户",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sea-sz",
+          "keywords": [
+            "接客户"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "去海上世界接客户",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "海上世界",
+          "placeId": "p-sea-sz",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sea-sz",
+          "keywords": [
+            "接客户"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c58",
+      "category": "duplicate",
+      "text": "明天上午十点去海上世界见客户",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sea-sh",
+          "keywords": [
+            "见客户"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "见客户",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "海上世界",
+          "placeId": "p-sea-sh",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sea-sh",
+          "keywords": [
+            "见客户"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c59",
+      "category": "duplicate",
+      "text": "明天上午十点去海上世界开会",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sea-sz",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "开会",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "海上世界",
+          "placeId": "p-sea-sz",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sea-sz",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c60",
+      "category": "duplicate",
+      "text": "明天上午十点去海上世界产品评审",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sea-sh",
+          "keywords": [
+            "产品评审"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "产品评审",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "海上世界",
+          "placeId": "p-sea-sh",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sea-sh",
+          "keywords": [
+            "产品评审"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c61",
+      "category": "missing",
+      "text": "明天下午两点和供应商开会",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "14:00",
+          "end": "",
+          "place": "",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "和供应商开会",
+          "date": "2026-11-26",
+          "time": "14:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "",
+          "placeId": "",
+          "pending": [
+            "end",
+            "place"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "14:00",
+          "end": "",
+          "place": "",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c62",
+      "category": "missing",
+      "text": "明天上午十点去上海中心大厦",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "上海中心大厦"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "去上海中心大厦",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-sh-tower",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "上海中心大厦"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c63",
+      "category": "missing",
+      "text": "明天去客户办公室",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "",
+          "end": "",
+          "place": "p-office",
+          "keywords": [
+            "客户办公室"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "去客户办公室",
+          "date": "2026-11-26",
+          "time": "",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "客户办公室",
+          "placeId": "p-office",
+          "pending": [
+            "time"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "",
+          "end": "",
+          "place": "p-office",
+          "keywords": [
+            "客户办公室"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c64",
+      "category": "missing",
+      "text": "明天上午十点见客户",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "",
+          "keywords": [
+            "见客户"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "见客户",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "",
+          "placeId": "",
+          "pending": [
+            "end",
+            "place"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "",
+          "keywords": [
+            "见客户"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c65",
+      "category": "missing",
+      "text": "后天下午三点在深圳湾体育中心",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-27",
+          "start": "15:00",
+          "end": "",
+          "place": "p-sz-center",
+          "keywords": [
+            "深圳湾体育中心"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "深圳湾体育中心",
+          "date": "2026-11-27",
+          "time": "15:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "深圳湾体育中心",
+          "placeId": "p-sz-center",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-27",
+          "start": "15:00",
+          "end": "",
+          "place": "p-sz-center",
+          "keywords": [
+            "深圳湾体育中心"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c66",
+      "category": "missing",
+      "text": "明天下午两点和供应商开会",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "14:00",
+          "end": "",
+          "place": "",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "和供应商开会",
+          "date": "2026-11-26",
+          "time": "14:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "",
+          "placeId": "",
+          "pending": [
+            "end",
+            "place"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "14:00",
+          "end": "",
+          "place": "",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c67",
+      "category": "missing",
+      "text": "明天上午十点去上海中心大厦",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "上海中心大厦"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "去上海中心大厦",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-sh-tower",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "上海中心大厦"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c68",
+      "category": "missing",
+      "text": "明天去客户办公室",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "",
+          "end": "",
+          "place": "p-office",
+          "keywords": [
+            "客户办公室"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "去客户办公室",
+          "date": "2026-11-26",
+          "time": "",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "客户办公室",
+          "placeId": "p-office",
+          "pending": [
+            "time"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "",
+          "end": "",
+          "place": "p-office",
+          "keywords": [
+            "客户办公室"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c69",
+      "category": "missing",
+      "text": "明天上午十点见客户",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "",
+          "keywords": [
+            "见客户"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "见客户",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "",
+          "placeId": "",
+          "pending": [
+            "end",
+            "place"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "",
+          "keywords": [
+            "见客户"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c70",
+      "category": "missing",
+      "text": "后天下午三点在深圳湾体育中心",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-27",
+          "start": "15:00",
+          "end": "",
+          "place": "p-sz-center",
+          "keywords": [
+            "深圳湾体育中心"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "深圳湾体育中心",
+          "date": "2026-11-27",
+          "time": "15:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "深圳湾体育中心",
+          "placeId": "p-sz-center",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-27",
+          "start": "15:00",
+          "end": "",
+          "place": "p-sz-center",
+          "keywords": [
+            "深圳湾体育中心"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c71",
+      "category": "missing",
+      "text": "明天下午两点和供应商开会",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "14:00",
+          "end": "",
+          "place": "",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "和供应商开会",
+          "date": "2026-11-26",
+          "time": "14:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "",
+          "placeId": "",
+          "pending": [
+            "end",
+            "place"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "14:00",
+          "end": "",
+          "place": "",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c72",
+      "category": "missing",
+      "text": "明天上午十点去上海中心大厦",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "上海中心大厦"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "去上海中心大厦",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-sh-tower",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "上海中心大厦"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c73",
+      "category": "missing",
+      "text": "明天去客户办公室",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "",
+          "end": "",
+          "place": "p-office",
+          "keywords": [
+            "客户办公室"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "去客户办公室",
+          "date": "2026-11-26",
+          "time": "",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "客户办公室",
+          "placeId": "p-office",
+          "pending": [
+            "time"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "",
+          "end": "",
+          "place": "p-office",
+          "keywords": [
+            "客户办公室"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c74",
+      "category": "missing",
+      "text": "明天上午十点见客户",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "",
+          "keywords": [
+            "见客户"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "见客户",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "",
+          "placeId": "",
+          "pending": [
+            "end",
+            "place"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "",
+          "keywords": [
+            "见客户"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c75",
+      "category": "missing",
+      "text": "后天下午三点在深圳湾体育中心",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-27",
+          "start": "15:00",
+          "end": "",
+          "place": "p-sz-center",
+          "keywords": [
+            "深圳湾体育中心"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "深圳湾体育中心",
+          "date": "2026-11-27",
+          "time": "15:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "深圳湾体育中心",
+          "placeId": "p-sz-center",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-27",
+          "start": "15:00",
+          "end": "",
+          "place": "p-sz-center",
+          "keywords": [
+            "深圳湾体育中心"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c76",
+      "category": "complex",
+      "text": "明天上午十点在上海中心大厦见客户，后天下午三点在静安嘉里中心开会，后天晚上七点在人民广场来福士吃饭",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-27",
+          "start": "15:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-27",
+          "start": "19:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "见客户",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-sh-tower",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-1",
+          "raw": "",
+          "title": "开会",
+          "date": "2026-11-27",
+          "time": "15:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "静安嘉里中心",
+          "placeId": "p-jingan",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-2",
+          "raw": "",
+          "title": "吃饭",
+          "date": "2026-11-27",
+          "time": "19:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "人民广场来福士",
+          "placeId": "p-raffles",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-27",
+          "start": "15:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-27",
+          "start": "19:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c77",
+      "category": "complex",
+      "text": "明天上午十点在深圳湾体育中心见客户，明天下午三点在海上世界开会，明天晚上七点在客户办公室吃饭",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sz-center",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "15:00",
+          "end": "",
+          "place": "p-sea-sz",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-office",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "见客户",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "深圳湾体育中心",
+          "placeId": "p-sz-center",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-1",
+          "raw": "",
+          "title": "开会",
+          "date": "2026-11-26",
+          "time": "15:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "海上世界",
+          "placeId": "p-sea-sz",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-2",
+          "raw": "",
+          "title": "吃饭",
+          "date": "2026-11-26",
+          "time": "19:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "客户办公室",
+          "placeId": "p-office",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sz-center",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "15:00",
+          "end": "",
+          "place": "p-sea-sz",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-office",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c78",
+      "category": "complex",
+      "text": "明天上午十点在上海中心大厦见客户，明天下午三点在静安嘉里中心开会，明天晚上七点在人民广场来福士吃饭",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "15:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "见客户",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-sh-tower",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-1",
+          "raw": "",
+          "title": "开会",
+          "date": "2026-11-26",
+          "time": "15:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "静安嘉里中心",
+          "placeId": "p-jingan",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-2",
+          "raw": "",
+          "title": "吃饭",
+          "date": "2026-11-26",
+          "time": "19:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "人民广场来福士",
+          "placeId": "p-raffles",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "15:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c79",
+      "category": "complex",
+      "text": "明天上午十点在深圳湾体育中心见客户，后天下午三点在海上世界开会，后天晚上七点在客户办公室吃饭",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sz-center",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-27",
+          "start": "15:00",
+          "end": "",
+          "place": "p-sea-sz",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-27",
+          "start": "19:00",
+          "end": "",
+          "place": "p-office",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "见客户",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "深圳湾体育中心",
+          "placeId": "p-sz-center",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-1",
+          "raw": "",
+          "title": "开会",
+          "date": "2026-11-27",
+          "time": "15:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "海上世界",
+          "placeId": "p-sea-sz",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-2",
+          "raw": "",
+          "title": "吃饭",
+          "date": "2026-11-27",
+          "time": "19:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "客户办公室",
+          "placeId": "p-office",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sz-center",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-27",
+          "start": "15:00",
+          "end": "",
+          "place": "p-sea-sz",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-27",
+          "start": "19:00",
+          "end": "",
+          "place": "p-office",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c80",
+      "category": "complex",
+      "text": "明天上午十点在上海中心大厦见客户，明天下午三点在静安嘉里中心开会，明天晚上七点在人民广场来福士吃饭",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "15:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "见客户",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-sh-tower",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-1",
+          "raw": "",
+          "title": "开会",
+          "date": "2026-11-26",
+          "time": "15:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "静安嘉里中心",
+          "placeId": "p-jingan",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-2",
+          "raw": "",
+          "title": "吃饭",
+          "date": "2026-11-26",
+          "time": "19:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "人民广场来福士",
+          "placeId": "p-raffles",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "15:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c81",
+      "category": "complex",
+      "text": "明天上午十点在深圳湾体育中心见客户，明天下午三点在海上世界开会，明天晚上七点在客户办公室吃饭",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sz-center",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "15:00",
+          "end": "",
+          "place": "p-sea-sz",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-office",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "见客户",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "深圳湾体育中心",
+          "placeId": "p-sz-center",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-1",
+          "raw": "",
+          "title": "开会",
+          "date": "2026-11-26",
+          "time": "15:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "海上世界",
+          "placeId": "p-sea-sz",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-2",
+          "raw": "",
+          "title": "吃饭",
+          "date": "2026-11-26",
+          "time": "19:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "客户办公室",
+          "placeId": "p-office",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sz-center",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "15:00",
+          "end": "",
+          "place": "p-sea-sz",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-office",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c82",
+      "category": "complex",
+      "text": "明天上午十点在上海中心大厦见客户，后天下午三点在静安嘉里中心开会，后天晚上七点在人民广场来福士吃饭",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-27",
+          "start": "15:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-27",
+          "start": "19:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "见客户",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-sh-tower",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-1",
+          "raw": "",
+          "title": "开会",
+          "date": "2026-11-27",
+          "time": "15:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "静安嘉里中心",
+          "placeId": "p-jingan",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-2",
+          "raw": "",
+          "title": "吃饭",
+          "date": "2026-11-27",
+          "time": "19:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "人民广场来福士",
+          "placeId": "p-raffles",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-27",
+          "start": "15:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-27",
+          "start": "19:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c83",
+      "category": "complex",
+      "text": "明天上午十点在深圳湾体育中心见客户，明天下午三点在海上世界开会，明天晚上七点在客户办公室吃饭",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sz-center",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "15:00",
+          "end": "",
+          "place": "p-sea-sz",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-office",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "见客户",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "深圳湾体育中心",
+          "placeId": "p-sz-center",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-1",
+          "raw": "",
+          "title": "开会",
+          "date": "2026-11-26",
+          "time": "15:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "海上世界",
+          "placeId": "p-sea-sz",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-2",
+          "raw": "",
+          "title": "吃饭",
+          "date": "2026-11-26",
+          "time": "19:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "客户办公室",
+          "placeId": "p-office",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sz-center",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "15:00",
+          "end": "",
+          "place": "p-sea-sz",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-office",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c84",
+      "category": "complex",
+      "text": "明天上午十点在上海中心大厦见客户，明天下午三点在静安嘉里中心开会，明天晚上七点在人民广场来福士吃饭",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "15:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "见客户",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-sh-tower",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-1",
+          "raw": "",
+          "title": "开会",
+          "date": "2026-11-26",
+          "time": "15:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "静安嘉里中心",
+          "placeId": "p-jingan",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-2",
+          "raw": "",
+          "title": "吃饭",
+          "date": "2026-11-26",
+          "time": "19:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "人民广场来福士",
+          "placeId": "p-raffles",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "15:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c85",
+      "category": "complex",
+      "text": "明天上午十点在深圳湾体育中心见客户，后天下午三点在海上世界开会，后天晚上七点在客户办公室吃饭",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sz-center",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-27",
+          "start": "15:00",
+          "end": "",
+          "place": "p-sea-sz",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-27",
+          "start": "19:00",
+          "end": "",
+          "place": "p-office",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "见客户",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "深圳湾体育中心",
+          "placeId": "p-sz-center",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-1",
+          "raw": "",
+          "title": "开会",
+          "date": "2026-11-27",
+          "time": "15:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "海上世界",
+          "placeId": "p-sea-sz",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-2",
+          "raw": "",
+          "title": "吃饭",
+          "date": "2026-11-27",
+          "time": "19:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "客户办公室",
+          "placeId": "p-office",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sz-center",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-27",
+          "start": "15:00",
+          "end": "",
+          "place": "p-sea-sz",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-27",
+          "start": "19:00",
+          "end": "",
+          "place": "p-office",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c86",
+      "category": "complex",
+      "text": "明天上午十点在上海中心大厦见客户，明天下午三点在静安嘉里中心开会，明天晚上七点在人民广场来福士吃饭",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "15:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "见客户",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-sh-tower",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-1",
+          "raw": "",
+          "title": "开会",
+          "date": "2026-11-26",
+          "time": "15:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "静安嘉里中心",
+          "placeId": "p-jingan",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-2",
+          "raw": "",
+          "title": "吃饭",
+          "date": "2026-11-26",
+          "time": "19:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "人民广场来福士",
+          "placeId": "p-raffles",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "15:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c87",
+      "category": "complex",
+      "text": "明天上午十点在深圳湾体育中心见客户，明天下午三点在海上世界开会，明天晚上七点在客户办公室吃饭",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sz-center",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "15:00",
+          "end": "",
+          "place": "p-sea-sz",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-office",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "见客户",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "深圳湾体育中心",
+          "placeId": "p-sz-center",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-1",
+          "raw": "",
+          "title": "开会",
+          "date": "2026-11-26",
+          "time": "15:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "海上世界",
+          "placeId": "p-sea-sz",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-2",
+          "raw": "",
+          "title": "吃饭",
+          "date": "2026-11-26",
+          "time": "19:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "客户办公室",
+          "placeId": "p-office",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sz-center",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "15:00",
+          "end": "",
+          "place": "p-sea-sz",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-office",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c88",
+      "category": "complex",
+      "text": "明天上午十点在上海中心大厦见客户，后天下午三点在静安嘉里中心开会，后天晚上七点在人民广场来福士吃饭",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-27",
+          "start": "15:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-27",
+          "start": "19:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "见客户",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-sh-tower",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-1",
+          "raw": "",
+          "title": "开会",
+          "date": "2026-11-27",
+          "time": "15:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "静安嘉里中心",
+          "placeId": "p-jingan",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-2",
+          "raw": "",
+          "title": "吃饭",
+          "date": "2026-11-27",
+          "time": "19:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "人民广场来福士",
+          "placeId": "p-raffles",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-27",
+          "start": "15:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-27",
+          "start": "19:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c89",
+      "category": "complex",
+      "text": "明天上午十点在深圳湾体育中心见客户，明天下午三点在海上世界开会，明天晚上七点在客户办公室吃饭",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sz-center",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "15:00",
+          "end": "",
+          "place": "p-sea-sz",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-office",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "见客户",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "深圳湾体育中心",
+          "placeId": "p-sz-center",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-1",
+          "raw": "",
+          "title": "开会",
+          "date": "2026-11-26",
+          "time": "15:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "海上世界",
+          "placeId": "p-sea-sz",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-2",
+          "raw": "",
+          "title": "吃饭",
+          "date": "2026-11-26",
+          "time": "19:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "客户办公室",
+          "placeId": "p-office",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sz-center",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "15:00",
+          "end": "",
+          "place": "p-sea-sz",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-office",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c90",
+      "category": "complex",
+      "text": "明天上午十点在上海中心大厦见客户，明天下午三点在静安嘉里中心开会，明天晚上七点在人民广场来福士吃饭",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "15:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "见客户",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-sh-tower",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-1",
+          "raw": "",
+          "title": "开会",
+          "date": "2026-11-26",
+          "time": "15:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "静安嘉里中心",
+          "placeId": "p-jingan",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-2",
+          "raw": "",
+          "title": "吃饭",
+          "date": "2026-11-26",
+          "time": "19:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "人民广场来福士",
+          "placeId": "p-raffles",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "p-sh-tower",
+          "keywords": [
+            "见客户"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "15:00",
+          "end": "",
+          "place": "p-jingan",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "19:00",
+          "end": "",
+          "place": "p-raffles",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c91",
+      "category": "cross-midnight",
+      "text": "今晚十一点到明天凌晨一点在上海中心大厦加班",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-25",
+          "start": "23:00",
+          "end": "01:00",
+          "place": "p-sh-tower",
+          "keywords": [
+            "加班"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "上海中心大厦加班",
+          "date": "2026-11-25",
+          "time": "23:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-sh-tower",
+          "pending": [
+            "end"
+          ],
+          "warnings": [
+            "结束时间不晚于开始时间，已留待确认"
+          ],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": false,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-25",
+          "start": "23:00",
+          "end": "01:00",
+          "place": "p-sh-tower",
+          "keywords": [
+            "加班"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c92",
+      "category": "cross-midnight",
+      "text": "今晚十点到明天早上六点在客户办公室值班",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-25",
+          "start": "22:00",
+          "end": "06:00",
+          "place": "p-office",
+          "keywords": [
+            "值班"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "客户办公室值班",
+          "date": "2026-11-25",
+          "time": "22:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "客户办公室",
+          "placeId": "p-office",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": false,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-1",
+          "raw": "",
+          "title": "客户办公室值班",
+          "date": "2026-11-26",
+          "time": "",
+          "endTime": "06:00",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "客户办公室",
+          "placeId": "p-office",
+          "pending": [
+            "time"
+          ],
+          "warnings": []
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-25",
+          "start": "22:00",
+          "end": "06:00",
+          "place": "p-office",
+          "keywords": [
+            "值班"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c93",
+      "category": "cross-midnight",
+      "text": "周五晚上十点到周六凌晨两点在深圳湾体育中心布置会场",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-27",
+          "start": "22:00",
+          "end": "02:00",
+          "place": "p-sz-center",
+          "keywords": [
+            "布置会场"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "深圳湾体育中心布置会场",
+          "date": "2026-11-27",
+          "time": "22:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "深圳湾体育中心",
+          "placeId": "p-sz-center",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": false,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-1",
+          "raw": "",
+          "title": "深圳湾体育中心布置会场",
+          "date": "2026-11-28",
+          "time": "",
+          "endTime": "02:00",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "深圳湾体育中心",
+          "placeId": "p-sz-center",
+          "pending": [
+            "time"
+          ],
+          "warnings": []
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-27",
+          "start": "22:00",
+          "end": "02:00",
+          "place": "p-sz-center",
+          "keywords": [
+            "布置会场"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c94",
+      "category": "cross-midnight",
+      "text": "明天晚上十一点到后天凌晨三点在虹桥机场T2接客户",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "23:00",
+          "end": "03:00",
+          "place": "p-hongqiao",
+          "keywords": [
+            "接客户"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "虹桥机场T2接客户",
+          "date": "2026-11-26",
+          "time": "23:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥机场T2",
+          "placeId": "p-hongqiao",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": false,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-1",
+          "raw": "",
+          "title": "虹桥机场T2接客户",
+          "date": "2026-11-27",
+          "time": "",
+          "endTime": "03:00",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥机场T2",
+          "placeId": "p-hongqiao",
+          "pending": [
+            "time"
+          ],
+          "warnings": []
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "23:00",
+          "end": "03:00",
+          "place": "p-hongqiao",
+          "keywords": [
+            "接客户"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c95",
+      "category": "cross-midnight",
+      "text": "今晚九点半到明天凌晨零点在静安嘉里中心复盘",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-25",
+          "start": "21:30",
+          "end": "00:00",
+          "place": "p-jingan",
+          "keywords": [
+            "复盘"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "静安嘉里中心复盘",
+          "date": "2026-11-25",
+          "time": "21:30",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "静安嘉里中心",
+          "placeId": "p-jingan",
+          "pending": [
+            "end"
+          ],
+          "warnings": [
+            "结束时间不晚于开始时间，已留待确认"
+          ],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": false,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-25",
+          "start": "21:30",
+          "end": "00:00",
+          "place": "p-jingan",
+          "keywords": [
+            "复盘"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c96",
+      "category": "cross-midnight",
+      "text": "今晚十一点到明天凌晨一点在上海中心大厦加班",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-25",
+          "start": "23:00",
+          "end": "01:00",
+          "place": "p-sh-tower",
+          "keywords": [
+            "加班"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "上海中心大厦加班",
+          "date": "2026-11-25",
+          "time": "23:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-sh-tower",
+          "pending": [
+            "end"
+          ],
+          "warnings": [
+            "结束时间不晚于开始时间，已留待确认"
+          ],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": false,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-25",
+          "start": "23:00",
+          "end": "01:00",
+          "place": "p-sh-tower",
+          "keywords": [
+            "加班"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c97",
+      "category": "cross-midnight",
+      "text": "今晚十点到明天早上六点在客户办公室值班",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-25",
+          "start": "22:00",
+          "end": "06:00",
+          "place": "p-office",
+          "keywords": [
+            "值班"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "客户办公室值班",
+          "date": "2026-11-25",
+          "time": "22:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "客户办公室",
+          "placeId": "p-office",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": false,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-1",
+          "raw": "",
+          "title": "客户办公室值班",
+          "date": "2026-11-26",
+          "time": "",
+          "endTime": "06:00",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "客户办公室",
+          "placeId": "p-office",
+          "pending": [
+            "time"
+          ],
+          "warnings": []
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-25",
+          "start": "22:00",
+          "end": "06:00",
+          "place": "p-office",
+          "keywords": [
+            "值班"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c98",
+      "category": "cross-midnight",
+      "text": "周五晚上十点到周六凌晨两点在深圳湾体育中心布置会场",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-27",
+          "start": "22:00",
+          "end": "02:00",
+          "place": "p-sz-center",
+          "keywords": [
+            "布置会场"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "深圳湾体育中心布置会场",
+          "date": "2026-11-27",
+          "time": "22:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "深圳湾体育中心",
+          "placeId": "p-sz-center",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": false,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-1",
+          "raw": "",
+          "title": "深圳湾体育中心布置会场",
+          "date": "2026-11-28",
+          "time": "",
+          "endTime": "02:00",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "深圳湾体育中心",
+          "placeId": "p-sz-center",
+          "pending": [
+            "time"
+          ],
+          "warnings": []
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-27",
+          "start": "22:00",
+          "end": "02:00",
+          "place": "p-sz-center",
+          "keywords": [
+            "布置会场"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c99",
+      "category": "cross-midnight",
+      "text": "明天晚上十一点到后天凌晨三点在虹桥机场T2接客户",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "23:00",
+          "end": "03:00",
+          "place": "p-hongqiao",
+          "keywords": [
+            "接客户"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "虹桥机场T2接客户",
+          "date": "2026-11-26",
+          "time": "23:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥机场T2",
+          "placeId": "p-hongqiao",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": false,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-1",
+          "raw": "",
+          "title": "虹桥机场T2接客户",
+          "date": "2026-11-27",
+          "time": "",
+          "endTime": "03:00",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥机场T2",
+          "placeId": "p-hongqiao",
+          "pending": [
+            "time"
+          ],
+          "warnings": []
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "23:00",
+          "end": "03:00",
+          "place": "p-hongqiao",
+          "keywords": [
+            "接客户"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c100",
+      "category": "cross-midnight",
+      "text": "今晚九点半到明天凌晨零点在静安嘉里中心复盘",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-25",
+          "start": "21:30",
+          "end": "00:00",
+          "place": "p-jingan",
+          "keywords": [
+            "复盘"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "静安嘉里中心复盘",
+          "date": "2026-11-25",
+          "time": "21:30",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "静安嘉里中心",
+          "placeId": "p-jingan",
+          "pending": [
+            "end"
+          ],
+          "warnings": [
+            "结束时间不晚于开始时间，已留待确认"
+          ],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": false,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-25",
+          "start": "21:30",
+          "end": "00:00",
+          "place": "p-jingan",
+          "keywords": [
+            "复盘"
+          ]
+        }
+      ]
+    }
+  ],
+  "accuracy": {
+    "date": {
+      "ok": 130,
+      "total": 130,
+      "rate": 100
+    },
+    "start": {
+      "ok": 130,
+      "total": 130,
+      "rate": 100
+    },
+    "end": {
+      "ok": 120,
+      "total": 130,
+      "rate": 92.3
+    },
+    "place": {
+      "ok": 130,
+      "total": 130,
+      "rate": 100
+    },
+    "title": {
+      "ok": 130,
+      "total": 130,
+      "rate": 100
+    },
+    "count": {
+      "ok": 94,
+      "total": 100,
+      "rate": 94
+    }
+  },
+  "categories": {
+    "absolute": {
+      "date": {
+        "ok": 20,
+        "total": 20,
+        "rate": 100
+      },
+      "start": {
+        "ok": 20,
+        "total": 20,
+        "rate": 100
+      },
+      "end": {
+        "ok": 20,
+        "total": 20,
+        "rate": 100
+      },
+      "place": {
+        "ok": 20,
+        "total": 20,
+        "rate": 100
+      },
+      "title": {
+        "ok": 20,
+        "total": 20,
+        "rate": 100
+      },
+      "count": {
+        "ok": 20,
+        "total": 20,
+        "rate": 100
+      }
+    },
+    "relative": {
+      "date": {
+        "ok": 15,
+        "total": 15,
+        "rate": 100
+      },
+      "start": {
+        "ok": 15,
+        "total": 15,
+        "rate": 100
+      },
+      "end": {
+        "ok": 15,
+        "total": 15,
+        "rate": 100
+      },
+      "place": {
+        "ok": 15,
+        "total": 15,
+        "rate": 100
+      },
+      "title": {
+        "ok": 15,
+        "total": 15,
+        "rate": 100
+      },
+      "count": {
+        "ok": 15,
+        "total": 15,
+        "rate": 100
+      }
+    },
+    "colloquial": {
+      "date": {
+        "ok": 15,
+        "total": 15,
+        "rate": 100
+      },
+      "start": {
+        "ok": 15,
+        "total": 15,
+        "rate": 100
+      },
+      "end": {
+        "ok": 15,
+        "total": 15,
+        "rate": 100
+      },
+      "place": {
+        "ok": 15,
+        "total": 15,
+        "rate": 100
+      },
+      "title": {
+        "ok": 15,
+        "total": 15,
+        "rate": 100
+      },
+      "count": {
+        "ok": 15,
+        "total": 15,
+        "rate": 100
+      }
+    },
+    "duplicate": {
+      "date": {
+        "ok": 10,
+        "total": 10,
+        "rate": 100
+      },
+      "start": {
+        "ok": 10,
+        "total": 10,
+        "rate": 100
+      },
+      "end": {
+        "ok": 10,
+        "total": 10,
+        "rate": 100
+      },
+      "place": {
+        "ok": 10,
+        "total": 10,
+        "rate": 100
+      },
+      "title": {
+        "ok": 10,
+        "total": 10,
+        "rate": 100
+      },
+      "count": {
+        "ok": 10,
+        "total": 10,
+        "rate": 100
+      }
+    },
+    "missing": {
+      "date": {
+        "ok": 15,
+        "total": 15,
+        "rate": 100
+      },
+      "start": {
+        "ok": 15,
+        "total": 15,
+        "rate": 100
+      },
+      "end": {
+        "ok": 15,
+        "total": 15,
+        "rate": 100
+      },
+      "place": {
+        "ok": 15,
+        "total": 15,
+        "rate": 100
+      },
+      "title": {
+        "ok": 15,
+        "total": 15,
+        "rate": 100
+      },
+      "count": {
+        "ok": 15,
+        "total": 15,
+        "rate": 100
+      }
+    },
+    "complex": {
+      "date": {
+        "ok": 45,
+        "total": 45,
+        "rate": 100
+      },
+      "start": {
+        "ok": 45,
+        "total": 45,
+        "rate": 100
+      },
+      "end": {
+        "ok": 45,
+        "total": 45,
+        "rate": 100
+      },
+      "place": {
+        "ok": 45,
+        "total": 45,
+        "rate": 100
+      },
+      "title": {
+        "ok": 45,
+        "total": 45,
+        "rate": 100
+      },
+      "count": {
+        "ok": 15,
+        "total": 15,
+        "rate": 100
+      }
+    },
+    "cross-midnight": {
+      "date": {
+        "ok": 10,
+        "total": 10,
+        "rate": 100
+      },
+      "start": {
+        "ok": 10,
+        "total": 10,
+        "rate": 100
+      },
+      "end": {
+        "ok": 0,
+        "total": 10,
+        "rate": 0
+      },
+      "place": {
+        "ok": 10,
+        "total": 10,
+        "rate": 100
+      },
+      "title": {
+        "ok": 10,
+        "total": 10,
+        "rate": 100
+      },
+      "count": {
+        "ok": 4,
+        "total": 10,
+        "rate": 40
+      }
+    }
+  },
+  "usage": {
+    "eval-m5-a": {
+      "spentUsd": 0.032895,
+      "remainingUsd": 0.967105,
+      "callsUsed": 25,
+      "tokens": {
+        "input": 99242,
+        "output": 12157
+      },
+      "tasks": {
+        "intake": 130,
+        "copilot": 30
+      }
+    },
+    "eval-m5-b": {
+      "spentUsd": 0.032895,
+      "remainingUsd": 0.967105,
+      "callsUsed": 25,
+      "tokens": {
+        "input": 99242,
+        "output": 12157
+      },
+      "tasks": {
+        "intake": 130,
+        "copilot": 30
+      }
+    },
+    "eval-m5-c": {
+      "spentUsd": 0.032895,
+      "remainingUsd": 0.967105,
+      "callsUsed": 25,
+      "tokens": {
+        "input": 99242,
+        "output": 12157
+      },
+      "tasks": {
+        "intake": 130,
+        "copilot": 30
+      }
+    },
+    "eval-m5-d": {
+      "spentUsd": 0.032895,
+      "remainingUsd": 0.967105,
+      "callsUsed": 25,
+      "tokens": {
+        "input": 99242,
+        "output": 12157
+      },
+      "tasks": {
+        "intake": 130,
+        "copilot": 30
+      }
+    }
+  },
+  "dailySpentUsd": 0.032895
+}

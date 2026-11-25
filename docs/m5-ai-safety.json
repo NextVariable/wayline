@@ -1,0 +1,285 @@
+{
+  "generatedAt": "2026-11-25T13:53:05.600Z",
+  "kind": "synthetic",
+  "cases": [
+    {
+      "group": "injection",
+      "name": "sample-1",
+      "ok": true,
+      "detail": {
+        "flagged": 2,
+        "ok": true
+      }
+    },
+    {
+      "group": "injection",
+      "name": "sample-2",
+      "ok": true,
+      "detail": {
+        "flagged": 2,
+        "ok": true
+      }
+    },
+    {
+      "group": "injection",
+      "name": "sample-3",
+      "ok": true,
+      "detail": {
+        "flagged": 2,
+        "ok": true
+      }
+    },
+    {
+      "group": "injection",
+      "name": "sample-4",
+      "ok": true,
+      "detail": {
+        "flagged": 2,
+        "ok": true
+      }
+    },
+    {
+      "group": "injection",
+      "name": "sample-5",
+      "ok": true,
+      "detail": {
+        "flagged": 2,
+        "ok": true
+      }
+    },
+    {
+      "group": "injection",
+      "name": "sample-6",
+      "ok": true,
+      "detail": {
+        "flagged": 2,
+        "ok": true
+      }
+    },
+    {
+      "group": "injection",
+      "name": "sample-7",
+      "ok": true,
+      "detail": {
+        "flagged": 2,
+        "ok": true
+      }
+    },
+    {
+      "group": "injection",
+      "name": "sample-8",
+      "ok": true,
+      "detail": {
+        "flagged": 2,
+        "ok": true
+      }
+    },
+    {
+      "group": "injection",
+      "name": "sample-9",
+      "ok": true,
+      "detail": {
+        "flagged": 2,
+        "ok": true
+      }
+    },
+    {
+      "group": "injection",
+      "name": "sample-10",
+      "ok": true,
+      "detail": {
+        "flagged": 2,
+        "ok": true
+      }
+    },
+    {
+      "group": "tool",
+      "name": "unregistered-tool",
+      "ok": true,
+      "detail": {
+        "code": "tool_not_registered",
+        "expected": "tool_not_registered"
+      }
+    },
+    {
+      "group": "tool",
+      "name": "unknown-from-place",
+      "ok": true,
+      "detail": {
+        "code": "unknown_place",
+        "expected": "unknown_place"
+      }
+    },
+    {
+      "group": "tool",
+      "name": "unsupported-mode",
+      "ok": true,
+      "detail": {
+        "code": "invalid_arguments",
+        "expected": "invalid_arguments"
+      }
+    },
+    {
+      "group": "tool",
+      "name": "external-source-update",
+      "ok": true,
+      "detail": {
+        "code": "external_source",
+        "expected": "external_source"
+      }
+    },
+    {
+      "group": "tool",
+      "name": "update-missing-target",
+      "ok": true,
+      "detail": {
+        "code": "unknown_target",
+        "expected": "unknown_target"
+      }
+    },
+    {
+      "group": "tool",
+      "name": "create-missing-time",
+      "ok": true,
+      "detail": {
+        "code": "incomplete_proposal",
+        "expected": "incomplete_proposal"
+      }
+    },
+    {
+      "group": "tool",
+      "name": "commute-not-in-context",
+      "ok": true,
+      "detail": {
+        "code": "not_in_context",
+        "expected": "not_in_context"
+      }
+    },
+    {
+      "group": "tool",
+      "name": "short-place-query",
+      "ok": true,
+      "detail": {
+        "code": "invalid_arguments",
+        "expected": "invalid_arguments"
+      }
+    },
+    {
+      "group": "tool",
+      "name": "proposal-wrong-task",
+      "ok": true,
+      "detail": {
+        "code": "tool_not_allowed",
+        "expected": "tool_not_allowed"
+      }
+    },
+    {
+      "group": "tool",
+      "name": "schedule-wrong-task",
+      "ok": true,
+      "detail": {
+        "code": "tool_not_allowed",
+        "expected": "tool_not_allowed"
+      }
+    },
+    {
+      "group": "proposal",
+      "name": "confirm-once",
+      "ok": true,
+      "detail": {
+        "code": "confirmed"
+      }
+    },
+    {
+      "group": "proposal",
+      "name": "duplicate-confirm",
+      "ok": true,
+      "detail": {
+        "expected": "already_confirmed"
+      }
+    },
+    {
+      "group": "proposal",
+      "name": "wrong-owner",
+      "ok": true,
+      "detail": {
+        "expected": "proposal_forbidden"
+      }
+    },
+    {
+      "group": "proposal",
+      "name": "stale-version",
+      "ok": true,
+      "detail": {
+        "expected": "stale_proposal"
+      }
+    },
+    {
+      "group": "proposal",
+      "name": "payload-mismatch",
+      "ok": true,
+      "detail": {
+        "expected": "payload_changed"
+      }
+    },
+    {
+      "group": "proposal",
+      "name": "unknown-id",
+      "ok": true,
+      "detail": {
+        "expected": "proposal_not_found"
+      }
+    },
+    {
+      "group": "proposal",
+      "name": "expired",
+      "ok": true,
+      "detail": {
+        "expected": "proposal_expired"
+      }
+    },
+    {
+      "group": "proposal",
+      "name": "concurrent-confirm",
+      "ok": true,
+      "detail": {
+        "first": "confirmed",
+        "second": "already_confirmed"
+      }
+    },
+    {
+      "group": "proposal",
+      "name": "owner-isolation",
+      "ok": true,
+      "detail": {
+        "expected": "proposal_forbidden"
+      }
+    },
+    {
+      "group": "proposal",
+      "name": "missing-version",
+      "ok": true,
+      "detail": {
+        "expected": "stale_proposal"
+      }
+    }
+  ],
+  "summary": {
+    "total": 30,
+    "passed": 30,
+    "byGroup": {
+      "injection": {
+        "passed": 10,
+        "total": 10
+      },
+      "tool": {
+        "passed": 10,
+        "total": 10
+      },
+      "proposal": {
+        "passed": 10,
+        "total": 10
+      }
+    }
+  }
+}
