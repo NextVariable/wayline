@@ -1,9 +1,8 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { spatialMedia } from "../lib/spatialMedia";
 import roomUrl from "./showcase-room.jpg?inline";
 import "./spatialShowcase.css";
 
-const compactViewport = "(max-width: 760px), (pointer: coarse)";
-const reducedMotion = "(prefers-reduced-motion: reduce)";
 const mix = (a: number, b: number, t: number) => a + (b - a) * t;
 const clamp = (n: number) => Math.max(0, Math.min(1, n));
 const smooth = (n: number) => n * n * (3 - 2 * n);
@@ -23,10 +22,6 @@ function projectQuad([ [x0, y0], [x1, y1], [x2, y2], [x3, y3] ]: Point[], width:
   ].join(",")})`;
 }
 
-function showWorkspaceUrl() {
-  history.replaceState(history.state, "", `/${location.search}${location.hash}`);
-}
-
 export function SpatialShowcase({ children }: { children: ReactNode }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const screenRef = useRef<HTMLDivElement>(null);
@@ -40,8 +35,8 @@ export function SpatialShowcase({ children }: { children: ReactNode }) {
     const room = roomRef.current!;
     const prompt = promptRef.current!;
     const skip = skipRef.current!;
-    const compact = matchMedia(compactViewport);
-    const reduced = matchMedia(reducedMotion);
+    const compact = matchMedia(spatialMedia.compact);
+    const reduced = matchMedia(spatialMedia.reduced);
     let frame = 0;
     let lastTime = 0;
     let progress = 0;
@@ -65,7 +60,6 @@ export function SpatialShowcase({ children }: { children: ReactNode }) {
       stage.classList.remove("is-entering");
       room.hidden = true;
       prompt.hidden = true;
-      showWorkspaceUrl();
       window.scrollTo(0, 0);
       if (moveFocus) screen.focus({ preventScroll: true });
     }
@@ -124,10 +118,8 @@ export function SpatialShowcase({ children }: { children: ReactNode }) {
       if (!finished && !frame) frame = requestAnimationFrame(draw);
     }
 
-    if (!stage.classList.contains("is-entering")) {
-      showWorkspaceUrl();
-      return;
-    }
+    if (!stage.classList.contains("is-entering")) return;
+    window.scrollTo(0, 0);
     window.addEventListener("scroll", queue, { passive: true });
     window.addEventListener("resize", queue, { passive: true });
     compact.addEventListener("change", queue);
@@ -138,7 +130,7 @@ export function SpatialShowcase({ children }: { children: ReactNode }) {
     return stop;
   }, []);
 
-  const play = !matchMedia(compactViewport).matches && !matchMedia(reducedMotion).matches;
+  const play = !matchMedia(spatialMedia.compact).matches && !matchMedia(spatialMedia.reduced).matches;
 
   return (
     <div ref={stageRef} className={play ? "spatial-showcase is-entering" : "spatial-showcase"}>
@@ -149,7 +141,7 @@ export function SpatialShowcase({ children }: { children: ReactNode }) {
         {children}
       </div>
       <div ref={promptRef} className="spatial-prompt" hidden={!play}>
-        <span aria-hidden="true">滚动进入</span>
+        <span className="spatial-scroll-hint" aria-hidden="true">滚动进入</span>
         <button ref={skipRef} type="button">直接进入</button>
       </div>
     </div>

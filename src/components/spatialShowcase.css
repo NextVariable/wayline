@@ -78,3 +78,30 @@ html:has(.spatial-showcase.is-entering) body {
 }
 .spatial-prompt button:hover { background: #ffffff33; }
 .spatial-prompt button:focus-visible { outline: 2px solid white; outline-offset: -3px; }
+
+
+@media (prefers-reduced-motion: no-preference) {
+  .is-entering .spatial-room img {
+    animation: spatial-room-settle 740ms cubic-bezier(.2, .72, .26, 1) both;
+  }
+  .is-entering .spatial-screen {
+    animation: spatial-screen-appear 540ms cubic-bezier(.2, .72, .26, 1);
+  }
+  .is-entering .spatial-scroll-hint {
+    display: inline-block;
+    animation: spatial-hint-arrive 560ms cubic-bezier(.2, .72, .26, 1) 140ms both;
+  }
+}
+
+@keyframes spatial-room-settle {
+  from { transform: scale(1.027); }
+  to { transform: scale(1); }
+}
+@keyframes spatial-screen-appear {
+  from { opacity: .63; }
+  to { opacity: 1; }
+}
+@keyframes spatial-hint-arrive {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

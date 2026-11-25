@@ -1,6 +1,7 @@
 import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { spatialMedia } from "./lib/spatialMedia";
 import { ToastProvider } from "./components/Toast";
 import "./styles/globals.css";
 import "./styles/m3.css";
@@ -13,7 +14,11 @@ Object.assign(window, { _AMapSecurityConfig: {
 const SpatialShowcase = lazy(() =>
   import("./components/SpatialShowcase").then(({ SpatialShowcase }) => ({ default: SpatialShowcase })),
 );
-const showOpening = /^\/showcase\/?$/.test(window.location.pathname);
+const showOpening = /^\/showcase\/?$/.test(window.location.pathname) &&
+  !matchMedia(spatialMedia.compact).matches && !matchMedia(spatialMedia.reduced).matches;
+
+// A reload of the showcase should always begin at the room, even mid-scroll.
+if (showOpening) history.scrollRestoration = "manual";
 const workspace = <App />;
 
 createRoot(document.getElementById("root")!).render(
