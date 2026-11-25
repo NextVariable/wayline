@@ -80,12 +80,13 @@ export function schedulesToEvents(places: Place[]): CalendarEntry[] {
   });
 }
 
-/** External calendar events plus local schedules, in start order. */
+/** External calendar events plus local schedules, in start order. Deleted source records stay out of active views. */
 export function mergeWorkspaceEvents(
   calendarEvents: CalendarEntry[],
   schedules: Place[],
+  options: { includeDeleted?: boolean } = {},
 ): CalendarEntry[] {
-  return [...calendarEvents, ...schedulesToEvents(schedules)].sort((left, right) =>
+  return [...(options.includeDeleted ? calendarEvents : calendarEvents.filter(event => !event.google?.deletedAt)), ...schedulesToEvents(schedules)].sort((left, right) =>
     left.start.localeCompare(right.start),
   );
 }

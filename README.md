@@ -6,6 +6,17 @@
 
 Wayline 为经常出差的人把日历、地图和已订交通住宿放在一起。打开就能看见今天去哪、两场会之间怎么走、时间够不够。跨城日程可以归成一趟出差，已确认的订单和未安排的部分一目了然。
 
+## 当前产品范围
+
+Wayline 的长期定位是 **AI-native Business Travel Workspace**。当前阶段仅支持**中国大陆商务出行**，这是阶段性的市场与技术实施范围，不是永久地域限制。
+
+- 正式范围：中国大陆城市内及跨城市商务出行；高德地图为唯一地图、POI 与路线供应商；DeepSeek 为当前 AI 模型供应商；Google Calendar、Gmail、ICS、自然语言及手动录入为信息来源；响应式 Web；Today、Trips、History 三个工作台。
+- 暂缓：Google Maps、海外地图与路线、港澳台及海外出行验收、多地图供应商切换、海外交通服务适配、全球化部署与完整国际化。
+- Google Calendar、Gmail、Google OAuth 与 Google Maps 是不同服务；暂缓 Google Maps 不影响其他 Google 服务。
+- 阶段范围不写入不可逆的产品限制；时区、坐标、城市与来源仍保留扩展能力。
+
+范围与未决事项见 [M5 范围裁决与未决事项](docs/m5-scope-and-decisions.md)。
+
 [本地运行](#本地运行) · [项目文档](docs/README.md) · [贡献指南](CONTRIBUTING.md) · [发布验收](docs/release-readiness.md)
 
 ## 当前功能

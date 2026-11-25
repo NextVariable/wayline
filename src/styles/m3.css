@@ -594,6 +594,56 @@
   line-height: 1.45;
   color: var(--m3-text-2);
 }
+.history-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 0 0 8px;
+}
+.history-filters label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-secondary);
+  color: var(--m3-text-2);
+}
+.history-filters select {
+  border: 1px solid var(--m3-line);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 4px 6px;
+}
+.trash-list {
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+.trash-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.trash-list li > span:first-child {
+  display: grid;
+  min-width: 0;
+}
+.trash-list small {
+  color: var(--m3-text-2);
+  font-size: 11px;
+}
+.trash-list li > span:last-child {
+  display: flex;
+  gap: 12px;
+  flex: none;
+}
+.account-danger summary {
+  color: var(--today-late, #b12639);
+}
 .history-month > h2 {
   margin: 16px 0 2px;
   font-size: 11px;

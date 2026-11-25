@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import type {CalendarEntry} from './calendarEvents';
-export interface GoogleCalendarStatus {configured:boolean;connected:boolean;connectionId?:string|null;calendars?:{id:string;summary:string;primary:boolean}[];selected?:string[];events?:CalendarEntry[];lastSync?:number|null;error?:string;needsReconnect?:boolean;}
-export function useGoogleCalendar(owner:string,onSnapshot:(events:CalendarEntry[],connectionId:string,signal:AbortSignal)=>Promise<void>){
+export interface GoogleCalendarStatus {configured:boolean;connected:boolean;connectionId?:string|null;calendars?:{id:string;summary:string;primary:boolean}[];selected?:string[];events?:CalendarEntry[];deleted?:{id:string;updated?:string;at?:number}[];lastSync?:number|null;error?:string;needsReconnect?:boolean;}
+export function useGoogleCalendar(owner:string,onSnapshot:(events:CalendarEntry[],connectionId:string,signal:AbortSignal,deleted?:{id:string;updated?:string;at?:number}[])=>Promise<void>){
   const callback=useRef(onSnapshot);callback.current=onSnapshot;
   const currentOwner=useRef(owner);currentOwner.current=owner;
   const [view,setView]=useState<{owner:string;status:GoogleCalendarStatus|null;error:string}>({owner,status:null,error:''});
@@ -19,7 +19,7 @@ export function useGoogleCalendar(owner:string,onSnapshot:(events:CalendarEntry[
       if(mutating.current)return Promise.resolve();
       if(running.current)return running.current;
       const task=(async()=>{try{const response=await fetch(`/api/calendar/google/status?owner=${encodeURIComponent(owner)}`,{credentials:'same-origin',signal:abort.signal,cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'日历暂时无法同步');if(abort.signal.aborted||version!==generation.current)return;
-        if(data.connected&&data.connectionId&&data.lastSync&&data.selected?.length&&!data.error)await callback.current(data.events,data.connectionId,abort.signal);
+        if(data.connected&&data.connectionId&&data.lastSync&&data.selected?.length&&!data.error)await callback.current(data.events,data.connectionId,abort.signal,data.deleted);
         if(abort.signal.aborted||version!==generation.current)return;failures.current=0;pausedUntil.current=0;setView({owner,status:data,error:data.error||''});
       }catch(e){if(!abort.signal.aborted&&version===generation.current){failures.current+=1;pausedUntil.current=Date.now()+Math.min(30000*2**failures.current,600000);}if(!abort.signal.aborted&&version===generation.current)setView(previous=>({owner,status:previous.owner===owner?previous.status:null,error:e instanceof Error?e.message:'日历暂时无法同步'}));}})();
       running.current=task;task.finally(()=>{if(version===generation.current)running.current=null;});return task;

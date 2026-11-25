@@ -18,7 +18,7 @@ function response() {
 const cookiesOf = (res: {headers: Record<string, any>}) => ([] as string[]).concat(res.headers['Set-Cookie'] ?? []);
 const cookieValue = (res: {headers: Record<string, any>}, name: string) => cookiesOf(res).find(c => c.startsWith(name + '='))?.split(';')[0];
 
-function setup({configured = true, gmail = false, sub = 'g-123', email = 'a@example.com', name = 'Ada', emailVerified = true, maxWorkspaceBytes = undefined as number | undefined} = {}) {
+function setup({configured = true, gmail = false, sub = 'g-123', email = 'a@example.com', name = 'Ada', emailVerified = true, maxWorkspaceBytes = undefined as number | undefined, onOwnerDeleted = async (_owner: string) => {} } = {}) {
   let clock = Date.parse('2026-11-12T01:00:00Z'), failSave = false, user = {sub, email, name};
   const store = {data: {} as any, save: vi.fn(async () => { if (failSave) throw new Error('disk'); })};
   const openVault = vi.fn(async () => store);
@@ -31,7 +31,7 @@ function setup({configured = true, gmail = false, sub = 'g-123', email = 'a@exam
   });
   const env = configured ? {GOOGLE_CLIENT_ID: 'test-id', GOOGLE_CLIENT_SECRET: 'test-secret', PUBLIC_ORIGIN: ORIGIN,
     ...(gmail && {GMAIL_ORDERS_ENABLED: '1'})} : {PUBLIC_ORIGIN: ORIGIN};
-  const service = createAccountService({env, fetcher, now: () => clock, openVault, maxWorkspaceBytes});
+  const service = createAccountService({env, fetcher, now: () => clock, openVault, maxWorkspaceBytes, onOwnerDeleted});
   const call = async (path: string, {method = 'GET', body, cookie = '', origin = ORIGIN, type = 'application/json'}: {method?: string; body?: unknown; cookie?: string; origin?: string; type?: string} = {}) => {
     const raw = body === undefined ? [] : [typeof body === 'string' ? body : JSON.stringify(body)];
     const req = Readable.from(raw) as any;
@@ -214,6 +214,22 @@ it('leaves requests outside its routes to other handlers', async () => {
 
 const workspace = (name: string) => ({format: 'whereto-workspace', version: 1, name, records: EMPTY, footprints: EMPTY});
 const EMPTY = Object.freeze(Object.create(null)) as Record<string, unknown>;
+
+it('permanently deletes an account, its workspace, sessions and provider data after explicit confirmation', async () => {
+  const removed: string[] = [];
+  const s = setup({onOwnerDeleted: async owner => { removed.push(owner); }});
+  const {session} = await s.signIn();
+  await s.call('/api/workspace', {method: 'PUT', cookie: session, body: {baseVersion: 0, workspace: workspace('甲')}});
+  expect((await s.call('/api/auth/delete-account', {method: 'POST', cookie: session, body: {confirm: 'DELETE'}})).status).toBe(400);
+  const deleted = await s.call('/api/auth/delete-account', {method: 'POST', cookie: session, body: {confirm: 'DELETE', acknowledge: 'permanent'}});
+  expect(deleted.status).toBe(200);
+  expect(removed).toEqual(['google:' + sha('g-123')]);
+  expect((await s.call('/api/auth/me', {cookie: session})).json().signedIn).toBe(false);
+  expect(Object.keys(s.store.data.accounts ?? {})).toHaveLength(0);
+  expect(Object.keys(s.store.data.workspaces ?? {})).toHaveLength(0);
+  expect(Object.keys(s.store.data.sessions ?? {})).toHaveLength(0);
+  expect((await s.call('/api/workspace', {cookie: session})).status).toBe(401);
+});
 
 it('stores one workspace per account and bumps its version', async () => {
   const s = setup();

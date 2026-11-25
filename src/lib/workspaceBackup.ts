@@ -6,7 +6,7 @@ import { parseFootprints, type FootprintData } from "./footprints";
 import type { AppUser } from "./userStorage";
 
 const businessSettingsPrefix = "wayline.businessTrips.";
-const prefixes = ["whatto.userPlaces.", "whatto.tripDraft.", "whatto.customGuides.", "whatto.cities.", "whatto.planner.", "whatto.savedTrips.", "whereto:city-view:", "whatto.calendarEvents.", "whatto.placeAliases.", businessSettingsPrefix] as const;
+const prefixes = ["whatto.userPlaces.", "whatto.tripDraft.", "whatto.customGuides.", "whatto.cities.", "whatto.planner.", "whatto.savedTrips.", "whereto:city-view:", "whatto.calendarEvents.", "whatto.placeAliases.", businessSettingsPrefix, "wayline.trash."] as const;
 function withoutFlightAccess(draft: Record<string, unknown>) {
   const copy = { ...draft };
   delete copy.flightWatch;
@@ -57,6 +57,10 @@ export function parseWorkspaceBackup(text: string): WorkspaceBackup {
           (settings.inferHome !== undefined && typeof settings.inferHome !== "boolean") ||
           !settings.boundaries || typeof settings.boundaries !== "object" || Array.isArray(settings.boundaries) ||
           Object.values(settings.boundaries).some(value => value !== "split" && value !== "join")) throw new Error("行程设置无效");
+    } else if (key === "wayline.trash.") {
+      if (!Array.isArray(record) || record.length > 10000 || record.some(row =>
+        !row || !isStoredPlace(row.place) || !Number.isFinite(row.deletedAt) || !Number.isFinite(row.purgeAt)))
+        throw new Error("最近删除的记录无效");
     } else {
       const r = record as Record<string, unknown>;
       if (!r || typeof r.activeCity !== "string" || !["all", "current", "selected"].includes(String(r.scope))) throw new Error("城市范围无效");

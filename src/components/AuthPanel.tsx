@@ -1,6 +1,6 @@
 import { userFacingError } from "../lib/userFacingError";
 import { Check, FolderOpen, LogOut, X } from "lucide-react";
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { createUser, guestUser, type AppUser } from "../lib/userStorage";
 import type { AccountState } from "../lib/account";
 import type { SyncState } from "../lib/workspaceSync";
@@ -11,6 +11,7 @@ import { openFootprintStore } from "../lib/footprintStore";
 import type { FootprintData } from "../lib/footprints";
 import { useToast } from "./Toast";
 import { usePanelFocus } from "../lib/usePanelFocus";
+import { deleteTrashEntry, emptyTrash, readTrash, restoreFromTrash, type TrashEntry } from "../lib/deletion";
 
 export function AuthPanel({
   user,
@@ -26,6 +27,8 @@ export function AuthPanel({
   onSignOut,
   onReturnToAccount,
   onDemo,
+  onRestoreTrash,
+  onDeleteAccount,
 }: {
   accountStatus: AccountState["status"];
   accountEmail?: string;
@@ -35,6 +38,8 @@ export function AuthPanel({
   onSignOut: () => void;
   onReturnToAccount?: () => void;
   onDemo?: () => void;
+  onRestoreTrash?: (place: TrashEntry["place"]) => void;
+  onDeleteAccount?: () => Promise<void>;
   user: AppUser;
   onLogin: (user: AppUser) => boolean | void;
   open: boolean;
@@ -45,8 +50,10 @@ export function AuthPanel({
   const [pending, setPending] = useState<WorkspaceBackup | null>(null);
   const [busy, setBusy] = useState(false);
   const [restoreError, setRestoreError] = useState("");
+  const [trash, setTrash] = useState<TrashEntry[]>(() => readTrash(user.id));
   const demoSpace = user.id.startsWith("demo:");
   const { addToast } = useToast();
+  useEffect(() => { if (open) setTrash(readTrash(user.id)); }, [open, user.id]);
   
   const ref = usePanelFocus(open);
   const spaces = useMemo(() => {
@@ -106,6 +113,18 @@ export function AuthPanel({
             if (window.confirm("用云端版本替换本机修改？需要保留的内容请先导出。")) onUseCloudVersion();
           }}>使用云端版本</button>。
         </p>}
+      {accountStatus === "signed-in" && onDeleteAccount && <details className="workspace-backup account-danger">
+        <summary>永久删除账号</summary>
+        <p className="field-help">会立即停止外部同步，并删除在线工作区、已同步订单、连接凭证和登录会话，本机该账号的资料也会移除。备份文件不受影响。此操作不可恢复。</p>
+        <button type="button" className="secondary-action" disabled={busy} onClick={async () => {
+          const typed = window.prompt('永久删除账号不可恢复。请输入 DELETE 确认：');
+          if (typed !== "DELETE") return;
+          setBusy(true);
+          try { await onDeleteAccount(); addToast("账号与在线数据已删除", "success"); }
+          catch (error) { addToast(userFacingError(error, "账号删除未完成，请重试"), "error"); }
+          finally { setBusy(false); }
+        }}>永久删除此账号</button>
+      </details>}
       {spaces.some(space => space.method === "local") && <div className="space-list" aria-label="本机空间">
         {spaces.filter(space => space.method !== "google").map((space) => (
           <button
@@ -163,7 +182,30 @@ export function AuthPanel({
           }}>恢复到新空间</button><button className="secondary-action" disabled={busy} onClick={() => setPending(null)}>取消</button></div>
         </div>}
       </details>
-      
+      {!!trash.length && <details className="workspace-backup">
+        <summary>最近删除（{trash.length}）</summary>
+        <p className="field-help">删除的地点与日程保留 30 天，期间不会出现在活动视图和路线中。到期后自动清除。</p>
+        <ul className="trash-list">{trash.map(entry => <li key={entry.place.id}>
+          <span><strong>{entry.place.name}</strong><small>删除于 {new Date(entry.deletedAt).toLocaleDateString("zh-CN")} · 保留至 {new Date(entry.purgeAt).toLocaleDateString("zh-CN")}</small></span>
+          <span>
+            <button type="button" className="text-action" onClick={() => {
+              const place = restoreFromTrash(user.id, entry.place.id);
+              if (!place) return;
+              onRestoreTrash?.(place);
+              setTrash(readTrash(user.id));
+            }}>恢复</button>
+            <button type="button" className="text-action" onClick={() => {
+              if (!window.confirm("永久删除后无法恢复，确定继续？")) return;
+              deleteTrashEntry(user.id, entry.place.id);
+              setTrash(readTrash(user.id));
+            }}>永久删除</button>
+          </span>
+        </li>)}</ul>
+        <div className="backup-actions"><button type="button" className="secondary-action" onClick={() => {
+          if (!window.confirm("清空最近删除？清空后无法恢复。")) return;
+          emptyTrash(user.id); setTrash([]);
+        }}>清空最近删除</button></div>
+      </details>}
       {accountStatus !== "signed-in" && <p className="field-help storage-note">资料保存在此浏览器，换设备前请导出备份。</p>}
     </section>
   );

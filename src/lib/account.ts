@@ -45,6 +45,14 @@ export async function signOut(fetchImpl: FetchLike = fetch): Promise<void> {
   if (!response.ok && response.status !== 401) throw new Error("退出未完成");
 }
 
+/** Permanent account deletion: stops sync, removes workspace/orders/sessions and provider credentials. */
+export async function deleteAccount(fetchImpl: FetchLike = fetch): Promise<void> {
+  const response = await fetchImpl("/api/auth/delete-account", { method: "POST", credentials: "same-origin", headers: json,
+    body: JSON.stringify({ confirm: "DELETE", acknowledge: "permanent" }) });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(data?.error || "账号删除未完成，请重试");
+}
+
 export function accountUser(account: Pick<Account, "id" | "email">): AppUser {
   return { id: `google:${account.id}`, label: account.email, method: "google" };
 }

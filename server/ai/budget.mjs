@@ -142,5 +142,11 @@ export function createAiBudget({ config, store = createMemoryUsageStore(), now =
     return costOf(usage);
   };
 
-  return { begin, record, snapshot, costOf, day: usageDay(now()) };
+  const forgetOwner = (owner) => {
+    const data = store.read();
+    for (const day of Object.values(data.days)) delete day.calls?.[owner];
+    store.write(data);
+  };
+
+  return { begin, record, snapshot, costOf, day: usageDay(now()), forgetOwner };
 }

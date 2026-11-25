@@ -1,13 +1,14 @@
 import { BusinessTripCommute, type CommuteChoice } from "./components/BusinessTripCommute";
 import { BusinessTripConnections } from "./components/BusinessTripConnections";
 import { tripTransfers } from "./lib/tripTransfers";
-import { buildTravelWorkspace } from "./lib/tripIntelligence";
+import { buildTravelWorkspace, tripTimeline } from "./lib/tripIntelligence";
+import { assignTripBookings, collectTripBookings } from "./lib/businessOrders";
 import { assessCommute, assessTrip, calendarRisks, isCurrentRoute } from "./lib/tripFeasibility";
 import { useBookingPlaces, bookingPlaceKey } from "./lib/useBookingPlaces";
 import { useTripMailbox } from "./lib/useTripMailbox";
 import {storedPlaceCity} from "./lib/placeCity";
 import { useGoogleCalendar } from "./lib/useGoogleCalendar";
-import { mergeGoogleSnapshot, reconcileCalendarRoute, persistCalendarState } from "./lib/googleCalendarSync";
+import { mergeGoogleSnapshot, reconcileCalendarRoute, persistCalendarState, suppressCalendarEntry } from "./lib/googleCalendarSync";
 import { useWorkspaceMotion } from "./lib/useWorkspaceMotion";
 import { mapPopoverPosition } from "./lib/mapPopoverPosition";
 import { readCalendarEntries, mergeCalendarEntries } from "./lib/calendarEvents";
@@ -29,8 +30,10 @@ import { groupBusinessTrips, readBusinessTripSettings, tripPlaces, writeBusiness
 import { DEMO_USER, DEMO_HOME, createDemoMailbox, demoDay, demoLegResults, enterDemo, exitDemo, readDemoMode, resetDemo } from "./lib/demoWorkspace";
 import { eventDay } from "./lib/tripDay";
 import { buildTripActions, type TripAction } from "./lib/actionItems";
+import { deleteAccount } from "./lib/account";
 import { mergeWorkspaceEvents } from "./lib/scheduleEvents";
 import { addDays } from "./lib/smartIntake";
+import { moveToTrash, restoreFromTrash, TRASH_DAYS } from "./lib/deletion";
 const calendarLayerKey = (owner: string) => `whatto.mapCalendarLayer.${owner}`;
 const readCalendarLayer = (owner: string) => { try { return localStorage.getItem(calendarLayerKey(owner)) !== "off"; } catch { return true; } };
 const dayLabel = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric" });
@@ -472,11 +475,11 @@ export default function App() {
     calendarCurrent.current={...current,...{events:next.events,route:next.route}};
     setCalendarState({owner:current.owner, events:next.events});setRoutePlaces(next.route);
   };
-  const googleCalendar=useGoogleCalendar(activeUser.id,async(incoming,connectionId,signal)=>{
+  const googleCalendar=useGoogleCalendar(activeUser.id,async(incoming,connectionId,signal,deleted)=>{
     if(signal.aborted)return;
     // Places are resolved afterwards by useCalendarPlaces; a changed location drops its old coordinates in the merge.
     const current=calendarCurrent.current;
-    const next=mergeGoogleSnapshot(current.events,incoming,connectionId);
+    const next=mergeGoogleSnapshot(current.events,incoming,connectionId,deleted);
     if(JSON.stringify(next)!==JSON.stringify(current.events)||JSON.stringify(reconcileCalendarRoute(current.route,current.events,next).route)!==JSON.stringify(current.route))commitCalendarEvents(next);
   });
   const awaitingFirstSync = useRef<string | null>(null);
@@ -903,12 +906,24 @@ export default function App() {
   const businessBoundaries = businessSettings.boundaries;
   const pastTrips = useMemo(() => {
     if (!businessHome) return [];
-    return groupBusinessTrips(workspaceEvents, { home: businessHome, boundaries: businessBoundaries }, "0000-01-01", { includePast: true })
+    // Source-deleted records leave the active workspace but stay readable in History.
+    return groupBusinessTrips(mergeWorkspaceEvents(calendarEvents, userPlaces, { includeDeleted: true }),
+      { home: businessHome, boundaries: businessBoundaries }, "0000-01-01", { includePast: true })
       .filter(trip => trip.days.at(-1)!.date < effectiveTodayKey)
       .sort((a, b) => b.days[0].date.localeCompare(a.days[0].date));
-  }, [workspaceEvents, businessHome, businessBoundaries, effectiveTodayKey]);
+  }, [calendarEvents, userPlaces, businessHome, businessBoundaries, effectiveTodayKey]);
+  const historyBookings = useMemo(() => collectTripBookings(
+    mergeWorkspaceEvents(calendarEvents, userPlaces, { includeDeleted: true }),
+    mailbox?.singleSample ? [] : mailbox?.orders ?? [], mailbox?.singleSample ? [] : mailbox?.bookings ?? [],
+    bookingCities, mailbox?.singleSample ? [] : mailbox?.changes, mailbox?.lastSync),
+  [calendarEvents, userPlaces, mailbox, bookingCities]);
+  const historyPlans = useMemo(() => assignTripBookings(pastTrips, businessHome, historyBookings),
+    [pastTrips, businessHome, historyBookings]);
   const selectedHistoryTrip = historySelection?.owner === activeUser.id
     ? pastTrips.find(trip => trip.id === historySelection.id) : undefined;
+  const historyTimeline = selectedHistoryTrip
+    ? tripTimeline(selectedHistoryTrip, historyPlans.get(selectedHistoryTrip.id) ?? { legs: [], nights: [] })
+    : undefined;
   const showingHistoryTrip = activeOverlay === "history" && !!selectedHistoryTrip;
   const historyPlaces = useMemo(() => tripPlaces(selectedHistoryTrip), [selectedHistoryTrip]);
   const historyMapPlaces = useMemo(() => showingHistoryTrip ? historyPlaces : pastTrips.flatMap(tripPlaces), [showingHistoryTrip, historyPlaces, pastTrips]);
@@ -1274,22 +1289,22 @@ export default function App() {
 
   const deletePlace = (placeId: string) => {
     const target = userPlaces.find((place) => place.id === placeId);
+    // Ordinary deletion is recoverable for 30 days and stays out of active views.
+    if (target) { try { moveToTrash(activeUser.id, target); } catch { addToast("未能保存最近删除记录，请重试", "error"); return; } }
     setUserPlaces((places) => places.filter((place) => place.id !== placeId));
     setSelectedPlace((place) => (place?.id === placeId ? null : place));
     if (target)
       addToast(
         isSchedule(target)
-          ? `已删除日程「${target.name}」`
-          : `已从地点库移除「${target.name}」`,
+          ? `已删除日程「${target.name}」，${TRASH_DAYS} 天内可恢复`
+          : `已从地点库移除「${target.name}」，${TRASH_DAYS} 天内可恢复`,
         "info",
         {
           label: "撤销",
-          onClick: () =>
-            setUserPlaces((items) =>
-              items.some((p) => samePlace(p, target))
-                ? items
-                : [target, ...items],
-            ),
+          onClick: () => {
+            const restored = restoreFromTrash(activeUser.id, target.id);
+            if (restored) setUserPlaces((items) => items.some((p) => samePlace(p, restored)) ? items : [restored, ...items]);
+          },
         },
       );
   };
@@ -1966,6 +1981,8 @@ export default function App() {
         selected={selectedHistoryTrip}
         selectedEventIds={selectedPlace?.calendarEventIds}
         mapIndices={historyMapIndices}
+        timeline={historyTimeline}
+        now={clockNow}
         onTrip={id => presentWorkspace(() => {
           setSelectedPlace(null);
           setHistorySelection(id ? { owner: activeUser.id, id } : null);
@@ -2046,6 +2063,18 @@ export default function App() {
             setActiveOverlay(null);
           }}
           onDemo={() => enterDemoWorkspace()}
+          onDeleteAccount={async () => {
+            await deleteAccount();
+            try {
+              for (const key of Object.keys(localStorage)) {
+                if (key.endsWith(`.${activeUser.id}`) || key === `wayline.businessTrips.${activeUser.id}` ||
+                    key === `wayline.trash.${activeUser.id}`) localStorage.removeItem(key);
+              }
+            } catch { /* Online deletion already completed by the server. */ }
+            await account.refresh();
+            setActiveOverlay(null);
+          }}
+          onRestoreTrash={(place) => setUserPlaces(items => items.some(item => samePlace(item, place)) ? items : [place, ...items])}
           getFootprints={async () => {
             if (!footprints.recorder || footprints.snapshot.storageError) throw new Error("足迹尚未就绪");
             await footprints.recorder.flush();
@@ -2085,7 +2114,13 @@ export default function App() {
           googleCalendar={googleCalendar}
           gmailAccount={activeUser.method === "google" && account.status === "signed-in" ? account.account.email : undefined}
           onCalendarChange={incoming=>commitCalendarEvents(mergeCalendarEntries(calendarCurrent.current.events,incoming))}
-          onCalendarRemove={id=>commitCalendarEvents(calendarCurrent.current.events.filter(e=>e.id!==id))}
+          onCalendarRemove={id=>{
+            const target=calendarCurrent.current.events.find(event=>event.id===id);
+            // An imported event is suppressed by source key; a local schedule is removed outright.
+            commitCalendarEvents(target?.google
+              ? calendarCurrent.current.events.map(event=>event.id===id?suppressCalendarEntry(event,"user"):event)
+              : calendarCurrent.current.events.filter(event=>event.id!==id));
+          }}
           onClose={() => presentWorkspace(() => setActiveOverlay(scheduleOrigin))}
           backLabel={scheduleOrigin === "business-trips" ? "返回行程" : "返回地点"}
           editSchedule={scheduleEdit}

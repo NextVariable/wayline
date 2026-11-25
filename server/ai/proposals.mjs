@@ -64,5 +64,8 @@ export function createProposalStore({ now = Date.now, ttlMs = TTL_MS } = {}) {
       return { ok: true, status: 200, code: "confirmed", proposal: record.payload };
     },
     size: () => proposals.size,
+    forgetOwner(owner) {
+      for (const [id, proposal] of proposals) if (proposal.owner === owner) proposals.delete(id);
+    },
   };
 }

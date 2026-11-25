@@ -28,7 +28,7 @@ function readCookies(req) {
   return out;
 }
 
-export function createAccountService({env = process.env, fetcher = fetch, now = Date.now, openVault = openCalendarVault, maxWorkspaceBytes = MAX_WORKSPACE_BYTES} = {}) {
+export function createAccountService({env = process.env, fetcher = fetch, now = Date.now, openVault = openCalendarVault, maxWorkspaceBytes = MAX_WORKSPACE_BYTES, onOwnerDeleted = async () => {}} = {}) {
   const base = new URL(env.PUBLIC_ORIGIN || `http://127.0.0.1:${env.PORT || 8787}`);
   const local = ['127.0.0.1', 'localhost', '[::1]'].includes(base.hostname);
   if (base.pathname !== '/' || base.search || base.hash || base.username || base.password || (!local && base.protocol !== 'https:')) throw new Error('登录需要 HTTPS 或本机地址');
@@ -246,6 +246,34 @@ export function createAccountService({env = process.env, fetcher = fetch, now = 
     finally { if (workspaceWrites.get(account.id) === write) workspaceWrites.delete(account.id); }
   }
 
+  async function deleteAccount(req, res) {
+    guardMutation(req);
+    const account = await accountFor(req);
+    if (!account) fail(401, '请先登录');
+    const body = await readLimitedJson(req);
+    if (body?.confirm !== 'DELETE' || body?.acknowledge !== 'permanent') fail(400, '请明确确认永久删除');
+    // Stop external sync and remove provider credentials before removing the local account.
+    await onOwnerDeleted(`google:${account.id}`);
+    const store = await vault();
+    const previous = {account:store.data.accounts[account.id],workspace:store.data.workspaces[account.id],
+      gmail:store.data.gmailOrders?.[account.id],sessions:{}};
+    for (const [key, session] of Object.entries(store.data.sessions))
+      if (session.account === account.id) { previous.sessions[key] = session; delete store.data.sessions[key]; }
+    delete store.data.accounts[account.id];
+    delete store.data.workspaces[account.id];
+    if (store.data.gmailOrders) delete store.data.gmailOrders[account.id];
+    try { await store.save(); }
+    catch (error) {
+      if (previous.account) store.data.accounts[account.id] = previous.account;
+      if (previous.workspace) store.data.workspaces[account.id] = previous.workspace;
+      if (previous.gmail) store.data.gmailOrders[account.id] = previous.gmail;
+      Object.assign(store.data.sessions, previous.sessions);
+      throw error;
+    }
+    send(res, 200, {ok: true, deletedAt: now(), purgeBy: now() + 24 * 3600_000},
+      [`wayline_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`]);
+  }
+
   function failurePage(res, status, message) {
     const escape = value => value.replace(/[&<>"']/g, char => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[char]));
     res.writeHead(status, {'Content-Type': 'text/html; charset=utf-8', ...securityHeaders, 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'"});
@@ -263,6 +291,7 @@ export function createAccountService({env = process.env, fetcher = fetch, now = 
       else if (/^\/api\/auth\/gmail\/(status|sync|enable-sync|disconnect)$/.test(url.pathname)) await gmailRequest(req, res, url.pathname.split('/').at(-1));
       else if (url.pathname === '/api/auth/google/callback' && req.method === 'GET') await callback(req, res, url);
       else if (url.pathname === '/api/auth/signout' && req.method === 'POST') await signout(req, res);
+      else if (url.pathname === '/api/auth/delete-account' && req.method === 'POST') await deleteAccount(req, res);
       else fail(404, '账号接口不存在');
     } catch (error) {
       if (res.headersSent) return true;

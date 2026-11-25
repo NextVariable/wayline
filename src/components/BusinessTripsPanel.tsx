@@ -8,6 +8,7 @@ import { useRef, type ReactNode } from "react";
 import type { City } from "../types/place";
 import { CityPicker } from "./CityPicker";
 import { TripActions } from "./TripActions";
+import { TripBookingRow } from "./TripBookingRow";
 
 interface Props {
   home: string;
@@ -90,17 +91,7 @@ export function BusinessTripsPanel({ home, cities, trips, selected, selectedEven
             </header>
             <ol className="wayline-timeline trip-timeline">{rows.map(row => {
               if (row.kind === "booking") {
-                const order=row.booking;
-                const state=order.state === "cancelled" ? "收到取消通知" : order.state === "changed" ? "收到改签通知" :
-                  order.state === "review" ? "待核对" : !!order.end && Date.parse(order.end)<now ? "时段已过" : order.source === "日历" ? "日历安排" : "订单记录";
-                return <li key={`booking:${order.id}`} className="timeline-item is-booking trip-order-row" data-state={order.state ?? "confirmed"}>
-                  <span className="tl-time">{order.start.length === 10 ? "住宿" : timeLabel.format(new Date(order.start))}</span>
-                  <span className="tl-rail" aria-hidden="true" />
-                  <span className="tl-body">
-                    <strong>{[order.number,order.from?.name,order.to.name].filter(Boolean).join(" · ")}</strong>
-                    <small className="trip-order-state" data-state={order.state ?? "confirmed"}>{state} · {order.provenance?.some(item=>item.source === "gmail") && order.provenance.some(item=>item.source !== "gmail") ? "日历 / Gmail" : order.source}</small>
-                  </span>
-                </li>;
+                return <TripBookingRow key={`booking:${row.booking.id}`} order={row.booking} now={now} />;
               }
               const event=row.event;
               return <li key={`event:${event.id}`} className="timeline-item is-stop">

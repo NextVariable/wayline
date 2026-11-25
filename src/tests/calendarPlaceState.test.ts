@@ -39,14 +39,15 @@ it('keeps place and resolution when the location text is unchanged', () => {
   expect(synced.placeResolution?.status).toBe('confirmed');
 });
 
-it('drops place and resolution when the location text changes', () => {
+it('keeps a confirmed local place when the Google source changes, but a plain re-import still drops it', () => {
   const resolved = event({place, placeResolution: {status: 'confirmed', text: '国贸大厦'}});
   const imported = mergeCalendarEntries([resolved], [event({location: '望京SOHO'})])[0];
   expect(imported.place).toBeUndefined();
   expect(imported.placeResolution).toBeUndefined();
   const synced = mergeGoogleSnapshot([{...resolved, google}], [event({google, location: '望京SOHO'})], 'c')[0];
-  expect(synced.place).toBeUndefined();
-  expect(synced.placeResolution).toBeUndefined();
+  expect(synced.place?.id).toBe(place.id);
+  expect(synced.placeResolution?.status).toBe('confirmed');
+  expect(synced.sourceChange?.[0]).toMatchObject({field: 'location', from: '国贸大厦', to: '望京SOHO'});
 });
 
 it('normalizes location text the same way on both sides', () => {

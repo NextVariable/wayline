@@ -4,6 +4,7 @@ import { ActionMenu } from "./ActionMenu";
 import { classifyLocation } from "../lib/calendarPlaces";
 import type { CalendarEntry } from "../lib/calendarEvents";
 import { localDay } from "../lib/quickIntent";
+import { acknowledgeSourceChange, adoptSourceField } from "../lib/googleCalendarSync";
 import type { Place } from "../types/place";
 
 type AgendaItem = { key: string; date: string; order: string } & ({ event: CalendarEntry } | { place: Place });
@@ -119,6 +120,17 @@ export function ScheduleAgenda({ events, schedules, past, onPeriodChange, connec
                 <MapPin size={13} aria-hidden="true" />{matching === event.id ? "正在查找…" : repeatsTitle ? "在地图查看" : location}
               </button>)}
             {event.google?.stale && <small>待同步</small>}
+            {!!event.sourceChange?.length && <div className="calendar-source-change" role="status">
+              {event.sourceChange.map(change => <small key={change.field}>
+                来源已更新{change.field === "location" ? "地点" : change.field === "title" ? "名称" : "时间"}：{change.from} → {change.to}，保留本地修改
+              </small>)}
+              <span>
+                <button type="button" className="text-action" onClick={() => onChange?.(events.map(item =>
+                  item.id === event.id ? acknowledgeSourceChange(item, "location") : item))}>保留本地</button>
+                <button type="button" className="text-action" onClick={() => onChange?.(events.map(item =>
+                  item.id === event.id ? adoptSourceField(item, "location") : item))}>使用来源</button>
+              </span>
+            </div>}
           </div>
           {canRemove && <ActionMenu label={`${event.title}操作`} actions={[{ label: "从 Wayline 移除", danger: true, icon: <Trash2 size={15} />, onSelect: () => {
             try { onRemove?.(event.id); } catch { setError("移除失败，请重试"); }

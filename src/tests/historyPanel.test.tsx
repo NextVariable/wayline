@@ -33,3 +33,25 @@ it("reuses the trip timeline in read-only history detail", () => {
   expect(markup).toContain("wayline-timeline");
   expect(markup).toContain("地图点位 1");
 });
+
+it("shows confirmed and cancelled orders in the history timeline", () => {
+  const booking = { id: "rail-1", kind: "rail" as const, source: "Gmail" as const, number: "G102",
+    start: "2026-10-12T08:00:00+08:00", from: { name: "苏州站", city: "苏州" }, to: { name: "上海虹桥站", city: "上海" },
+    state: "confirmed" as const };
+  const cancelled = { ...booking, id: "rail-2", number: "G103", state: "cancelled" as const };
+  const markup = renderToStaticMarkup(<HistoryPanel trips={trips} selected={trips[0]} selectedEventIds={[]}
+    mapIndices={{}} timeline={[{ kind: "booking", booking }, { kind: "booking", booking: cancelled }]}
+    onTrip={noop} onBack={noop} onEvent={noop} onOverview={noop} onSchedule={noop} />);
+  expect(markup).toContain("G102 · 苏州站 · 上海虹桥站");
+  expect(markup).toContain("收到取消通知");
+  expect(markup).toContain("计划行程");
+  expect(markup).not.toContain("GPS");
+});
+
+it("filters history by city and month without inventing visits", () => {
+  const markup = renderToStaticMarkup(<HistoryPanel trips={trips} selectedEventIds={[]} mapIndices={{}}
+    onTrip={noop} onBack={noop} onEvent={noop} onOverview={noop} onSchedule={noop} />);
+  expect(markup).toContain("历史筛选");
+  expect(markup).toContain("全部城市");
+  expect(markup).toContain("全部月份");
+});

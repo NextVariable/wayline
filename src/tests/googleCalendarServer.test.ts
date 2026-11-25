@@ -53,7 +53,14 @@ it('rejects cross-origin mutations and unknown calendar selections',async()=>{
 });
 it('commits all pages together, then automatically reflects moves and cancellations',async()=>{
  const s=setup();s.setPages([[normal('a')],[normal('b')]]);const {cookie}=await s.authorize();expect((await s.call('select?owner=guest','POST',{calendarIds:['primary@test']},cookie)).status).toBe(200);let state=(await s.call('status?owner=guest','GET',undefined,cookie)).json();expect(state.events).toHaveLength(2);
- s.setPages([[{...normal('a','上海国家会展中心'),start:{dateTime:'2026-11-01T09:00:00+08:00'},end:{dateTime:'2026-11-01T10:00:00+08:00'}},{id:'b',status:'cancelled'}]]);s.advance(120001);await s.service.tick();state=(await s.call('status?owner=guest','GET',undefined,cookie)).json();expect(state.events).toHaveLength(1);expect(state.events[0].location).toBe('上海国家会展中心');expect(state.events[0].start).toBe('2026-11-01T01:00:00.000Z');
+ s.setPages([[{...normal('a','上海国家会展中心'),start:{dateTime:'2026-11-01T09:00:00+08:00'},end:{dateTime:'2026-11-01T10:00:00+08:00'}},{id:'b',status:'cancelled'}]]);s.advance(120001);await s.service.tick();state=(await s.call('status?owner=guest','GET',undefined,cookie)).json();expect(state.events).toHaveLength(1);expect(state.events[0].location).toBe('上海国家会展中心');expect(state.events[0].start).toBe('2026-11-01T01:00:00.000Z');expect(state.deleted).toEqual([expect.objectContaining({calendarId:'primary@test',eventId:'b'})]);
+});
+it('marks an event removed from a full window snapshot as a source deletion',async()=>{
+ const s=setup();const {cookie}=await s.authorize();await s.call('select?owner=guest','POST',{calendarIds:['primary@test']},cookie);
+ s.setPages([[]]);s.advance(11*60_000);await s.service.tick();
+ const state=(await s.call('status?owner=guest','GET',undefined,cookie)).json();
+ expect(state.events).toHaveLength(0);
+ expect(state.deleted).toEqual([expect.objectContaining({eventId:'event'})]);
 });
 it('retains the old snapshot and selection when any page fails',async()=>{
  const s=setup();const {cookie}=await s.authorize();await s.call('select?owner=guest','POST',{calendarIds:['primary@test']},cookie);const before=(await s.call('status?owner=guest','GET',undefined,cookie)).json();s.setPages([[normal('new')],[normal('other')]]);s.failPage(1);expect((await s.call('sync?owner=guest','POST',{},cookie)).status).toBe(502);const after=(await s.call('status?owner=guest','GET',undefined,cookie)).json();expect(after.events).toEqual(before.events);expect(after.lastSync).toBe(before.lastSync);expect(after.error).toContain('保留');

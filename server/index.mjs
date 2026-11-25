@@ -76,7 +76,11 @@ const cityResources = createCityResourceLookup(async query => {
 });
 const businessTripOptions = createBusinessTripOptions({ services: travelServices, resources: cityResources });
 const calendarPlaces = createCalendarPlaceResolver({ searchPlaces: query => travelServices.searchPlaces({...query,includeDistrict:true}), cacheFile: (process.env.CALENDAR_PLACES_DIR || '.wayline-private') + '/calendar-places.json' });
-const accounts = createAccountService();
+const accounts = createAccountService({onOwnerDeleted: async owner => {
+  await googleCalendar.forgetOwner(owner);
+  aiProposals.forgetOwner(owner);
+  aiBudget.forgetOwner(owner);
+}});
 const googleCalendar=createGoogleCalendarService({accountFor:accounts.accountFor});
 googleCalendar.start();
 

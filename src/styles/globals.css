@@ -3498,6 +3498,9 @@ button.schedule-agenda-main { border:0; background:transparent; color:var(--text
 .schedule-agenda-main small { color:var(--text-secondary); }
 .schedule-agenda-main small:empty { display:none; }
 .schedule-agenda-main .schedule-location { display:flex; align-items:flex-start; gap:4px; width:fit-content; padding:3px 0; text-align:left; font-size:var(--font-secondary); }
+.calendar-source-change { display:grid; gap:3px; padding:6px 0 2px; border-top:1px solid var(--line-subtle, rgba(0,0,0,.08)); }
+.calendar-source-change small { color:var(--warning, #9a6700); line-height:1.4; }
+.calendar-source-change span { display:flex; gap:14px; }
 .schedule-location svg { margin-top:2px; }
 .schedule-agenda-row .calendar-place-matches { grid-column:2 / -1; }
 .schedule-sources { display:grid; gap:8px; }

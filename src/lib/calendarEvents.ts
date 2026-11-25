@@ -8,10 +8,17 @@ export interface CalendarEntry {
   placeResolution?:PlaceResolution;
   routeIndex?:number;
   routeReason?:string;
-  google?:{connectionId:string;calendarId:string;eventId:string;updated:string;originalStart:string|null;stale?:boolean};
+  google?:{connectionId:string;calendarId:string;eventId:string;updated:string;originalStart:string|null;stale?:boolean;deletedAt?:string;deletedBy?:"source"|"user"};
+  /** Field-level local edits. The source value at edit time is kept so a later source change can be shown as a difference. */
+  overrides?:Partial<Record<CalendarField,{value:string;at:number;sourceValue:string}>>;
+  /** Present when the source changed a field the user had overridden; display keeps the local value. */
+  sourceChange?:{field:CalendarField;from:string;to:string;at:number}[];
   /** Set only on events derived in memory from a Wayline schedule, never on synced calendar data. */
   local?:{source:"schedule";origin:"manual"|"intake";sourcePlaceId:string;endPending:boolean};
 }
+export type CalendarField="title"|"location"|"start"|"end";
+const CALENDAR_FIELDS:CalendarField[]=["title","location","start","end"];
+const isOverride=(value:unknown)=>{const v=value as {value?:unknown;at?:unknown;sourceValue?:unknown};return !!v&&typeof v==="object"&&typeof v.value==="string"&&v.value.length<=12000&&typeof v.sourceValue==="string"&&v.sourceValue.length<=12000&&Number.isFinite(v.at);};
 export type PlaceResolutionStatus="auto"|"confirmed"|"ask"|"ambiguous"|"none"|"missing"|"online"|"ignored";
 export interface PlaceResolution { status:PlaceResolutionStatus; text:string; suggestion?:Place; candidates?:Place[] }
 const RESOLUTION_STATUSES:PlaceResolutionStatus[]=["auto","confirmed","ask","ambiguous","none","missing","online","ignored"];
@@ -24,7 +31,7 @@ export const calendarKey=(owner:string)=>`whatto.calendarEvents.${owner}`;
 export function isCalendarEntry(value:unknown):value is CalendarEntry {
   if(!value || typeof value!=="object")return false;
   const e=value as CalendarEntry;
-  return [e.id,e.uid,e.title,e.location,e.description,e.start,e.end,e.timezone,e.calendar].every(v=>typeof v==="string"&&v.length<=12000) && !!e.id && !!e.title && typeof e.allDay==="boolean" && Number.isFinite(Date.parse(e.start)) && Number.isFinite(Date.parse(e.end)) && Date.parse(e.end)>=Date.parse(e.start) && (e.place===undefined || isStoredPlace(e.place)) && (e.placeResolution===undefined || isPlaceResolution(e.placeResolution)) && (e.routeReason===undefined || typeof e.routeReason==="string") && (e.routeIndex===undefined || Number.isInteger(e.routeIndex)&&e.routeIndex>=0&&e.routeIndex<1000) && (e.google===undefined || !!e.google && [e.google.connectionId,e.google.calendarId,e.google.eventId,e.google.updated].every(v=>typeof v==="string"&&v.length<12000) && (e.google.originalStart===null||typeof e.google.originalStart==="string") && (e.google.stale===undefined||typeof e.google.stale==="boolean"));
+  return [e.id,e.uid,e.title,e.location,e.description,e.start,e.end,e.timezone,e.calendar].every(v=>typeof v==="string"&&v.length<=12000) && !!e.id && !!e.title && typeof e.allDay==="boolean" && Number.isFinite(Date.parse(e.start)) && Number.isFinite(Date.parse(e.end)) && Date.parse(e.end)>=Date.parse(e.start) && (e.place===undefined || isStoredPlace(e.place)) && (e.placeResolution===undefined || isPlaceResolution(e.placeResolution)) && (e.routeReason===undefined || typeof e.routeReason==="string") && (e.routeIndex===undefined || Number.isInteger(e.routeIndex)&&e.routeIndex>=0&&e.routeIndex<1000) && (e.google===undefined || !!e.google && [e.google.connectionId,e.google.calendarId,e.google.eventId,e.google.updated].every(v=>typeof v==="string"&&v.length<12000) && (e.google.originalStart===null||typeof e.google.originalStart==="string") && (e.google.stale===undefined||typeof e.google.stale==="boolean") && (e.google.deletedAt===undefined||typeof e.google.deletedAt==="string") && (e.google.deletedBy===undefined||e.google.deletedBy==="source"||e.google.deletedBy==="user")) && (e.overrides===undefined||!!e.overrides&&typeof e.overrides==="object"&&!Array.isArray(e.overrides)&&Object.entries(e.overrides).every(([field,value])=>CALENDAR_FIELDS.includes(field as CalendarField)&&isOverride(value))) && (e.sourceChange===undefined||Array.isArray(e.sourceChange)&&e.sourceChange.every(change=>!!change&&CALENDAR_FIELDS.includes(change.field)&&typeof change.from==="string"&&typeof change.to==="string"&&Number.isFinite(change.at)));
 }
 export function readCalendarEntries(owner:string):CalendarEntry[]{
   try{const rows=JSON.parse(localStorage.getItem(calendarKey(owner))??"[]");return Array.isArray(rows)?rows.filter(isCalendarEntry).slice(0,7000):[];}catch{return [];}

@@ -83,11 +83,19 @@ export function createGoogleCalendarService({env=process.env,fetcher=fetch,now=D
     const rows=new Map(since ? connection.events
       .filter(event => Date.parse(event.end)>lower && Date.parse(event.start)<upper)
       .map(event => [event.id,event]) : []);
+    // Deleted events are tombstones, not active rows. They let a client leave the event out of
+    // routes and Today while keeping it for History, and stop an old cached copy from returning.
+    const deleted=new Map(Object.entries(connection.deleted||{})
+      .filter(([,item]) => item.at>startedAt-90*86400000));
     const updatedMin=since ? new Date(since-UPDATE_OVERLAP_MS).toISOString() : '';
     for (const calendarId of selected) {
       const calendar=connection.calendars.find(item=>item.id===calendarId);
       if (!calendar) failure(400,'所选日历已不可用');
+      const seen=new Set(), completeIds=new Set();
       let pageToken='', complete=false;
+      if (!since) for (const event of connection.events)
+        if (event.google?.calendarId===calendarId && Date.parse(event.end)>lower && Date.parse(event.start)<upper)
+          completeIds.add(event.id);
       for (let p=0;p<40;p++) {
         const page=await google(connection,`/calendars/${encodeURIComponent(calendarId)}/events`,{
           timeZone:'UTC',singleEvents:'true',showDeleted:'true',timeMin:from,timeMax:to,maxResults:'250',
@@ -97,10 +105,16 @@ export function createGoogleCalendarService({env=process.env,fetcher=fetch,now=D
         for (const item of page.items) {
           if (typeof item?.id !== 'string' || !item.id) failure(502,'Google 返回了没有标识的日程');
           const id=eventKey(connection.id,calendarId,item.id);
+          seen.add(id);completeIds.delete(id);
           const previous=rows.get(id);
           if (previous && Date.parse(previous.google.updated)>Date.parse(item.updated)) continue;
-          if (item.status==='cancelled') { rows.delete(id); continue; }
+          if (item.status==='cancelled') {
+            rows.delete(id);
+            deleted.set(id,{id,calendarId,eventId:item.id,updated:item.updated||new Date(startedAt).toISOString(),at:startedAt});
+            continue;
+          }
           const event=normalizeGoogleEvent(item,connection.id,calendar);
+          deleted.delete(id);
           rows.set(id,event);
         }
         if (rows.size>5000) failure(422,'所选日历事件过多，请减少同步的日历');
@@ -108,8 +122,16 @@ export function createGoogleCalendarService({env=process.env,fetcher=fetch,now=D
         if (!pageToken) { complete=true; break; }
       }
       if (!complete) failure(502,'Google 日历未读取完整，已保留上次结果');
+      // A full window snapshot that no longer contains a previously cached event is a source deletion.
+      if (!since) for (const id of completeIds) {
+        const event=rows.get(id) ?? connection.events.find(item=>item.id===id);
+        if (!event) continue;
+        rows.delete(id);
+        deleted.set(id,{id,calendarId,eventId:event.google?.eventId??id,updated:event.google?.updated||new Date(startedAt).toISOString(),at:startedAt});
+      }
     }
-    return [...rows.values()].sort((a,b)=>a.id.localeCompare(b.id));
+    for (const [id,item] of deleted) if (item.at<=startedAt-90*86400000) deleted.delete(id);
+    return {events:[...rows.values()].sort((a,b)=>a.id.localeCompare(b.id)),deleted:[...deleted.values()]};
   }
 
   function sync(key,selectedOverride,forceFull=false) {
@@ -128,17 +150,17 @@ export function createGoogleCalendarService({env=process.env,fetcher=fetch,now=D
       connection.lastAttempt=startedAt;
       try {
         let full=!cursor;
-        let events;
-        try { events=await snapshot(connection,selected,startedAt,cursor); }
+        let events,deleted=[];
+        try { ({events,deleted}=await snapshot(connection,selected,startedAt,cursor)); }
         catch (error) {
           if (!cursor || error.status!==409) throw error;
           full=true;
-          events=await snapshot(connection,selected,startedAt);
+          ({events,deleted}=await snapshot(connection,selected,startedAt));
         }
         if (store.data.connections[key]!==connection) return;
-        const previous={events:connection.events,selected:connection.selected,lastSync:connection.lastSync,
+        const previous={events:connection.events,deleted:connection.deleted,selected:connection.selected,lastSync:connection.lastSync,
           error:connection.error,reconnect:connection.reconnect,syncCursor:connection.syncCursor,lastFullSync:connection.lastFullSync};
-        Object.assign(connection,{events,selected,lastSync:now(),error:'',reconnect:false,syncCursor:startedAt,
+        Object.assign(connection,{events,deleted:Object.fromEntries(deleted.map(item=>[item.id,item])),selected,lastSync:now(),error:'',reconnect:false,syncCursor:startedAt,
           lastFullSync:full?startedAt:connection.lastFullSync});
         try { await store.save(); }
         catch { Object.assign(connection,previous); throw new Error('日历同步结果无法保存，请重试'); }
@@ -174,12 +196,12 @@ export function createGoogleCalendarService({env=process.env,fetcher=fetch,now=D
         if(!token.access_token||!SCOPES.every(s=>(token.scope||'').split(' ').includes(s)))failure(403,'需要允许读取日历和事件，请重新连接');
         const key=keyFor(session,flow.owner),previous=store.data.connections[key];const refresh=token.refresh_token;
         if(!refresh)failure(401,'Google 未授予持续访问，请重新连接并确认授权');
-        const connection={id:key,session,owner:flow.owner,token:{access:token.access_token,refresh,expiresAt:now()+Number(token.expires_in||3600)*1000},selected:[],calendars:[],events:[],lastSync:0,error:'',reconnect:false};
+        const connection={id:key,session,owner:flow.owner,token:{access:token.access_token,refresh,expiresAt:now()+Number(token.expires_in||3600)*1000},selected:[],calendars:[],events:[],deleted:{},lastSync:0,error:'',reconnect:false};
         connection.calendars=await calendarList(connection);const identity=connection.calendars.find(c=>c.primary)?.id;if(!identity)failure(403,'无法确认 Google 日历账号，请重新连接');
         if (account && (!account.email || !same(identity.toLowerCase(), account.email.toLowerCase())))
           failure(403,'请授权与 Wayline 登录一致的 Google 账号');
         connection.identity=identity;
-        if(previous?.identity===identity){connection.selected=previous.selected.filter(id=>connection.calendars.some(c=>c.id===id));if (connection.selected.length === previous.selected.length) { connection.events=previous.events;connection.lastSync=previous.lastSync; }}
+        if(previous?.identity===identity){connection.selected=previous.selected.filter(id=>connection.calendars.some(c=>c.id===id));if (connection.selected.length === previous.selected.length) { connection.events=previous.events;connection.deleted=previous.deleted||{};connection.lastSync=previous.lastSync; }}
         store.data.connections[key]=connection;try{await store.save();}catch(error){if(previous)store.data.connections[key]=previous;else delete store.data.connections[key];throw error;}
         res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'no-referrer','Content-Security-Policy':"default-src 'none'; base-uri 'none'; frame-ancestors 'none'"});res.end('<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=/?calendar=connected"><title>日历已连接</title><a href="/?calendar=connected">返回日程</a>');return true;
       }
@@ -193,7 +215,7 @@ export function createGoogleCalendarService({env=process.env,fetcher=fetch,now=D
           send(res, 200, {configured:true,connected:false,error:'请重新连接与 Wayline 登录一致的 Google 日历'});
           return true;
         }
-        send(res,200,{configured:true,connected:!!connection,connectionId:connection?.id||null,calendars:connection?.calendars||[],selected:connection?.selected||[],events:connection?.events||[],lastSync:connection?.lastSync||null,error:connection?.error||'',needsReconnect:!!connection?.reconnect,pollSeconds:120,window:{pastDays:30,futureDays:180}});return true;
+        send(res,200,{configured:true,connected:!!connection,connectionId:connection?.id||null,calendars:connection?.calendars||[],selected:connection?.selected||[],events:connection?.events||[],deleted:Object.values(connection?.deleted||{}),lastSync:connection?.lastSync||null,error:connection?.error||'',needsReconnect:!!connection?.reconnect,pollSeconds:120,window:{pastDays:30,futureDays:180}});return true;
       }
       if(req.method!=='POST')failure(405,'不支持的日历请求');
       if(url.pathname.endsWith('/connect')){
@@ -218,5 +240,10 @@ export function createGoogleCalendarService({env=process.env,fetcher=fetch,now=D
     }}
     return true;
   }
-  return {handle,start,stop,tick,sync};
+  async function forgetOwner(owner){const store=await vault();let changed=false;
+    for(const [key,connection] of Object.entries(store.data.connections))if(connection.owner===owner){delete store.data.connections[key];changed=true;}
+    for(const [id,session] of Object.entries(store.data.sessions))if(!Object.values(store.data.connections).some(connection=>connection.session===id)){delete store.data.sessions[id];changed=true;}
+    if(changed)await store.save();
+  }
+  return {handle,start,stop,tick,sync,forgetOwner};
 }

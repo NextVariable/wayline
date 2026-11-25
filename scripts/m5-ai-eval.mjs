@@ -164,7 +164,8 @@ const ownerFor = (index) => owners[Math.floor(index / 25) % owners.length];
 // call guard is never the reason a sample fails. Evidence goes to its own file.
 const onlyIndex = process.argv.indexOf("--only");
 const only = onlyIndex >= 0 ? process.argv[onlyIndex + 1] : "";
-const selected = only ? cases.filter((test) => test.category === only) : cases;
+const onlySet = new Set(only.split(",").filter(Boolean));
+const selected = onlySet.size ? cases.filter((test) => onlySet.has(test.category)) : cases;
 const usedOwners = new Set();
 const report = {
   generatedAt: new Date().toISOString(),
@@ -186,7 +187,7 @@ const byCategory = {};
 
 for (let index = 0; index < selected.length; index++) {
   const test = selected[index];
-  const owner = only ? `eval-m5r-${test.id}` : ownerFor(cases.indexOf(test));
+  const owner = onlySet.size ? `eval-m5r-${test.id}` : ownerFor(cases.indexOf(test));
   usedOwners.add(owner);
   const result = await runIntake({
     provider, budget, config,
