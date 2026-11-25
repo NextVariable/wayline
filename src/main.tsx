@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import { ToastProvider } from "./components/Toast";
@@ -10,10 +10,16 @@ Object.assign(window, { _AMapSecurityConfig: {
   securityJsCode: import.meta.env.VITE_AMAP_SECURITY_CODE as string,
 } });
 
+const SpatialShowcase = lazy(() =>
+  import("./components/SpatialShowcase").then(({ SpatialShowcase }) => ({ default: SpatialShowcase })),
+);
+const showOpening = /^\/showcase\/?$/.test(window.location.pathname);
+const workspace = <App />;
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ToastProvider>
-      <App />
+      {showOpening ? <Suspense fallback={null}><SpatialShowcase>{workspace}</SpatialShowcase></Suspense> : workspace}
     </ToastProvider>
   </StrictMode>,
 );

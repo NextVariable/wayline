@@ -1,0 +1,80 @@
+html:has(.spatial-showcase.is-entering) {
+  overscroll-behavior: none;
+  background: #292b28;
+}
+html:has(.spatial-showcase.is-entering) body {
+  overflow: visible;
+}
+#root:has(.spatial-showcase.is-entering) {
+  min-height: calc(100dvh + 245svh);
+}
+.spatial-showcase.is-entering {
+  position: fixed;
+  inset: 0;
+  isolation: isolate;
+  overflow: hidden;
+  background: #77756b;
+}
+.spatial-room {
+  position: absolute;
+  inset: -1.4%;
+  transform-origin: 58% 45%;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+.spatial-room img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 51%;
+}
+.is-entering .spatial-screen {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  isolation: isolate;
+  transform-origin: 0 0;
+  will-change: transform;
+  background: var(--map-canvas, #e9edf1);
+}
+.is-entering .spatial-screen::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1.5px #ffffff9c;
+  background: linear-gradient(145deg, #ffffff36, transparent 48%);
+  opacity: var(--spatial-edge, 1);
+  pointer-events: none;
+}
+.spatial-screen:focus { outline: none; }
+.spatial-prompt:not([hidden]) {
+  position: absolute;
+  left: 50%;
+  bottom: max(22px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 3px 2px 13px;
+  border: 1px solid #ffffff50;
+  border-radius: 99px;
+  background: #262a27aa;
+  color: white;
+  backdrop-filter: blur(14px);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.spatial-prompt button {
+  min-height: 44px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 99px;
+  background: #ffffff18;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.spatial-prompt button:hover { background: #ffffff33; }
+.spatial-prompt button:focus-visible { outline: 2px solid white; outline-offset: -3px; }
