@@ -3,8 +3,9 @@
 日期：2026-11-25  
 版本：`1.0.0-rc.5`  
 分支：`feat/ai-native-mvp`  
-远端 HEAD：`58ebfecee735951322b50715aad77c09f09fc35a`  
-CI：[run 45649527852](https://github.com/NextVariable/wayline/actions/runs/45649527852) — **success**
+代码冻结提交：`58ebfecee735951322b50715aad77c09f09fc35a`  
+状态文档提交：`84da96a`  
+CI：[run 45650623664](https://github.com/NextVariable/wayline/actions/runs/45650623664) — **success**
 
 状态：**DEVELOPMENT FROZEN / PRIVATE BETA READY**
 

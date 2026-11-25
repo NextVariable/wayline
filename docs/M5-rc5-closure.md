@@ -165,9 +165,9 @@
 ## 11. Git、CI 与本地预览
 
 - 分支：`feat/ai-native-mvp`。
-- 当前代码 HEAD：`58ebfecee735951322b50715aad77c09f09fc35a`（已推送至 `origin/feat/ai-native-mvp`）。
-- 与 `main` 关系：领先 31 个提交；`main` 无新提交可回并；未修改 `main`。
-- CI：本地 `tsc` / `lint` / `vitest` / `build` / `rc-preflight` 全部通过；远端 [CI run 45649527852](https://github.com/NextVariable/wayline/actions/runs/45649527852) **success**。首次 CI 暴露服务端渲染下 `localStorage` 未定义的真实缺陷，已修复并复跑通过。
+- 当前代码 HEAD：`58ebfecee735951322b50715aad77c09f09fc35a`（已推送至 `origin/feat/ai-native-mvp`）；状态文档提交 `84da96a`。
+- 与 `main` 关系：领先 31 个代码提交；`main` 无新提交可回并；未修改 `main`。
+- CI：本地 `tsc` / `lint` / `vitest` / `build` / `rc-preflight` 全部通过；远端 [CI run 45650623664](https://github.com/NextVariable/wayline/actions/runs/45650623664) **success**。首次 CI 暴露服务端渲染下 `localStorage` 未定义的真实缺陷，已修复并复跑通过。
 - 本地预览：`http://127.0.0.1:8787/`（单实例本地构建，已重启加载本轮代码）。
 - PR #9：仍为 draft，base 为 `codex/v1.0-rc.2`；**未合并、未修改**。建议后续新开 `feat/ai-native-mvp` → `main` 的单一发布 PR；创建 PR 需产品负责人明确授权。
 
