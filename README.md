@@ -28,7 +28,7 @@ Wayline 的长期定位是 **AI-native Business Travel Workspace**。当前阶�
 | 交通与住宿 | 汇总日历及受支持的 Gmail 订单。交通未订时可查询参考班次，住宿未订时可查看推荐区域。 |
 | 地点与足迹 | 搜索、收藏和按城市查看地点，导入轨迹或补记到访。资料可以备份并恢复到独立空间。 |
 
-**当前阶段为受邀内测候选。** Google 日历和 Gmail 使用只读授权。铁路时刻和道路耗时供参考，航班查询试点覆盖深圳往返上海。生产环境和手机真机的验收进度见[发布验收](docs/release-readiness.md)。
+**当前版本 `1.0.0-rc.5`，处于 DEVELOPMENT FROZEN / PRIVATE BETA READY。** 本地工程与远端 CI 已通过；Google 日历/Gmail 真实授权、Safari 与实体手机、生产告警仍阻断正式发布。启动、局域网手机访问与内测清单见 [RC.5 Private Beta 准备说明](docs/rc5-private-beta.md)；发布验收见[发布验收](docs/release-readiness.md)。
 
 ## 本地运行
 

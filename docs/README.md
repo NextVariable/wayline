@@ -8,6 +8,10 @@
 | [V1.0 候选版](v1.0-rc.md) | 统一行程模型、风险规则、验证证据与发布检查表 |
 | [V1.0 RC.2 验收](v1.0-rc2.md) | 订单与接驳规则、回归证据和预发布检查 |
 | [V1.0 RC.3 Beta 就绪](v1.0-rc3.md) | 数据正确性修复、断网恢复、发布工程与验证矩阵 |
+| [M5 验收基线](M5-final-acceptance.md) | M5 NO-GO 结论、F/AC 矩阵与阻断项基线 |
+| [M5 RC.5 收口报告](M5-rc5-closure.md) | 阻断项关闭状态、跨午夜与全量评测、CI 与剩余差距 |
+| [阶段范围与未决事项](m5-scope-and-decisions.md) | 中国大陆阶段范围、G0/R02–R05 与产品负责人裁决清单 |
+| [RC.5 Private Beta 准备](rc5-private-beta.md) | 启动方式、局域网手机访问、连接状态与内测清单 |
 | [发布验收](release-readiness.md) | 已验证范围和公开发布前的剩余条件 |
 
 仓库根目录的 [`PRODUCT.md`](../PRODUCT.md) 和 [`DESIGN.md`](../DESIGN.md) 是产品与界面约束，[返回首页](../README.md)。

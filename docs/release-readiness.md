@@ -1,5 +1,7 @@
 # Wayline 网站发布验收 · 2026-11-13
 
+> 2026-11-25 RC.5 更新：当前状态为 **DEVELOPMENT FROZEN / PRIVATE BETA READY**，本地工程与远端 CI 已通过。本页保留 11 月 13 日验收记录；最新阻断项、CI 与内测说明见 [RC.5 Private Beta 准备](rc5-private-beta.md)、[M5 RC.5 收口报告](M5-rc5-closure.md) 与 [阶段范围与未决事项](m5-scope-and-decisions.md)。
+
 **放行范围：受邀内测候选。** 这轮验证了本机生产构建和关键用户流程。公开发布仍缺目标 HTTPS 环境、Google 生产授权、正式地图许可，以及生产环境和真实设备验收。
 
 验收以 [11 月 12 日设计](design/positioning.md) 为准。11 月 10 日的旧版自动规划验收已不再维护。
