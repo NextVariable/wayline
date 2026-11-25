@@ -1,0 +1,503 @@
+{
+  "generatedAt": "2026-11-25T13:12:05.004Z",
+  "model": "deepseek-flash",
+  "thinking": "disabled",
+  "owner": "eval",
+  "cases": [
+    {
+      "id": "c1",
+      "city": "上海",
+      "text": "明天上午十点在上海中心大厦见客户。",
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "见客户",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-shanghai-tower",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "time": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "上海中心大厦",
+          "keywords": [
+            "见客户"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c2",
+      "city": "深圳",
+      "text": "明天下午两点到四点在深圳湾体育中心开会。",
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "深圳湾体育中心开会",
+          "date": "2026-11-26",
+          "time": "14:00",
+          "endTime": "16:00",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "深圳湾体育中心",
+          "placeId": "p-center",
+          "pending": [],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "time": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "14:00",
+          "end": "16:00",
+          "place": "深圳湾体育中心",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c3",
+      "city": "深圳",
+      "text": "后天下午三点去海上世界吃饭。",
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "海上世界吃饭",
+          "date": "2026-11-27",
+          "time": "15:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "海上世界",
+          "placeId": "p-seaworld",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "time": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-27",
+          "start": "15:00",
+          "end": "",
+          "place": "海上世界",
+          "placeId": "p-seaworld",
+          "keywords": [
+            "吃饭"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c4",
+      "city": "深圳",
+      "text": "明天下午两点和供应商开会。",
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "和供应商开会",
+          "date": "2026-11-26",
+          "time": "14:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "",
+          "placeId": "",
+          "pending": [
+            "end",
+            "place"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "time": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "14:00",
+          "end": "",
+          "place": "",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c5",
+      "city": "深圳",
+      "text": "明天上午十点去海上世界。",
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "前往海上世界",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "海上世界",
+          "placeId": "p-seaworld",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "time": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "海上世界",
+          "placeId": "p-seaworld",
+          "keywords": [
+            "海上世界"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c6",
+      "city": "深圳",
+      "text": "明天九点半到客户办公室拜访。",
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "拜访客户办公室",
+          "date": "2026-11-26",
+          "time": "09:30",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "客户办公室",
+          "placeId": "p-office",
+          "pending": [
+            "end"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "time": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "09:30",
+          "end": "",
+          "place": "客户办公室",
+          "keywords": [
+            "拜访"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c7",
+      "city": "上海",
+      "text": "12月1日下午1点在上海中心大厦参加产品评审，3点结束。",
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "产品评审",
+          "date": "2026-12-01",
+          "time": "13:00",
+          "endTime": "15:00",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-shanghai-tower",
+          "pending": [],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "time": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-12-01",
+          "start": "13:00",
+          "end": "15:00",
+          "place": "上海中心大厦",
+          "keywords": [
+            "产品评审",
+            "评审"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c8",
+      "city": "深圳",
+      "text": "明天上午十点开会，下午三点去见客户。",
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "开会",
+          "date": "2026-11-26",
+          "time": "10:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "",
+          "placeId": "",
+          "pending": [
+            "end",
+            "place"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "time": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        },
+        {
+          "id": "ai-1",
+          "raw": "",
+          "title": "见客户",
+          "date": "2026-11-26",
+          "time": "15:00",
+          "endTime": "",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "",
+          "placeId": "",
+          "pending": [
+            "end",
+            "place"
+          ],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "time": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "10:00",
+          "end": "",
+          "place": "",
+          "keywords": [
+            "开会"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "start": "15:00",
+          "end": "",
+          "place": "",
+          "keywords": [
+            "见客户"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c9",
+      "city": "深圳",
+      "text": "下周三上午九点在深圳湾万丽酒店接客户，十点半结束。",
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "接客户",
+          "date": "2026-12-02",
+          "time": "09:00",
+          "endTime": "10:30",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "深圳湾万丽酒店",
+          "placeId": "p-hotel",
+          "pending": [],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "time": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-12-02",
+          "start": "09:00",
+          "end": "10:30",
+          "place": "深圳湾万丽酒店",
+          "keywords": [
+            "接客户",
+            "接"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c10",
+      "city": "上海",
+      "text": "11月30日晚上七点到八点在虹桥机场T2开会。",
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "虹桥机场T2开会",
+          "date": "2026-11-30",
+          "time": "19:00",
+          "endTime": "20:00",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥机场T2",
+          "placeId": "p-hongqiao",
+          "pending": [],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "time": true,
+            "end": true,
+            "place": true,
+            "title": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-30",
+          "start": "19:00",
+          "end": "20:00",
+          "place": "虹桥机场T2",
+          "keywords": [
+            "开会"
+          ]
+        }
+      ]
+    }
+  ],
+  "accuracy": {
+    "time": {
+      "ok": 11,
+      "total": 11,
+      "rate": 100
+    },
+    "end": {
+      "ok": 11,
+      "total": 11,
+      "rate": 100
+    },
+    "place": {
+      "ok": 11,
+      "total": 11,
+      "rate": 100
+    },
+    "title": {
+      "ok": 11,
+      "total": 11,
+      "rate": 100
+    },
+    "count": {
+      "ok": 10,
+      "total": 10,
+      "rate": 100
+    },
+    "date": {
+      "ok": 11,
+      "total": 11,
+      "rate": 100
+    }
+  },
+  "usage": {
+    "spentUsd": 0.012671,
+    "remainingUsd": 0.987329,
+    "callsUsed": 10,
+    "tokens": {
+      "input": 41445,
+      "output": 2544
+    },
+    "tasks": {
+      "intake": 18,
+      "copilot": 20
+    }
+  }
+}

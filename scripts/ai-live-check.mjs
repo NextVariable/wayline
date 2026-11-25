@@ -9,7 +9,7 @@
  *   DEEPSEEK_API_KEY=... AI_DAILY_BUDGET_USD=1 AI_BUDGET_ACKNOWLEDGED=1 \
  *   node scripts/ai-live-check.mjs [--json docs/m4-ai-live-report.json]
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { readAiConfig } from "../server/ai/config.mjs";
 import { createAiBudget, createFileUsageStore } from "../server/ai/budget.mjs";
@@ -19,6 +19,20 @@ import { sanitizeCopilotContext } from "../server/ai/context.mjs";
 import { createProposalStore } from "../server/ai/proposals.mjs";
 import { shanghaiDay } from "../server/ai/schemas.mjs";
 import { createTravelServices } from "../server/travel-services.mjs";
+
+/** Reads the same local file as the server; existing env vars still win. */
+function loadLocalEnv(file = ".env.local") {
+  if (!existsSync(file)) return;
+  for (const line of readFileSync(file, "utf8").split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const index = trimmed.indexOf("=");
+    if (index < 1) continue;
+    const key = trimmed.slice(0, index).trim();
+    if (key && !process.env[key]) process.env[key] = trimmed.slice(index + 1).trim();
+  }
+}
+loadLocalEnv();
 
 const arg = process.argv.indexOf("--json");
 const reportPath = arg > 0 ? process.argv[arg + 1] : "";
@@ -59,6 +73,7 @@ const travelServices = createTravelServices({
   amapKey: process.env.AMAP_WEB_SERVICE_KEY || process.env.AMAP_KEY || "",
 });
 const owner = "live-check";
+const startingSpentUsd = budget.snapshot(owner).spentUsd;
 const now = Date.now();
 const tomorrow = shanghaiDay(now + 86_400_000);
 const dayAfter = shanghaiDay(now + 2 * 86_400_000);
@@ -192,8 +207,10 @@ for (const scenario of copilotScenarios) {
 
 report.status = "completed";
 report.usage.totalTokens = report.usage.inputTokens + report.usage.outputTokens;
-report.costUsd = budget.snapshot(owner).spentUsd;
-report.finalStatus = budget.snapshot(owner);
+const finalStatus = budget.snapshot(owner);
+report.costUsd = Math.round((finalStatus.spentUsd - startingSpentUsd) * 1_000_000) / 1_000_000;
+report.dailySpentUsd = finalStatus.spentUsd;
+report.finalStatus = finalStatus;
 console.log(JSON.stringify(report, null, 2));
 if (reportPath) {
   mkdirSync(dirname(reportPath), { recursive: true });

@@ -71,6 +71,22 @@ describe("Tool registry and permission gateway", () => {
       .toMatchObject({ ok: false, code: "unknown_place" });
   });
 
+  it("sends a departure for transit and maps self-drive to driving", async () => {
+    const calls: { mode: string; departure?: string }[] = [];
+    const spy = {
+      route: async (args: { mode: string; departure?: string }) => {
+        calls.push(args);
+        return { duration: 600, source: "amap" };
+      },
+    };
+    const runner = createToolRunner({ context, services: spy, now });
+    expect(await runner.run("query_route", { fromPlaceId: "p1", toPlaceId: "p2", mode: "transit" }, { task: "copilot" })).toMatchObject({ ok: true });
+    expect(calls[0]).toMatchObject({ mode: "transit", departure: new Date(now).toISOString() });
+    expect(await runner.run("query_route", { fromPlaceId: "p1", toPlaceId: "p2", mode: "selfDrive" }, { task: "copilot" })).toMatchObject({ ok: true });
+    expect(calls[1]).toMatchObject({ mode: "driving" });
+    expect(calls[1].departure).toBeUndefined();
+  });
+
   it("reuses Smart Routes assessments instead of computing its own", async () => {
     const runner = createToolRunner({ context, services, now });
     const result = await runner.run("assess_commute", { fromEventId: "e1", toEventId: "e2" }, { task: "copilot" });

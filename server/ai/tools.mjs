@@ -195,9 +195,13 @@ export function createToolRunner({ context, services = {}, now = Date.now }) {
       if (!["walking", "transit", "driving", "selfDrive"].includes(args.mode))
         throw new ToolError("invalid_arguments", "交通方式不受支持");
       if (typeof services.route !== "function") throw new ToolError("tool_unavailable", "路线服务暂不可用");
+      // The map provider needs an explicit departure for transit and has no
+      // separate self-drive endpoint; both stay deterministic and cost-aware here.
+      const routeMode = args.mode === "selfDrive" ? "driving" : args.mode;
       const route = await services.route({
-        mode: args.mode,
+        mode: routeMode,
         places: [{ id: from.id, lat: from.lat, lng: from.lng }, { id: to.id, lat: to.lat, lng: to.lng }],
+        ...(routeMode === "transit" ? { departure: new Date(now).toISOString() } : {}),
       });
       if (!Number.isFinite(Number(route?.duration)))
         throw new ToolError("route_unavailable", "路线服务未返回可用耗时");

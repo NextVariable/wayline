@@ -62,7 +62,17 @@ export async function runIntake({ provider, budget, config, input, places = [], 
   const verdict = budget.begin({ owner, task: "intake" });
   if (!verdict.allowed) return { ok: false, code: verdict.code, message: verdict.message, status: verdict.status };
 
-  const placeHints = places.slice(0, 30).map((place) => clean(place?.name, 60)).filter(Boolean);
+  // Only hint names that the text actually mentions, then a few local ones.
+  // A long unrelated list makes the model drop fields instead of extracting them.
+  const mentioned = [];
+  const local = [];
+  for (const place of places) {
+    const name = clean(place?.name, 60);
+    if (!name) continue;
+    if (text.includes(name)) mentioned.push(name);
+    else if (clean(place?.city, 40) === clean(input.activeCity, 40) && local.length < 6) local.push(name);
+  }
+  const placeHints = [...new Set([...mentioned, ...local])].slice(0, 12);
   try {
     const response = await provider.chat({
       messages: [

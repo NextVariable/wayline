@@ -30,7 +30,9 @@ export function createAiRoutes({ config, budget, provider, proposals, services, 
       return { status: 403, payload: { ok: false, code: "owner_mismatch", error: "上下文不属于当前账号" } };
 
     if (route === "/api/ai/intake") {
-      const places = (Array.isArray(payload.places) ? payload.places : []).slice(0, 40).flatMap((place) => {
+      // The client sends the full local pool (system + saved places); truncating
+      // too early dropped the user's own places and silently lost place matches.
+      const places = (Array.isArray(payload.places) ? payload.places : []).slice(0, 120).flatMap((place) => {
         if (!place || typeof place !== "object") return [];
         const id = String(place.id ?? "").slice(0, 120);
         const name = String(place.name ?? "").slice(0, 80);

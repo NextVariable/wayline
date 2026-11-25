@@ -171,11 +171,22 @@ export async function callAiIntake(input: {
   activeCity: string;
   places: { id: string; name: string; city?: string }[];
 }): Promise<AiIntakeResult> {
+  // Keep the text-mentioned and active-city places inside the server cap; the
+  // raw pool starts with system places from every city and would push them out.
+  const priority = (place: { name: string; city?: string }) => {
+    if (input.text.includes(place.name)) return 0;
+    if (place.city === input.activeCity) return 1;
+    return 2;
+  };
+  const places = [...input.places]
+    .sort((a, b) => priority(a) - priority(b))
+    .slice(0, 120)
+    .map(({ id, name, city }) => ({ id, name, city: city ?? "" }));
   const { status, data } = await postAi("/api/ai/intake", {
     owner: input.owner,
     text: input.text,
     activeCity: input.activeCity,
-    places: input.places.slice(0, 40).map(({ id, name, city }) => ({ id, name, city: city ?? "" })),
+    places,
   });
   if (status === 200 && data && typeof data === "object" && (data as { ok?: boolean }).ok) {
     const record = data as { items: IntakeItem[]; warnings?: string[]; model?: string; usage?: AiUsage; costUsd?: number };

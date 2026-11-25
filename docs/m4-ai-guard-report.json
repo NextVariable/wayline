@@ -1,0 +1,32 @@
+{
+  "generatedAt": "2026-11-25T13:11:34.984Z",
+  "model": "deepseek-flash",
+  "scenarios": [
+    {
+      "name": "budget-cap-blocks-call",
+      "kind": "guard",
+      "ok": true,
+      "code": "budget_exceeded",
+      "providerCalled": false
+    },
+    {
+      "name": "external-source-denied",
+      "kind": "guard",
+      "ok": true,
+      "code": "external_source"
+    },
+    {
+      "name": "unregistered-tool-denied",
+      "kind": "guard",
+      "ok": true,
+      "code": "tool_not_registered"
+    },
+    {
+      "name": "api-failure-invalid-key",
+      "kind": "failure",
+      "ok": true,
+      "code": "auth_failed",
+      "spendsUsd": 0
+    }
+  ]
+}
