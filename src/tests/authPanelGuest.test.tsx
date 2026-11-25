@@ -11,6 +11,6 @@ it("leaves local space creation out and explains local storage to a guest",()=>{
 });
 it("does not export the synthetic demo workspace as a real backup",()=>{
  const html=renderToStaticMarkup(<ToastProvider><AuthPanel user={DEMO_USER} accountStatus="guest" syncState="off" onSignIn={noop} onSignOut={noop} onLogin={noop} open onClose={noop} getFootprints={async()=>({version:1,tracks:[],visits:[],activeId:null})}/></ToastProvider>);
- expect(html).toContain("演示工作区为合成数据，不可导出");
+ expect(html).toContain("示例安排无法导出");
  expect(html).toContain("disabled");
 });

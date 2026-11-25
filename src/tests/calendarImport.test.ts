@@ -1,5 +1,6 @@
 import { describe,it,expect } from "vitest";
 import { parseCalendarFile } from "../lib/calendarImport";
+import { planCalendarImport } from "../lib/calendarImportPlan";
 import { mergeCalendarEntries,calendarContext } from "../lib/calendarEvents";
 const wrap=(...rows:string[])=>['BEGIN:VCALENDAR','VERSION:2.0',...rows,'END:VCALENDAR'].join('\r\n');
 const event=(body:string)=>'BEGIN:VEVENT\r\n'+body+'\r\nEND:VEVENT';
@@ -45,4 +46,30 @@ it("uses embedded VTIMEZONE definitions instead of assuming a local timezone",()
  const zone=['BEGIN:VTIMEZONE','TZID:Custom/Fixed','BEGIN:STANDARD','DTSTART:19700101T000000','TZOFFSETFROM:+0830','TZOFFSETTO:+0830','END:STANDARD','END:VTIMEZONE'].join('\r\n');
  const result=read(wrap(zone,event('UID:zone\r\nSUMMARY:Fixed\r\nDTSTART;TZID=Custom/Fixed:20261030T090000\r\nDTEND;TZID=Custom/Fixed:20261030T100000')));
  expect(result.events[0].start).toBe('2026-10-30T00:30:00.000Z');
+});
+
+describe("import counts and historical events", () => {
+  const old = event("UID:old\r\nSUMMARY:过去的会\r\nDTSTART:20231123T020000Z\r\nDTEND:20231123T030000Z");
+  const future = event("UID:future\r\nSUMMARY:未来的会\r\nDTSTART:20291223T020000Z\r\nDTEND:20291223T030000Z");
+  const cancelled = event("UID:cancelled\r\nSTATUS:CANCELLED\r\nDTSTART:20261126T010000Z");
+  it("reads single events across years by default, with explicit file and skipped counts", () => {
+    expect(parseCalendarFile(wrap(old, future, cancelled))).toMatchObject({readCount: 3, outside: 0, skipped: 1, events: [{uid: "old"}, {uid: "future"}]});
+    expect(parseCalendarFile(wrap(old, future, cancelled), "2026-11-26")).toMatchObject({readCount:3, outside:1, skipped:1, events:[{uid:"future"}]});
+  });
+  it("counts additions, duplicates and revisions, including legacy ids", () => {
+    const file = parseCalendarFile(wrap(old, future));
+    const legacy = {...file.events[0], id:"ical:old:2023-11-23T02:00:00Z"};
+    expect(planCalendarImport([], file.events)).toMatchObject({added:2,updated:0,duplicates:0});
+    expect(planCalendarImport(file.events, file.events)).toMatchObject({added:0,updated:0,duplicates:2,changes:[]});
+    const changed = parseCalendarFile(wrap(old.replaceAll("20231123", "20231125")));
+    expect(planCalendarImport([legacy], changed.events)).toMatchObject({added:0,updated:1,duplicates:0,changes:[{id:legacy.id,start:"2023-11-25T02:00:00.000Z"}]});
+  });
+  it("repeated input does not clear a local correction", () => {
+    const original = parseCalendarFile(wrap(old)).events[0];
+    const edited = {...original, title:"已修正的标题", overrides:{title:{value:"已修正的标题", sourceValue:original.title, at:10}}};
+    expect(planCalendarImport([edited], [original])).toMatchObject({duplicates:1,changes:[]});
+    const change = planCalendarImport([edited], [{...original,title:"调整后的源名称"}]);
+    expect(change.changes[0]).toMatchObject({title:"已修正的标题",sourceChange:[{field:"title",to:"调整后的源名称"}]});
+    expect(planCalendarImport(change.changes, [{...original,title:"调整后的源名称"}])).toMatchObject({duplicates:1,changes:[]});
+  });
 });

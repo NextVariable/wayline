@@ -8,7 +8,7 @@ export function suggestedCalendar(status?: GoogleCalendarStatus | null) {
   return primary.length === 1 ? primary[0] : calendars.length === 1 ? calendars[0] : undefined;
 }
 
-export function GoogleCalendarConnection({ connection }: { connection: GoogleCalendarState }) {
+export function GoogleCalendarConnection({ connection, demo = false }: { connection: GoogleCalendarState; demo?: boolean }) {
   const { status, error, busy, action } = connection;
   const [choosing, setChoosing] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -38,7 +38,8 @@ export function GoogleCalendarConnection({ connection }: { connection: GoogleCal
           onClick={() => { setChoosing(!choosing); setConfirming(false); }}>{choosing ? "收起" : first ? "选择其他日历" : "管理"}</button>}
     </div>
     {!status && !error && <p className="field-help" role="status">正在检查连接…</p>}
-    {status?.configured === false && <p className="field-help">Google 日历暂不可用</p>}
+    {status?.configured === false && <p className="field-help">{demo ? "示例空间不读取日历。" : "此网站还无法连接 Google 日历。你可以先导入日历文件。"}</p>}
+    {status?.configured && !status.connected && <p className="field-help">未连接。连接后可选择要同步的日历。</p>}
     {status?.connected && <>
       <div className="google-sync-state">
         <span role="status">{syncLabel}</span>

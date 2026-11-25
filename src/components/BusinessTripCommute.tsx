@@ -80,7 +80,7 @@ export function BusinessTripCommute({ trip, onRoute, initialChoice, onNavigate, 
           navigation={link ? { href: link.href, label: "导航", target: link.target } : null}
           onNavigate={() => { if (current && !link?.target) onNavigate({ id: pair.id, mode: current.mode }); }}
           note={current?.result?.source === "synthetic"
-            ? <p className="leg-note">合成演示路线，仅用于功能验收，不代表真实高德结果。</p>
+            ? <p className="leg-note">演示路线 · 仅供体验。</p>
             : null}
         />
       </div>;

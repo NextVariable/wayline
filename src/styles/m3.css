@@ -1076,32 +1076,33 @@
   margin-left: 0;
 }
 
+.mobile-assistant-entry { display: none; }
+
 @media (max-width: 700px) {
-  /* The workspace sheet covers the bottom of the map, so the entry floats just
-     above whichever sheet height is active instead of under it. */
-  .copilot-launcher {
-    right: 14px;
-    bottom: calc(34px + env(safe-area-inset-bottom));
-    z-index: 950;
+  .workspace .copilot-launcher { display: none; }
+  .workspace-header .mobile-assistant-entry {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
   }
-  .workspace.sheet-expanded .copilot-launcher {
-    bottom: calc(54dvh + 34px + env(safe-area-inset-bottom));
-  }
-  .workspace.sheet-collapsed .copilot-launcher {
-    bottom: calc(88px + 34px + env(safe-area-inset-bottom));
-  }
-  /* Auxiliary panels own the whole sheet on a phone; keep their controls clear. */
-  .workspace[class*="overlay-"] .copilot-launcher {
-    display: none;
-  }
-  .copilot-panel {
-    left: 12px;
-    right: 12px;
-    bottom: calc(12px + env(safe-area-inset-bottom));
+  .workspace.assistant-open .china-mini-map { visibility: hidden; }
+  .workspace .copilot-panel {
+    inset: 0;
     width: auto;
-    max-height: 64dvh;
-    z-index: 951;
+    max-height: none;
+    z-index: 1200;
+    border: 0;
+    border-radius: 0;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--panel-material, var(--surface-panel));
+    backdrop-filter: none;
   }
+  .copilot-compose input, .copilot-compose .icon-button, .copilot-head .icon-button { min-height: 44px; }
+  .copilot-compose input { min-width: 0; font-size: 16px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1111,4 +1112,11 @@
   .copilot-launcher {
     transition: none;
   }
+}
+
+.demo-map-grid {
+  background-color: var(--surface-panel);
+  background-image: linear-gradient(var(--m3-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--m3-line) 1px, transparent 1px);
+  background-size: 56px 56px;
 }

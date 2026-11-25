@@ -14,10 +14,11 @@ const initial: CurrentLocationState = {
   source: "auto",
 };
 const token = import.meta.env.VITE_TIANDITU_TOKEN as string | undefined;
-export function useCurrentLocation() {
+export function useCurrentLocation(enabled = true) {
   const controller = useRef<CurrentLocationController | null>(null);
   const [state, setState] = useState(initial);
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
     let permission: PermissionStatus | undefined;
     const current = new CurrentLocationController({
@@ -74,9 +75,9 @@ export function useCurrentLocation() {
       permission?.removeEventListener("change", changed);
       if (controller.current === current) controller.current = null;
     };
-  }, []);
+  }, [enabled]);
   return {
-    ...state,
+    ...(enabled ? state : initial),
     message: state.status === "error" && !window.isSecureContext
       ? "定位需要通过 HTTPS 打开 Wayline。"
       : state.message,

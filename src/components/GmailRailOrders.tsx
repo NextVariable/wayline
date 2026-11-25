@@ -6,6 +6,7 @@ import { userFacingError } from "../lib/userFacingError";
 
 interface Mailbox {
   enabled: boolean;
+  reason?: "google_unavailable" | "disabled" | "sign_in";
   connected: boolean;
   lastSync: number | null;
   partial: boolean;
@@ -28,18 +29,23 @@ async function request(action: "status" | "start" | "sync" | "enable-sync" | "di
     }),
   });
   const data = await response.json();
-  if (!response.ok) throw Object.assign(new Error(data.error || "Gmail 暂时不可用"), { status: response.status });
+  if (!response.ok && !(action === "status" && response.status === 401 && data.reason === "sign_in")) throw Object.assign(new Error(data.error || "Gmail 暂时不可用"), { status: response.status });
   return data;
 }
 
-export function GmailRailOrders({ email, events }: { email: string; events: CalendarEntry[] }) {
+export function GmailRailOrders({ email, events, demo, onSignIn }: {
+  email?: string; events: CalendarEntry[]; demo: boolean; onSignIn?: () => Promise<unknown>;
+}) {
   const [mailbox, setMailbox] = useState<Mailbox>();
+  const [reload, setReload] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [reconnect, setReconnect] = useState(false);
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
   const controller = useRef<AbortController | null>(null);
   useEffect(() => {
+    if (demo) return;
+    setError("");
     const pending = new AbortController();
     controller.current = pending;
     void (async () => {
@@ -48,7 +54,7 @@ export function GmailRailOrders({ email, events }: { email: string; events: Cale
         if (pending.signal.aborted) return;
         setMailbox(status);
         setReconnect(!!status.needsReconnect);
-        if (status.needsReconnect || !status.connected || status.lastSync && Date.now() - status.lastSync < 15 * 60_000) return;
+        if (status.reason || status.needsReconnect || !status.connected || status.lastSync && Date.now() - status.lastSync < 15 * 60_000) return;
         setBusy(true);
         const fresh: Mailbox = await request("sync", pending.signal);
         if (!pending.signal.aborted) { setMailbox(fresh); window.dispatchEvent(new Event("wayline:gmail-change")); }
@@ -62,7 +68,7 @@ export function GmailRailOrders({ email, events }: { email: string; events: Cale
       }
     })();
     return () => { pending.abort(); };
-  }, []);
+  }, [demo, email, reload]);
 
   const run = async (action: "start" | "sync" | "enable-sync" | "disconnect") => {
     const signal = controller.current?.signal;
@@ -91,9 +97,22 @@ export function GmailRailOrders({ email, events }: { email: string; events: Cale
     }
   };
 
-  if (!mailbox?.enabled) return null;
+  const unavailable = demo ? "示例空间不读取邮箱。"
+    : mailbox?.reason === "google_unavailable" ? "此网站还无法连接 Google 账号。暂时可以从日历导入行程。"
+    : mailbox?.reason === "disabled" ? "此网站尚未开放 Gmail 订单同步。仍可从日历查看已有行程。"
+    : mailbox?.reason === "sign_in" ? "请先用 Google 账号登录，再连接 Gmail 订单。"
+    : !mailbox ? error || "正在检查 Gmail 连接…" : "";
+  if (unavailable || !mailbox) return <section className="gmail-rail-orders" aria-label="Gmail 订单">
+    <div className="calendar-import-heading"><strong><TrainFront size={16} aria-hidden="true" />Gmail 订单</strong></div>
+    <p className="field-help" role="status">{unavailable}</p>
+    {mailbox?.reason === "sign_in" && onSignIn && <button type="button" className="text-action" onClick={() => {
+      void onSignIn().catch(issue => setError(userFacingError(issue, "暂时无法登录，请重试")));
+    }}>用 Google 登录</button>}
+    {!mailbox && error && <button type="button" className="text-action" onClick={() => setReload(value => value + 1)}>重试检查</button>}
+    {!!mailbox && error && <p className="inline-error" role="alert">{error}</p>}
+  </section>;
   const orders = mailbox.orders.filter(order => !hasCalendarRailOrder(order, events));
-  const gmailSearch = `https://mail.google.com/mail/?authuser=${encodeURIComponent(email)}#search/${encodeURIComponent("from:12306@rails.com.cn newer_than:90d")}`;
+  const gmailSearch = `https://mail.google.com/mail/?authuser=${encodeURIComponent(email ?? "")}#search/${encodeURIComponent("from:12306@rails.com.cn newer_than:90d")}`;
   return (
     <section className="gmail-rail-orders" aria-label="Gmail 订单">
       <div className="calendar-import-heading">
@@ -101,6 +120,8 @@ export function GmailRailOrders({ email, events }: { email: string; events: Cale
         {!mailbox.connected ? <button type="button" className="text-action" disabled={busy} onClick={() => void run("start")}>连接 Gmail</button>
           : <button type="button" className="text-action" disabled={busy} onClick={() => void run(reconnect ? "start" : "sync")}>{busy ? "正在读取…" : reconnect ? "重新连接" : "更新"}</button>}
       </div>
+      {mailbox.connected && !reconnect && <p className="field-help" role="status">{mailbox.lastSync ? "已连接" : "已连接，等待首次读取"}</p>}
+      {reconnect && <p className="field-help" role="status">连接已失效，请重新授权。</p>}
       {mailbox.connected && mailbox.lastSync && <small className="gmail-rail-time" role="status">上次读取 {syncTime.format(mailbox.lastSync)}</small>}
       {!mailbox.connected && <p className="field-help">Google 会请求邮箱只读权限。Wayline 读取支持来源的车票、航班和住宿确认邮件。</p>}
       {mailbox.connected && <>

@@ -151,6 +151,7 @@ function FallbackLeafletMap({
   stayArea,
   onViewport,
   onMapReady,
+  demo = false,
 }: {
   city: City;
   places: Place[];
@@ -170,6 +171,7 @@ function FallbackLeafletMap({
   stayArea?: Place;
   onViewport:(viewport:MapViewport)=>void;
   onMapReady:(map:L.Map)=>void;
+  demo?: boolean;
   routeOverview: boolean;
   routeFitCommand: number;
   footprint?: FootprintMap;
@@ -210,7 +212,7 @@ function FallbackLeafletMap({
       preferCanvas
       zoomControl={false}
       scrollWheelZoom
-      className="h-full w-full"
+      className={demo ? "h-full w-full demo-map-grid" : "h-full w-full"}
     >
       <FallbackMapBridge onViewport={onViewport} onReady={onMapReady}/>
       <FallbackFlyTo
@@ -262,7 +264,7 @@ function FallbackLeafletMap({
       {footprint && <FallbackFootprint footprint={footprint} />}
       <FallbackCurrentPosition position={myPosition} focus={locationFocus} />
       {!selectedPlace && !!scopeCities?.length && <FallbackCityScopeFit cities={scopeCities} focusNonce={focusNonce} />}
-      <TileLayer
+      {!demo && <TileLayer
         key={`fallback-${mapMode}-${mode}`}
         attribution={fallbackAttr}
         url={fallbackTileUrl}
@@ -271,7 +273,7 @@ function FallbackLeafletMap({
         updateWhenZooming
         keepBuffer={24}
         updateInterval={80}
-      />
+      />}
       {places.map((place) => (
         <LeafletMarker
           key={`${place.type}-${place.id}`}
@@ -608,6 +610,7 @@ export function MapView({
   todayRoutes,
   todayFocus,
   stayArea,
+  demo = false,
 }: {
   city: City;
   places: Place[];
@@ -627,6 +630,7 @@ export function MapView({
   todayRoutes?: TodayRouteLine[];
   todayFocus?: string | null;
   stayArea?: Place;
+  demo?: boolean;
   routeOverview?: boolean;
   routeFitCommand?: number;
   footprint?: FootprintMap;
@@ -669,7 +673,7 @@ export function MapView({
   const onSelectPlaceRef = useRef(onSelectPlace);
   onSelectPlaceRef.current = onSelectPlace;
 
-  const amapKey = (import.meta.env.VITE_AMAP_KEY as string) || "";
+  const amapKey = demo ? "" : (import.meta.env.VITE_AMAP_KEY as string) || "";
   const mapStyle =
     mode === "business" ? "amap://styles/dark" : "amap://styles/whitesmoke";
 
@@ -1264,6 +1268,7 @@ export function MapView({
       {mapError && (
         <FallbackLeafletMap
           city={city}
+          demo={demo}
           places={places.map(placeInWgs)}
           selectedPlace={selectedPlace ? placeInWgs(selectedPlace) : null}
           onSelectPlace={place => { const original = places.find(p => p.id === place.id); if (original) onSelectPlace(original); }}
@@ -1290,7 +1295,7 @@ export function MapView({
         />
       )}
 
-      {(mapReady||mapError)&&<ChinaMiniMap mainMapCenter={viewport.center} mainMapBounds={viewport.bounds} onJumpToLocation={jumpTo} amap={mapReady&&!mapError?amapRef.current ?? undefined:undefined} appearance={mode}/>}
+      {!demo&&(mapReady||mapError)&&<ChinaMiniMap mainMapCenter={viewport.center} mainMapBounds={viewport.bounds} onJumpToLocation={jumpTo} amap={mapReady&&!mapError?amapRef.current ?? undefined:undefined} appearance={mode}/>}
 
       {/* 加载中 */}
       {!mapReady && !mapError && (
@@ -1299,8 +1304,9 @@ export function MapView({
         </div>
       )}
 
+      {demo && <div className="map-error-note" role="status">示意地图 · 示例路线</div>}
       {/* 高德加载失败提示 */}
-      {mapError && (
+      {mapError && !demo && (
         <div className="map-error-note" role="status">
           已切换至备用地图
         </div>

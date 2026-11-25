@@ -92,6 +92,7 @@ export function createServerIntakeModel(owner: string): IntakeModel {
  * approved budget. The browser cannot enable paid calls on its own.
  */
 export function resolveIntakeModel(owner = ""): IntakeModel | null {
+  if (owner.startsWith("demo:")) return null;
   const flag = import.meta.env.VITE_INTAKE_MODEL;
   if (flag === "fixture") return createFixtureIntakeModel();
   if (flag === "off" || flag === "rule") return null;

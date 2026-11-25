@@ -145,8 +145,8 @@ export function assessTrip(trip:Trip,status:Freshness,transfers:TripTransfer[] =
           const enoughEvidence=!!transfer && !!route && !routeStale && !outdated;
           const shortBy=enoughEvidence ? route.minutes-transfer.availableMinutes : 0;
           const inbound=constraint.kind==="arrive-before";
-          const routeEvidence:SourceProvenance[] = route && transfer ? [{source:"amap",recordId:transfer.key,
-            observedAt:route.observedAt,confidence:"recorded",stale:routeStale}] : [];
+          const routeEvidence:SourceProvenance[] = route && transfer ? [{source:route.source,recordId:transfer.key,
+            observedAt:route.observedAt,confidence:route.source === "estimate" ? "inferred" : "recorded",stale:routeStale}] : [];
           risks.push({...common,id:JSON.stringify([segment.id,order.id,constraint.kind]),eventIds:[constraint.eventId],
             evidence:[...common.evidence,...routeEvidence],stale:outdated || routeStale,
             type:"intercity",severity:shortBy>0?"high":"info",status:shortBy>0?"confirmed":"uncertain",

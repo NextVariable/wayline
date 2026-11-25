@@ -164,7 +164,7 @@ function TodayLeg({ segment, loading, focused, now, onChooseMode, onFocus, onRet
         onCompare?.(open ? pair.id : null);
       }}
       note={result?.source === "synthetic"
-        ? <p className="leg-note">合成演示路线，仅用于功能验收，不代表真实高德结果。</p>
+        ? <p className="leg-note">演示路线 · 仅供体验。</p>
         : null}
     />
   );

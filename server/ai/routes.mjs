@@ -2,6 +2,7 @@
  * HTTP surface for the AI harness. Kept separate from server/index.mjs so the
  * same handlers can be exercised in tests with a mock provider.
  */
+import { isDemoRequest, demoResponse } from "../demo-guard.mjs";
 import { aiStatusPayload } from "./config.mjs";
 import { ContextError, sanitizeCopilotContext } from "./context.mjs";
 import { runCopilot, runIntake } from "./harness.mjs";
@@ -19,6 +20,7 @@ export function createAiRoutes({ config, budget, provider, proposals, services, 
   return async function handleAiRoute({ route, body, request }) {
     if (!route.startsWith("/api/ai/")) return null;
     const payload = body && typeof body === "object" ? body : {};
+    if (isDemoRequest(request, payload)) return { status: 403, payload: demoResponse };
     const account = accountFor ? await accountFor(request) : null;
     const owner = typeof payload.owner === "string" ? payload.owner.trim().slice(0, 120) : "";
 

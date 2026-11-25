@@ -1,3 +1,4 @@
+import { readDemoMode } from "./demoScope";
 import type { City } from "../types/place";
 
 export type CityScope = "current" | "all" | "selected";
@@ -208,6 +209,7 @@ export async function searchAdministrativeCities(
   query: string,
   signal: AbortSignal,
 ): Promise<City[]> {
+  if (readDemoMode()) return [];
   try {
     return await searchAmapCities(query, signal);
   } catch {

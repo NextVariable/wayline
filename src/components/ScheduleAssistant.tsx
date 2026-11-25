@@ -11,9 +11,9 @@ import type { CityName, Place } from "../types/place";
 import { systemPlaces } from "../data/systemPlaces";
 import { localDay, matchIntentPlaces } from "../lib/quickIntent";
 import {
-  DEEPSEEK_MODEL_LABEL,
-  FIXTURE_MODEL_LABEL,
-  RULE_PROVIDER_LABEL,
+
+
+
   parseIntakeWithFallback,
   resolveIntakeModel,
 } from "../lib/intakeModel";
@@ -36,7 +36,7 @@ import { usePanelFocus } from "../lib/usePanelFocus";
 
 export function ScheduleAssistant({
   open,
-  calendarEvents = [], onCalendarChange, onCalendarRemove, googleCalendar, gmailAccount,
+  calendarEvents = [], onCalendarChange, onCalendarImport, onCalendarRemove, googleCalendar, gmailAccount, onGoogleSignIn,
   activeCity,
   places,
   contextPlaces,
@@ -56,7 +56,9 @@ export function ScheduleAssistant({
   calendarEvents?:CalendarEntry[];
   googleCalendar?:GoogleCalendarState;
   gmailAccount?: string;
+  onGoogleSignIn?: () => Promise<unknown>;
   onCalendarChange?:(events:CalendarEntry[])=>void;
+  onCalendarImport?: (events: CalendarEntry[]) => {added: number; updated: number; duplicates: number};
   onCalendarRemove?:(id:string)=>void;
   activeCity: CityName;
   places: Place[];
@@ -113,8 +115,6 @@ export function ScheduleAssistant({
   const [intakeItems, setIntakeItems] = useState<IntakeItem[]>([]);
   const [intakeWarnings, setIntakeWarnings] = useState<string[]>([]);
   const [intakeProvider, setIntakeProvider] = useState<"" | "rule" | "fixture" | "model">("");
-  const [intakeModelName, setIntakeModelName] = useState("");
-  const [intakeUsage, setIntakeUsage] = useState("");
   const [intakeParsing, setIntakeParsing] = useState(false);
   const [intakeSession, setIntakeSession] = useState("");
   const [intakeNotice, setIntakeNotice] = useState("");
@@ -151,7 +151,7 @@ export function ScheduleAssistant({
   );
   const intakePool = useMemo(() => {
     const pool = [...systemPlaces, ...contextPlaces, ...places].filter(
-      (place) => !place.tags.includes("日程助手"),
+      (place) => !place.tags.includes("日程助手") && !/\bmock\b/i.test(place.name),
     );
     return pool.filter(
       (place, index) => pool.findIndex((other) => other.id === place.id) === index,
@@ -205,19 +205,9 @@ export function ScheduleAssistant({
     setIntakeItems(merged);
     setIntakeWarnings(result.warnings);
     setIntakeProvider(result.provider);
-    setIntakeModelName(result.provider === "model" ? result.model ?? "" : "");
-    setIntakeUsage(
-      result.provider === "model" && result.usage
-        ? `输入 ${result.usage.inputTokens} · 输出 ${result.usage.outputTokens} tokens${typeof result.costUsd === "number" ? ` · $${result.costUsd.toFixed(4)}` : ""}`
-        : "",
-    );
     setIntakeSession(intakeSessionId(now));
-    if (usedFallback)
-      setIntakeNotice("模型暂不可用，已改用本地规则解析，可继续手动调整。");
-    else if (result.provider === "fixture")
-      setIntakeNotice("当前为固定测试响应，预览内容与输入无关。");
-    else if (result.provider === "model")
-      setIntakeNotice("已由真实模型解析，逐条核对并确认后才写入日程。");
+    if (usedFallback) setIntakeNotice("已提取能识别的信息，请核对时间和地点。");
+    else if (result.provider === "fixture") setIntakeNotice("正在查看示例安排。");
     setIntakeParsing(false);
   };
   const removeIntakeItem = (id: string) =>
@@ -383,14 +373,14 @@ export function ScheduleAssistant({
           onToggleCompleted={place => onUpdateSchedule({ ...place, status: place.status === "visited" ? "want_to_go" : "visited" })} />
       </>}
       {screen === "sources" && <div className="schedule-sources">
-        {googleCalendar && <GoogleCalendarConnection connection={googleCalendar} />}
-        {gmailAccount && <GmailRailOrders email={gmailAccount} events={calendarEvents} />}
-        {onCalendarChange && <button type="button" className="text-action" onClick={() => moveTo("import")}>导入 .ics 文件</button>}
+        {googleCalendar && <GoogleCalendarConnection connection={googleCalendar} demo={owner.startsWith("demo:")} />}
+        <GmailRailOrders email={gmailAccount} events={calendarEvents} demo={owner.startsWith("demo:")} onSignIn={onGoogleSignIn} />
+        {onCalendarImport && <button type="button" className="text-action" onClick={() => moveTo("import")}>导入 .ics 文件</button>}
       </div>}
-      {screen === "import" && onCalendarChange && <CalendarImport onChange={onCalendarChange} onDone={imported => {
+      {screen === "import" && onCalendarImport && <CalendarImport existing={calendarEvents} onImport={onCalendarImport} onDone={(imported, summary) => {
         const today = localDay();
         setShowPast(imported.every(event => calendarEventIsPast(event, today)));
-        setNotice(`已导入 ${imported.length} 条日程`);
+        setNotice(summary);
         moveTo("agenda");
       }} />}
       {screen === "intake" && <div className="intake-panel">
@@ -409,18 +399,6 @@ export function ScheduleAssistant({
           </button>
           <button type="button" className="text-action" onClick={() => { setNotice(""); moveTo("compose"); }}>改用手动录入</button>
         </div>
-        <p className="field-help" role="status">
-          {intakeProvider === "model"
-            ? `${DEEPSEEK_MODEL_LABEL}${intakeModelName ? `（${intakeModelName}）` : ""}`
-            : intakeProvider === "fixture"
-              ? FIXTURE_MODEL_LABEL
-              : intakeProvider === "rule"
-                ? RULE_PROVIDER_LABEL
-                : "未调用模型；服务端配置 DeepSeek 后将优先使用真实模型"}
-        </p>
-        {intakeProvider === "model" && intakeUsage && (
-          <p className="field-help" role="status">本次用量：{intakeUsage}</p>
-        )}
         {intakeNotice && <p className="field-help" role="status">{intakeNotice}</p>}
         {intakeWarnings.length > 0 && (
           <ul className="field-help" aria-label="解析提示">
@@ -472,7 +450,7 @@ export function ScheduleAssistant({
                 {item.endDate && item.endDate !== item.date && (
                   <p className="field-help">跨日：{item.endDate} {item.endTime}（北京时间），保存为一条安排</p>
                 )}
-                <p className="field-help">时区：{item.timezone}（北京时间）；未知字段不会自动补全</p>
+                <p className="field-help">北京时间</p>
                 {item.raw && <p className="field-help">原文：{item.raw}</p>}
               </li>
             ))}

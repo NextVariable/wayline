@@ -22,6 +22,7 @@ import { createAiBudget, createFileUsageStore } from "./ai/budget.mjs";
 import { createDeepSeekProvider } from "./ai/provider.mjs";
 import { createProposalStore } from "./ai/proposals.mjs";
 import { createAiRoutes } from "./ai/routes.mjs";
+import { isDemoRequest, demoResponse } from "./demo-guard.mjs";
 import http from "node:http";
 import { readFileSync, existsSync } from "node:fs";
 
@@ -459,6 +460,10 @@ const server = http.createServer(async (request, response) => {
 
   try {
     const body = await readJson(request);
+    if (isDemoRequest(request, body)) {
+      send(response, 403, demoResponse);
+      return;
+    }
 
     const aiResult = await aiRoutes({ route, body, request });
     if (aiResult) {
