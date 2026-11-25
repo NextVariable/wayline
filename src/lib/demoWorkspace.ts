@@ -1,3 +1,4 @@
+import { isDesktopShowcase } from "./spatialMedia";
 import { demoRoute } from "./demoRoute";
 import type { CalendarEntry, PlaceResolution } from "./calendarEvents";
 import { calendarKey } from "./calendarEvents";
@@ -12,7 +13,7 @@ import type { TodayLegPair, TravelMode } from "./todayMap";
 import type { BookingChange, RailOrder } from "./businessOrders";
 
 /** A local-only owner. Nothing here is ever written to a signed-in account. */
-export const DEMO_OWNER = "demo:wayline";
+export const DEMO_OWNER = isDesktopShowcase ? "demo:showcase" : "demo:wayline";
 export const DEMO_USER: AppUser = { id: DEMO_OWNER, label: "演示工作区", method: "local" };
 export const DEMO_HOME = "上海";
 import { setDemoFlag } from "./demoScope";

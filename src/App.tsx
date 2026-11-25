@@ -1,3 +1,4 @@
+import { isDesktopShowcase } from "./lib/spatialMedia";
 import { planCalendarImport } from "./lib/calendarImportPlan";
 import type { RoadAccessMode } from "./lib/smartRoutes";
 import { BusinessTripCommute, type CommuteChoice } from "./components/BusinessTripCommute";
@@ -253,8 +254,8 @@ export default function App() {
     document.addEventListener("pointerdown", dismiss);
     return () => document.removeEventListener("pointerdown", dismiss);
   }, [settingsOpen]);
-  const account = useAccount();
-  const [localUser, setActiveUser] = useState<AppUser>(() => loadActiveUser());
+  const account = useAccount(!isDesktopShowcase);
+  const [localUser, setActiveUser] = useState<AppUser>(() => isDesktopShowcase ? DEMO_USER : loadActiveUser());
   const [showLocalSpace, setShowLocalSpace] = useState(false);
   const [demoBoot] = useState(() => {
     const active = readDemoMode();
@@ -417,6 +418,7 @@ export default function App() {
   const { addToast } = useToast();
   // One-off notices around sign-in and sync.
   useEffect(() => {
+    if (isDesktopShowcase) return;
     const url = new URL(window.location.href);
     if (url.searchParams.get("signin") === "denied") {
       addToast("已取消登录", "info");
@@ -1410,6 +1412,7 @@ export default function App() {
   };
   const leaveDemoWorkspace = () => {
     exitDemo();
+    if (isDesktopShowcase) { window.location.assign("/"); return; }
     setDemoActive(false);
     setBusinessSelection(null);
     setSelectedPlace(null);

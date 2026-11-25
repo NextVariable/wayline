@@ -63,22 +63,25 @@ export function chooseActiveUser(state: { status: AccountState["status"]; accoun
   return localUser.method === "google" ? guestUser : localUser;
 }
 
-export function useAccount() {
-  const [state, setState] = useState<AccountState>({ status: "loading" });
+export function useAccount(enabled = true) {
+  const [state, setState] = useState<AccountState>({ status: enabled ? "loading" : "unavailable" });
   const refresh = useCallback(async () => {
+    if (!enabled) return;
     const info = await fetchAccount();
     setState(!info.configured ? { status: "unavailable" } : info.signedIn && info.account ? { status: "signed-in", account: info.account } : { status: "guest" });
-  }, []);
+  }, [enabled]);
   useEffect(() => { void refresh(); }, [refresh]);
   const signIn = useCallback(async () => {
+    if (!enabled) return;
     const url = await startSignIn();
     if (!url) { setState({ status: "unavailable" }); return; }
     window.location.assign(url);
-  }, []);
+  }, [enabled]);
   const leave = useCallback(async () => {
+    if (!enabled) return;
     await signOut();
     setState({ status: "guest" });
-  }, []);
+  }, [enabled]);
   return { ...state, refresh, signIn, signOut: leave };
 }
 export type AccountController = ReturnType<typeof useAccount>;
