@@ -17,6 +17,11 @@ import { createAccountService } from "./accounts.mjs";
 import { createTravelServices } from "./travel-services.mjs";
 import { createCalendarPlaceResolver } from "./calendar-places.mjs";
 import { knownResolveCandidates } from "./known-places.mjs";
+import { readAiConfig } from "./ai/config.mjs";
+import { createAiBudget, createFileUsageStore } from "./ai/budget.mjs";
+import { createDeepSeekProvider } from "./ai/provider.mjs";
+import { createProposalStore } from "./ai/proposals.mjs";
+import { createAiRoutes } from "./ai/routes.mjs";
 import http from "node:http";
 import { readFileSync, existsSync } from "node:fs";
 
@@ -74,6 +79,26 @@ const calendarPlaces = createCalendarPlaceResolver({ searchPlaces: query => trav
 const accounts = createAccountService();
 const googleCalendar=createGoogleCalendarService({accountFor:accounts.accountFor});
 googleCalendar.start();
+
+// M4 AI harness. Paid calls stay disabled until a key, a positive daily budget
+// and an explicit budget acknowledgement are all present in the server env.
+const aiConfig = readAiConfig(process.env);
+const aiBudget = createAiBudget({
+  config: aiConfig,
+  store: createFileUsageStore(process.env.AI_USAGE_FILE || '.wayline-private/ai-usage.json'),
+});
+const aiProvider = createDeepSeekProvider({ config: aiConfig });
+const aiProposals = createProposalStore();
+const aiRoutes = createAiRoutes({
+  config: aiConfig,
+  budget: aiBudget,
+  provider: aiProvider,
+  proposals: aiProposals,
+  services: { searchPlaces: travelServices.searchPlaces, route: travelServices.route },
+  accountFor: accounts.accountFor,
+});
+const aiLimiter = createRateLimiter({ limit: aiConfig.rateLimitPerMinute });
+console.log(`Wayline AI: ${aiConfig.enabled ? `enabled (${aiConfig.model})` : `disabled (${aiConfig.reason})`}`);
 
 
 function readJson(request) {
@@ -418,7 +443,10 @@ const server = http.createServer(async (request, response) => {
     send(response,415,{error:'请求应使用 JSON'});
     return;
   }
-  const verdict = admit([[callerLimiter, caller], [siteLimiter, 'site'], ...(fetchRoutes.has(route) ? [[fetchLimiter, caller]] : [])]);
+  // Status is a local, free read used on every page load; only paid AI routes
+  // consume the AI rate budget so a status poll can never hide the real reason.
+  const paidAiRoute = route.startsWith('/api/ai/') && route !== '/api/ai/status';
+  const verdict = admit([[callerLimiter, caller], [siteLimiter, 'site'], ...(fetchRoutes.has(route) ? [[fetchLimiter, caller]] : []), ...(paidAiRoute ? [[aiLimiter, caller]] : [])]);
   if (!verdict.allowed) {
     response.setHeader('Retry-After', String(verdict.retryAfterSeconds));
     send(response, 429, { error: '查询较频繁，请稍后重试' });
@@ -427,7 +455,13 @@ const server = http.createServer(async (request, response) => {
 
   try {
     const body = await readJson(request);
-    
+
+    const aiResult = await aiRoutes({ route, body, request });
+    if (aiResult) {
+      send(response, aiResult.status, aiResult.payload);
+      return;
+    }
+
     if (request.url === "/api/location") {
       send(response, 200, await travelServices.locate(body));
       return;

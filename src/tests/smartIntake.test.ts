@@ -235,10 +235,12 @@ describe("intake model contract", () => {
       clear: () => store.clear(),
     });
   });
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
-  it("ships no live model by default", async () => {
+  it("uses the DeepSeek server model by default, but never in fixture mode", async () => {
     const { resolveIntakeModel } = await import("../lib/intakeModel");
+    expect(resolveIntakeModel()?.id).toBe("deepseek");
+    vi.stubEnv("VITE_INTAKE_MODEL", "off");
     expect(resolveIntakeModel()).toBeNull();
   });
 
@@ -256,21 +258,6 @@ describe("intake model contract", () => {
     expect(model.label).toBe(FIXTURE_MODEL_LABEL);
     expect(result.provider).toBe("fixture");
     expect(result.items).toHaveLength(2);
-  });
-
-  it("counts model calls against the daily budget", async () => {
-    const { readIntakeBudget, recordIntakeModelCall, canCallPaidModel } =
-      await import("../lib/intakeModel");
-    expect(readIntakeBudget("u1", now, 2)).toMatchObject({
-      limit: 2,
-      used: 0,
-      remaining: 2,
-    });
-    recordIntakeModelCall("u1", now);
-    expect(readIntakeBudget("u1", now, 2).used).toBe(1);
-    recordIntakeModelCall("u1", now);
-    expect(readIntakeBudget("u1", now, 2).remaining).toBe(0);
-    expect(canCallPaidModel("u1", now)).toBe(false);
   });
 
   it("falls back to local parsing when the model throws", async () => {

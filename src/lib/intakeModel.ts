@@ -1,9 +1,9 @@
 import type { Place } from "../types/place";
-import { localDay } from "./quickIntent";
 import {
   parseIntakeText,
   type IntakeParseResult,
 } from "./smartIntake";
+import { callAiIntake, fetchAiStatus } from "./aiClient";
 
 export interface IntakeModelRequest {
   text: string;
@@ -11,19 +11,21 @@ export interface IntakeModelRequest {
   places: Place[];
   activeCity: string;
   idPrefix?: string;
+  owner?: string;
 }
 
 export interface IntakeModel {
-  id: "fixture";
+  id: "fixture" | "deepseek";
   /** Shown in the preview so a test response can never be mistaken for a live model. */
   label: string;
   paid: boolean;
-  available(): boolean;
+  available(): boolean | Promise<boolean>;
   parse(request: IntakeModelRequest): Promise<IntakeParseResult>;
 }
 
 export const FIXTURE_MODEL_LABEL = "固定测试响应（未接入真实模型）";
 export const RULE_PROVIDER_LABEL = "本地规则解析（未调用模型）";
+export const DEEPSEEK_MODEL_LABEL = "DeepSeek 真实模型";
 
 const fixtureText =
   "明天下午三点去海上世界见客户，后天上午十点去深圳湾开会";
@@ -50,12 +52,50 @@ export function createFixtureIntakeModel(): IntakeModel {
 }
 
 /**
- * M1 ships no live provider. Only an explicitly enabled fixture response is
- * allowed until a vendor, credentials and spend are approved.
+ * The DeepSeek model runs entirely on the Node server. The browser only learns
+ * whether it is configured (and how much approved budget is left), then posts
+ * the text to /api/ai/intake. If anything fails the caller falls back to rules.
  */
-export function resolveIntakeModel(): IntakeModel | null {
+export function createServerIntakeModel(owner: string): IntakeModel {
+  return {
+    id: "deepseek",
+    label: DEEPSEEK_MODEL_LABEL,
+    paid: true,
+    async available() {
+      const status = await fetchAiStatus(owner);
+      return status.enabled;
+    },
+    async parse(request) {
+      const response = await callAiIntake({
+        owner: request.owner || owner || "guest",
+        text: request.text,
+        now: request.now,
+        activeCity: request.activeCity,
+        places: request.places.map(({ id, name, city }) => ({ id, name, city })),
+      });
+      if (!response.ok) throw new Error(response.error || "模型暂时不可用");
+      return {
+        items: response.items,
+        warnings: response.warnings,
+        provider: "model",
+        model: response.model,
+        usage: response.usage,
+        costUsd: response.costUsd,
+      };
+    },
+  };
+}
+
+/**
+ * `VITE_INTAKE_MODEL=fixture` keeps the deterministic test response,
+ * `off` forces local rules, anything else uses DeepSeek when the server has an
+ * approved budget. The browser cannot enable paid calls on its own.
+ */
+export function resolveIntakeModel(owner = ""): IntakeModel | null {
   const flag = import.meta.env.VITE_INTAKE_MODEL;
-  return flag === "fixture" ? createFixtureIntakeModel() : null;
+  if (flag === "fixture") return createFixtureIntakeModel();
+  if (flag === "off" || flag === "rule") return null;
+  return createServerIntakeModel(owner);
 }
 
 export interface IntakeRun {
@@ -73,7 +113,7 @@ export async function parseIntakeWithFallback(
   request: Omit<IntakeModelRequest, "text">,
   model: IntakeModel | null,
 ): Promise<IntakeRun> {
-  if (model?.available()) {
+  if (model && (await model.available())) {
     try {
       return { result: await model.parse({ ...request, text }), usedFallback: false };
     } catch {
@@ -88,55 +128,4 @@ export async function parseIntakeWithFallback(
     }),
     usedFallback: !!model,
   };
-}
-
-export function configuredDailyLimit() {
-  const value = Number(import.meta.env.VITE_INTAKE_DAILY_LIMIT ?? 0);
-  return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
-}
-
-const budgetKey = (owner: string, day: string) =>
-  `wayline.intake.budget.${owner}.${day}`;
-
-export interface IntakeBudget {
-  limit: number;
-  used: number;
-  remaining: number;
-}
-
-export function readIntakeBudget(
-  owner: string,
-  now = new Date(),
-  limit = configuredDailyLimit(),
-): IntakeBudget {
-  let used = 0;
-  if (owner && typeof localStorage !== "undefined") {
-    try {
-      used = Number(
-        localStorage.getItem(budgetKey(owner, localDay(now))) ?? 0,
-      );
-    } catch {
-      used = 0;
-    }
-  }
-  if (!Number.isFinite(used) || used < 0) used = 0;
-  return { limit, used, remaining: Math.max(0, limit - used) };
-}
-
-export function canCallPaidModel(owner: string, now = new Date()) {
-  const budget = readIntakeBudget(owner, now);
-  return budget.limit > 0 && budget.remaining > 0;
-}
-
-export function recordIntakeModelCall(owner: string, now = new Date()) {
-  if (!owner || typeof localStorage === "undefined") return;
-  const budget = readIntakeBudget(owner, now);
-  try {
-    localStorage.setItem(
-      budgetKey(owner, localDay(now)),
-      String(budget.used + 1),
-    );
-  } catch {
-    // a full or blocked storage must not break the intake flow
-  }
 }

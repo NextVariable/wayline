@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2026-11-25T08:25:33.293Z",
+  "provider": "deepseek",
+  "model": "deepseek-flash",
+  "thinking": "disabled",
+  "budgetUsd": 0,
+  "status": "blocked",
+  "reason": "budget_not_configured",
+  "scenarios": [],
+  "usage": {
+    "inputTokens": 0,
+    "outputTokens": 0
+  },
+  "costUsd": 0,
+  "message": "未产生真实模型调用：需要 DEEPSEEK_API_KEY、AI_DAILY_BUDGET_USD>0、AI_BUDGET_ACKNOWLEDGED=1。"
+}

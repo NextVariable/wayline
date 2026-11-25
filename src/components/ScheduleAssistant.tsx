@@ -11,10 +11,10 @@ import type { CityName, Place } from "../types/place";
 import { systemPlaces } from "../data/systemPlaces";
 import { localDay, matchIntentPlaces } from "../lib/quickIntent";
 import {
+  DEEPSEEK_MODEL_LABEL,
   FIXTURE_MODEL_LABEL,
   RULE_PROVIDER_LABEL,
   parseIntakeWithFallback,
-  recordIntakeModelCall,
   resolveIntakeModel,
 } from "../lib/intakeModel";
 import {
@@ -111,7 +111,9 @@ export function ScheduleAssistant({
   const [intakeText, setIntakeText] = useState("");
   const [intakeItems, setIntakeItems] = useState<IntakeItem[]>([]);
   const [intakeWarnings, setIntakeWarnings] = useState<string[]>([]);
-  const [intakeProvider, setIntakeProvider] = useState<"" | "rule" | "fixture">("");
+  const [intakeProvider, setIntakeProvider] = useState<"" | "rule" | "fixture" | "model">("");
+  const [intakeModelName, setIntakeModelName] = useState("");
+  const [intakeUsage, setIntakeUsage] = useState("");
   const [intakeParsing, setIntakeParsing] = useState(false);
   const [intakeSession, setIntakeSession] = useState("");
   const [intakeNotice, setIntakeNotice] = useState("");
@@ -186,13 +188,12 @@ export function ScheduleAssistant({
     setIntakeParsing(true);
     setIntakeNotice("");
     const now = new Date();
-    const model = resolveIntakeModel();
+    const model = resolveIntakeModel(owner);
     const { result, usedFallback } = await parseIntakeWithFallback(
       intakeText,
-      { now, places: intakePool, activeCity, idPrefix: `intake-${intakeSessionId(now)}` },
+      { now, places: intakePool, activeCity, idPrefix: `intake-${intakeSessionId(now)}`, owner },
       model,
     );
-    if (model && !usedFallback) recordIntakeModelCall(owner);
     const kept = [...draftIntakeItems(intakeItems), ...readIntakeDrafts(owner)];
     const merged = [...result.items];
     for (const item of kept)
@@ -200,11 +201,19 @@ export function ScheduleAssistant({
     setIntakeItems(merged);
     setIntakeWarnings(result.warnings);
     setIntakeProvider(result.provider);
+    setIntakeModelName(result.provider === "model" ? result.model ?? "" : "");
+    setIntakeUsage(
+      result.provider === "model" && result.usage
+        ? `输入 ${result.usage.inputTokens} · 输出 ${result.usage.outputTokens} tokens${typeof result.costUsd === "number" ? ` · $${result.costUsd.toFixed(4)}` : ""}`
+        : "",
+    );
     setIntakeSession(intakeSessionId(now));
     if (usedFallback)
       setIntakeNotice("模型暂不可用，已改用本地规则解析，可继续手动调整。");
     else if (result.provider === "fixture")
       setIntakeNotice("当前为固定测试响应，预览内容与输入无关。");
+    else if (result.provider === "model")
+      setIntakeNotice("已由真实模型解析，逐条核对并确认后才写入日程。");
     setIntakeParsing(false);
   };
   const removeIntakeItem = (id: string) =>
@@ -397,12 +406,17 @@ export function ScheduleAssistant({
           <button type="button" className="text-action" onClick={() => { setNotice(""); moveTo("compose"); }}>改用手动录入</button>
         </div>
         <p className="field-help" role="status">
-          {intakeProvider === "fixture"
-            ? FIXTURE_MODEL_LABEL
-            : intakeProvider === "rule"
-              ? RULE_PROVIDER_LABEL
-              : "模型未配置，解析将使用本地规则"}
+          {intakeProvider === "model"
+            ? `${DEEPSEEK_MODEL_LABEL}${intakeModelName ? `（${intakeModelName}）` : ""}`
+            : intakeProvider === "fixture"
+              ? FIXTURE_MODEL_LABEL
+              : intakeProvider === "rule"
+                ? RULE_PROVIDER_LABEL
+                : "未调用模型；服务端配置 DeepSeek 后将优先使用真实模型"}
         </p>
+        {intakeProvider === "model" && intakeUsage && (
+          <p className="field-help" role="status">本次用量：{intakeUsage}</p>
+        )}
         {intakeNotice && <p className="field-help" role="status">{intakeNotice}</p>}
         {intakeWarnings.length > 0 && (
           <ul className="field-help" aria-label="解析提示">

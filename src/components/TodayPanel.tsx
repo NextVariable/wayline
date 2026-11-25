@@ -40,12 +40,14 @@ interface Props {
   conflicts?: TravelRisk[];
   actions?: TripAction[];
   onAction?: (action: TripAction) => void;
+  /** Opens Copilot with this reminder as context; only passed when the model is configured. */
+  onExplainAction?: (action: TripAction) => void;
   nextStopId?: string;
 }
 
 const clock = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false });
 
-export function TodayPanel({ heading, stops, segments, loading, focused, onSelectStop, onChooseMode, onFocus, onRetry, onOpenSchedule, onNavigate, onCompare, onBufferChange, now = Date.now(), syncWarning, conflicts = [], actions = [], onAction, nextStopId }: Props) {
+export function TodayPanel({ heading, stops, segments, loading, focused, onSelectStop, onChooseMode, onFocus, onRetry, onOpenSchedule, onNavigate, onCompare, onBufferChange, now = Date.now(), syncWarning, conflicts = [], actions = [], onAction, onExplainAction, nextStopId }: Props) {
   if (!stops.length && !conflicts.length) return null;
   const fromEvent = new Map(segments.map(segment => [segment.pair.from.event.id, segment]));
   return (
@@ -69,6 +71,7 @@ export function TodayPanel({ heading, stops, segments, loading, focused, onSelec
           <small>{actions[0].nextStep.label}</small>
         </button>
         {actions.length > 1 && <span className="today-attention-count">{actions.length - 1} 项见行程</span>}
+        {onExplainAction && <button type="button" className="text-action today-attention-explain" onClick={() => onExplainAction(actions[0])}>解释</button>}
       </div>}
       <ol className="wayline-timeline today-timeline">
         {stops.map(stop => {

@@ -17,6 +17,9 @@ import { calendarMapPlaces, pendingPlaces, confirmPlace, acceptSuggestion, rejec
 import { GoogleCalendarConnection } from "./components/GoogleCalendarConnection";
 import { CalendarPlaceHint } from "./components/CalendarPlaceHint";
 import { TodayPanel, type TodaySegment } from "./components/TodayPanel";
+import { CopilotPanel } from "./components/CopilotPanel";
+import { OFFLINE_AI_STATUS, fetchAiStatus, type AiProposal, type AiStatus } from "./lib/aiClient";
+import { buildCopilotContext } from "./lib/aiContext";
 import { OfflineNotice } from "./components/OfflineNotice";
 import { localDateKey, placePairKey, routeProviderMode, type TodayLegPair, type TravelMode } from "./lib/todayMap";
 import { useTodayLegs, type LegResult } from "./lib/useTodayLegs";
@@ -132,6 +135,10 @@ export default function App() {
   const mode = useMapAppearance();
   const [mapMode, setMapMode] = useState<MapMode>("explore");
   const [activeOverlay, commitOverlay] = useState<OverlayPanel | null>(null);
+  const [copilotOpen, setCopilotOpen] = useState(false);
+  const [copilotStatus, setCopilotStatus] = useState<AiStatus>(OFFLINE_AI_STATUS);
+  const [copilotSeed, setCopilotSeed] = useState<{ id: number; text: string } | null>(null);
+  const appliedProposals = useRef<Set<string>>(new Set());
   const [loadingWorkflow, setLoadingWorkflow] = useState<keyof typeof workspaceWorkflows | null>(null);
   const workflowRequest = useRef(0);
   const panelTransition = useRef<ViewTransition | null>(null);
@@ -761,6 +768,89 @@ export default function App() {
     ? businessTrips.find(item => item.id === businessSelection.id) : undefined;
   const selectedModel = selectedBusinessTrip && model.tripModels.get(selectedBusinessTrip.id);
   const selectedPlan = selectedBusinessTrip && bookingPlan.get(selectedBusinessTrip.id);
+  const copilotContext = useMemo(() => {
+    const tomorrow = demoActive ? demoDay(1, demoNow) : localDateKey(new Date(clockNow + 86_400_000).toISOString());
+    const days = new Set([effectiveTodayKey, tomorrow]);
+    const events = workspaceEvents
+      .filter(event => days.has(demoActive ? eventDay(event) : localDateKey(event.start)))
+      .map(event => ({
+        id: event.id,
+        title: event.title,
+        start: event.start,
+        end: event.end,
+        allDay: event.allDay,
+        placeName: event.place?.name || event.location,
+        placeId: event.place?.id,
+        source: event.local ? "wayline" : event.google ? "google-calendar" : "calendar-file",
+        local: !!event.local,
+        stale: !!event.google?.stale,
+      }));
+    const physicalPlaces = [...todayPlaces, ...userPlaces.filter(place => place.city === city.name)]
+      .filter(place => !place.tags?.includes("日程助手"));
+    const bookings = [...(selectedPlan?.legs ?? []), ...(selectedPlan?.nights ?? [])]
+      .flatMap(entry => entry.orders)
+      .map(order => ({
+        id: order.id,
+        kind: order.kind,
+        title: [order.number, order.from?.name, order.to?.name].filter(Boolean).join(" · ") ||
+          (order.kind === "stay" ? "住宿" : order.kind === "flight" ? "航班" : "铁路"),
+        from: order.from?.name,
+        to: order.to?.name,
+        start: order.start,
+        end: order.end,
+        state: order.state ?? "confirmed",
+        source: order.source,
+      }));
+    return buildCopilotContext({
+      owner: activeUser.id,
+      activeCity: city.name,
+      events,
+      places: physicalPlaces,
+      actions: todayActions.map(action => ({
+        id: action.id,
+        type: action.type,
+        severity: action.severity,
+        status: action.status ?? "open",
+        title: action.title,
+        problem: action.problem,
+        eventIds: action.eventIds,
+        nextStep: { kind: action.nextStep.kind, label: action.nextStep.label },
+      })),
+      commutes: todaySegments.map(({ pair, mode, plan, result }) => ({
+        fromEventId: pair.from.event.id,
+        toEventId: pair.to.event.id,
+        mode,
+        status: plan.status,
+        availableMinutes: plan.availableMinutes,
+        routeMinutes: result?.minutes ?? null,
+        bufferMinutes: plan.bufferMinutes,
+        remainingMinutes: plan.remainingMinutes,
+        latestDeparture: plan.latestDeparture,
+        advice: plan.advice,
+        reference: plan.status === "reference",
+        pending: plan.status === "pending",
+        source: result?.source,
+      })),
+      bookings,
+      trips: businessTrips.map(trip => ({
+        id: trip.id,
+        title: trip.cities.join(" → ") || "商务出行",
+        cities: trip.cities,
+        startDate: trip.days[0]?.date ?? "",
+        endDate: trip.days.at(-1)?.date ?? "",
+        eventCount: trip.days.reduce((count, day) => count + day.events.length, 0),
+      })),
+    });
+  }, [activeUser.id, businessTrips, city.name, clockNow, demoActive, demoNow, effectiveTodayKey,
+    selectedPlan, todayActions, todayPlaces, todaySegments, userPlaces, workspaceEvents]);
+  useEffect(() => {
+    if (demoActive) return;
+    let live = true;
+    void fetchAiStatus(activeUser.id).then(status => {
+      if (live) setCopilotStatus(status);
+    });
+    return () => { live = false; };
+  }, [activeUser.id, demoActive]);
   const bookingPoints = useMemo(() => [...(selectedPlan?.legs ?? []), ...(selectedPlan?.nights ?? [])]
         .flatMap(entry => entry.orders.filter(order => (!order.state || order.state === "confirmed") &&
       (order.source === "Gmail" ? freshness.mailboxCurrent : order.provenance?.some(item => item.source !== "google-calendar" && item.source !== "gmail") ||
@@ -1114,6 +1204,56 @@ export default function App() {
     setSelectedPlace((current) =>
       current && samePlace(current, place) ? place : reveal ? place : current,
     );
+  };
+
+  /**
+   * Applies a confirmed copilot proposal to local state only.
+   * The server has already checked owner, one-time use and version; this final
+   * guard prevents a stale preview from touching a changed workspace.
+   */
+  const applyCopilotProposal = async (proposal: AiProposal): Promise<{ ok: true } | { ok: false; error: string }> => {
+    if (demoActive) return { ok: false, error: "演示工作区不会写入真实数据" };
+    if (appliedProposals.current.has(proposal.proposalId)) return { ok: true };
+    if (proposal.baseVersion !== copilotContext.revision)
+      return { ok: false, error: "来源已更新，请重新生成预览" };
+    const change = proposal.payload;
+    if (change.operation === "create") {
+      const place = userPlaces.find(item => item.id === change.placeId) ?? todayPlaces.find(item => item.id === change.placeId);
+      if (!place || !change.date) return { ok: false, error: "地点或日期已不存在，请重新预览" };
+      const time = change.startTime ?? "";
+      const schedulePlace: Place = {
+        ...place,
+        id: `schedule-${Date.now()}-${place.id}`,
+        type: "user",
+        source: "manual",
+        category: "custom",
+        guideCategories: ["custom"],
+        tags: ["日程助手", "待办事项", "智能录入", ...(time ? (change.endTime ? [] : ["结束时间待确认"]) : ["时间待确认"])],
+        reason: `智能录入 · ${change.date}${time ? ` ${time}` : ""} · ${change.title || `前往${place.name}`}`,
+        description: `关联地点：${place.name}`,
+        status: "want_to_go",
+        isSaved: true,
+        schedule: { startTime: time, endTime: change.endTime ?? "", timezone: "Asia/Shanghai" },
+        distanceText: `${change.date}${time ? ` ${time}` : ""}`,
+      };
+      createSchedulePlaces([schedulePlace]);
+    } else {
+      const targetEvent = workspaceEvents.find(event => event.id === change.targetId);
+      const sourceId = targetEvent?.local?.sourcePlaceId;
+      const existing = sourceId ? userPlaces.find(item => item.id === sourceId) : undefined;
+      if (!existing) return { ok: false, error: "只能修改 Wayline 本地安排，请重新选择" };
+      const date = change.date || existing.distanceText.split(" ")[0];
+      const time = change.startTime ?? existing.schedule?.startTime ?? "";
+      updatePlace({
+        ...existing,
+        name: change.title || existing.name,
+        schedule: { startTime: time, endTime: change.endTime ?? existing.schedule?.endTime ?? "", timezone: "Asia/Shanghai" },
+        distanceText: `${date}${time ? ` ${time}` : ""}`,
+        reason: `智能录入 · ${date}${time ? ` ${time}` : ""} · ${change.reason || change.title || "日程调整"}`,
+      });
+    }
+    appliedProposals.current.add(proposal.proposalId);
+    return { ok: true };
   };
 
   
@@ -1707,6 +1847,10 @@ export default function App() {
           nextStopId={todayStops.find(stop => Date.parse(stop.event.start)>=clockNow)?.event.id}
           syncWarning={!freshness.calendarCurrent && todayStops.some(stop => stop.event.google)}
           onNavigate={rememberLegFocus}
+          onExplainAction={copilotStatus.enabled && !demoActive ? (action) => {
+            setCopilotSeed({ id: Date.now(), text: `请解释这条提醒并给出下一步：${action.title}。${action.problem}` });
+            setCopilotOpen(true);
+          } : undefined}
           onFocus={id => {
             if (!calendarLayer) changeCalendarLayer(true);
             rememberLegFocus(focusedTodayLeg === id ? null : id);
@@ -2006,6 +2150,16 @@ export default function App() {
           />
         </Suspense>
       )}
+      <CopilotPanel
+        open={copilotOpen}
+        onOpenChange={setCopilotOpen}
+        status={copilotStatus}
+        context={copilotContext}
+        owner={activeUser.id}
+        demo={demoActive}
+        seed={copilotSeed}
+        onApply={applyCopilotProposal}
+      />
     </main>
   );
 }

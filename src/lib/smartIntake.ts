@@ -27,7 +27,11 @@ export interface IntakeParseOptions {
 export interface IntakeParseResult {
   items: IntakeItem[];
   warnings: string[];
-  provider: "rule" | "fixture";
+  provider: "rule" | "fixture" | "model";
+  /** Present only when a live model answered. */
+  model?: string;
+  usage?: { inputTokens: number; outputTokens: number; totalTokens?: number };
+  costUsd?: number;
 }
 
 export interface IntakeScheduleOptions {

@@ -23,6 +23,7 @@ npm start
 | Google 登录和日历 | 配置 `GOOGLE_CLIENT_ID`、`GOOGLE_CLIENT_SECRET`，启用 Calendar API，并登记下方两个回调地址。 |
 | Gmail 订单 | 启用 Gmail API，设置 `GMAIL_ORDERS_ENABLED=1`，在 Wayline 的日历来源内单独连接 Gmail。 |
 | 车次和航班参考 | 按需运行 `npm run providers:install` 安装可选运行依赖，返回结果取决于供应服务和线路覆盖。 |
+| DeepSeek 智能录入与 Copilot | 服务端配置 `DEEPSEEK_API_KEY`、`AI_DAILY_BUDGET_USD>0`、`AI_BUDGET_ACKNOWLEDGED=1`。未配置时自动回落规则解析，详见 [M4-AI.md](./M4-AI.md)。 |
 
 在 Google Cloud 登记两个本机回调地址。
 
