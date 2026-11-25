@@ -114,7 +114,7 @@ export function legRouteState(pair: TodayLegPair, route: RouteEvidence | undefin
 
 export function sourceLabel(route: RouteEvidence | undefined, mode: TravelMode) {
   if (!route || route.source === "estimate") return "估算";
-  if (route.source === "synthetic") return "合成演示路线";
+  if (route.source === "synthetic") return "演示路线";
   if (mode === "driving") return "高德 · 不含等车";
   if (mode === "selfDrive") return "高德 · 不含停车";
   return "高德";

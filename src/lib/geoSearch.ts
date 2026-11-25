@@ -3,7 +3,7 @@ import type { City, CityName, ExtractedPlace, Place } from "../types/place";
 import { cityCatalog } from "../data/cities";
 import { wgsToGcj, gcjToWgs } from "./trackCoordinates";
 import { officialAddressByName } from "../data/systemPlaces";
-import { readDemoMode } from "./demoWorkspace";
+import { demoCalendarEntries, readDemoMode } from "./demoWorkspace";
 
 const apiBase = "";
 const tiandituToken = import.meta.env.VITE_TIANDITU_TOKEN as string | undefined;
@@ -80,6 +80,7 @@ export function cachedPlaceSuggestions(keyword:string, city:City, reference?:Sea
   return hit && Date.now()-hit.time<300000 ? hit.places : undefined;
 }
 export async function suggestPlaceCandidates(keyword:string,city:City,options:{signal?:AbortSignal;reference?:SearchReference|null}={}):Promise<Place[]> {
+  if (readDemoMode()) return searchPlaceCandidates(keyword, city, options);
   const cached=cachedPlaceSuggestions(keyword,city,options.reference);
   if(cached)return cached;
   const places=await searchPlaceCandidates(keyword,city,{...options,quick:true,aiFallback:false});
@@ -91,7 +92,11 @@ export async function suggestPlaceCandidates(keyword:string,city:City,options:{s
 }
 
 export async function searchPlaceCandidates(keyword: string, city: City, options: { aiFallback?: boolean; reference?: SearchReference | null; localPlaces?: Place[]; quick?: boolean; signal?: AbortSignal } = {}): Promise<Place[]> {
-  if (readDemoMode()) return [];
+  if (readDemoMode()) {
+    const query = keyword.trim();
+    const rows = demoCalendarEntries().flatMap(event => event.placeResolution?.candidates ?? (event.place ? [event.place] : []));
+    return query ? [...new Map(rows.filter(place => place.city === city.name && place.name.includes(query)).map(place => [place.id, place])).values()] : [];
+  }
   const aiFallback = options.aiFallback ?? true;
   const reference = options.reference ?? { lat: city.lat, lng: city.lng, label: "地图中心" };
   const localPlaces = options.localPlaces ?? [];

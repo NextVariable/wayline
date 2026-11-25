@@ -6,7 +6,7 @@ import type {Place} from '../types/place';
 export interface SourceDeletion { id:string; updated?:string; at?:number }
 
 const fieldValue=(entry:CalendarEntry,field:CalendarField)=>entry[field];
-const applyOverrides=(entry:CalendarEntry,old:CalendarEntry|undefined):CalendarEntry=>{
+export const applyCalendarOverrides=(entry:CalendarEntry,old:CalendarEntry|undefined):CalendarEntry=>{
   const overrides=entry.overrides??old?.overrides;
   if(!overrides||!Object.keys(overrides).length)return entry;
   const next:CalendarEntry={...entry,overrides};
@@ -85,7 +85,7 @@ export function mergeGoogleSnapshot(previous:CalendarEntry[],incoming:unknown,co
       ? {...old!.overrides,location:{value:old!.location,at:Date.now(),sourceValue:old!.location}}
       : old?.overrides?.location;
     const same=old?.location===source.location||!!override;
-    const merged=applyOverrides({...source,
+    const merged=applyCalendarOverrides({...source,
       place:same?old?.place:undefined,
       placeResolution:same?old?.placeResolution:undefined,
       routeIndex:old?.routeIndex,

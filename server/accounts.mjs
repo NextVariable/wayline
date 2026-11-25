@@ -185,9 +185,15 @@ export function createAccountService({env = process.env, fetcher = fetch, now = 
   }
 
   async function gmailRequest(req, res, action) {
+    if (action === 'status' && req.method === 'GET') {
+      if (!configured) return send(res, 200, {enabled:false, connected:false, reason:'google_unavailable'});
+      if (!gmail.enabled) return send(res, 200, {enabled:false, connected:false, reason:'disabled'});
+      const account = await accountFor(req);
+      if (!account) return send(res, 401, {enabled:true, connected:false, reason:'sign_in', error:'请先登录 Wayline'});
+      return send(res, 200, await gmail.status(account.id));
+    }
     const account = await accountFor(req);
     if (!account) fail(401, '请先登录 Wayline');
-    if (action === 'status' && req.method === 'GET') return send(res, 200, await gmail.status(account.id));
     if (req.method !== 'POST') fail(405, '不支持的请求');
     guardMutation(req);
     if (!gmail.enabled && action !== 'disconnect') fail(404, 'Gmail 订单尚未启用');

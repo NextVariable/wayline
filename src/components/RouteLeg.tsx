@@ -1,3 +1,4 @@
+import { readDemoMode } from "../lib/demoScope";
 import { useEffect, useState, type ReactNode } from "react";
 import { Navigation } from "lucide-react";
 import type { TravelRisk } from "../lib/tripDomain";
@@ -69,13 +70,13 @@ export function RouteLeg({
     onToggle?.(next);
   };
   const driving = routeProviderMode(mode) === "driving";
-  const synthetic = Boolean(source?.includes("合成"));
+  const synthetic = Boolean(source?.includes("演示"));
   return (
     <div className={`route-leg${status === "insufficient" || status === "overlap" ? " is-late" : ""}`} data-status={sameSpot ? "same-spot" : status ?? (loading ? "loading" : failed ? "pending" : "idle")} aria-busy={loading}>
       <div className="leg-head">
         <button type="button" className="leg-summary" aria-expanded={open} onClick={toggle}>
           <span className="leg-primary">{primary}</span>
-          {synthetic && <span className="leg-synthetic">合成</span>}
+          {synthetic && <span className="leg-synthetic">示例</span>}
           {label.text && <span className="leg-state" data-tone={label.tone}>{label.text}</span>}
         </button>
         {failed && <button type="button" className="leg-retry" onClick={onRetry}>重试路线</button>}
@@ -95,7 +96,7 @@ export function RouteLeg({
           {plan && (
             <div className="leg-buffer">
               <strong>缓冲组成</strong>
-              <ul>{plan.bufferParts.map(part => <li key={part.label}>{part.label} {part.minutes} 分钟{part.pending ? " · PRD 建议值，待确认" : ""}</li>)}</ul>
+              <ul>{plan.bufferParts.map(part => <li key={part.label}>{part.label} {part.minutes} 分钟{part.pending ? " · 建议预留，待确认" : ""}</li>)}</ul>
               <small>路线服务已包含的步行、候车不会重复扣除。</small>
             </div>
           )}
@@ -127,7 +128,7 @@ export function RouteLeg({
           </p>}
           <div className="leg-actions">
             <button type="button" className="text-action" onClick={onRetry}>刷新路线</button>
-            {navigation && <a className="leg-nav" href={navigation.href} target={navigation.target} rel="noopener noreferrer"
+            {navigation && !readDemoMode() && <a className="leg-nav" href={navigation.href} target={navigation.target} rel="noopener noreferrer"
               onClick={onNavigate}><Navigation size={13} aria-hidden="true" />{navigation.label}</a>}
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { demoRoute } from "./demoRoute";
 import type { CalendarEntry, PlaceResolution } from "./calendarEvents";
 import { calendarKey } from "./calendarEvents";
 import type { BusinessTripSettings } from "./businessTrips";
@@ -14,18 +15,8 @@ import type { BookingChange, RailOrder } from "./businessOrders";
 export const DEMO_OWNER = "demo:wayline";
 export const DEMO_USER: AppUser = { id: DEMO_OWNER, label: "演示工作区", method: "local" };
 export const DEMO_HOME = "上海";
-const DEMO_FLAG = "wayline.demo.active";
-
-export function readDemoMode() {
-  try { return sessionStorage.getItem(DEMO_FLAG) === "1"; } catch { return false; }
-}
-
-function setDemoFlag(on: boolean) {
-  try {
-    if (on) sessionStorage.setItem(DEMO_FLAG, "1");
-    else sessionStorage.removeItem(DEMO_FLAG);
-  } catch { /* the workspace still works for this page view */ }
-}
+import { setDemoFlag } from "./demoScope";
+export { readDemoMode } from "./demoScope";
 
 const pad = (value: number) => String(value).padStart(2, "0");
 const DEMO_UTC_OFFSET_MS = 8 * 60 * 60_000;
@@ -109,33 +100,11 @@ export function createDemoMailbox(now = Date.now()): Mailbox {
   return { connected: true, lastSync: now - 60_000, orders, bookings: [], changes, singleSample: false };
 }
 
-function distanceKm(a: Place, b: Place) {
-  const rad = (value: number) => (value * Math.PI) / 180;
-  const dLat = rad(b.lat - a.lat);
-  const dLng = rad(b.lng - a.lng);
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
-  return 6371 * 2 * Math.asin(Math.sqrt(h));
-}
-
-const speed: Record<TravelMode, number> = { walking: 4.5, transit: 18, driving: 24, selfDrive: 24 };
-
-/** Estimates only: they are labelled 估算 and never prove a leg is late. */
+/** Demo routes are estimates and cannot confirm that someone will be late. */
 export function demoLegResults(pairs: TodayLegPair[], now = Date.now()): Record<string, Partial<Record<TravelMode, LegResult>>> {
-  const result: Record<string, Partial<Record<TravelMode, LegResult>>> = {};
-  for (const pair of pairs) {
-    const from = pair.from.place;
-    const to = pair.to.place;
-    const km = pair.sameSpot ? 0 : distanceKm(from, to);
-    for (const mode of ALL_MODES) {
-      const minutes = Math.max(km === 0 ? 0 : 4, Math.round((km / speed[mode]) * 60) + (km === 0 ? 0 : 4));
-      result[pair.id] ??= {};
-      result[pair.id][mode] = {
-        mode, minutes, source: "estimate", observedAt: now,
-        points: [{ latitude: from.lat, longitude: from.lng }, { latitude: to.lat, longitude: to.lng }],
-      };
-    }
-  }
-  return result;
+  return Object.fromEntries(pairs.map(pair => [pair.id, Object.fromEntries(
+    [...ALL_MODES, "selfDrive" as const].map(mode => [mode, demoRoute(pair.from.place, pair.to.place, mode, now, pair.sameSpot)]),
+  )]));
 }
 
 function removeDemoKeys() {

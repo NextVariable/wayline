@@ -1,3 +1,5 @@
+import { readDemoMode } from "./demoScope";
+import { demoRoute } from "./demoRoute";
 import { useEffect, useRef, useState } from "react";
 import { apiEndpoint } from "./apiEndpoint";
 import type { Place, RouteEvidence } from "./tripDomain";
@@ -42,6 +44,7 @@ export function fetchLeg(pair: TodayLegPair, mode: TravelMode, options?:LookupOp
 
 export async function fetchRoute(places:[Place,Place], mode:TravelMode, departure?:string,
   {fetchImpl=fetch,signal}:LookupOptions = {}):Promise<LegResult|null> {
+  if (readDemoMode()) return demoRoute(places[0], places[1], mode);
   const synthetic = syntheticMinutes(places, mode, departure);
   if (synthetic !== undefined && Number.isFinite(synthetic) && synthetic >= 0) {
     return {

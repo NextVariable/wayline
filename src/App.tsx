@@ -1,3 +1,4 @@
+import { planCalendarImport } from "./lib/calendarImportPlan";
 import { BusinessTripCommute, type CommuteChoice } from "./components/BusinessTripCommute";
 import { BusinessTripConnections } from "./components/BusinessTripConnections";
 import { tripTransfers } from "./lib/tripTransfers";
@@ -57,6 +58,7 @@ import {
   Navigation,
   Loader2,
   Layers2,
+  MessageCircle,
   Minus,
   Plus,
   PanelLeftClose,
@@ -140,8 +142,9 @@ export default function App() {
   const [mapMode, setMapMode] = useState<MapMode>("explore");
   const [activeOverlay, commitOverlay] = useState<OverlayPanel | null>(null);
   const [copilotOpen, setCopilotOpen] = useState(false);
+  const mobileAssistant = useRef<HTMLButtonElement>(null);
   const [copilotStatus, setCopilotStatus] = useState<AiStatus>(OFFLINE_AI_STATUS);
-  const [copilotSeed, setCopilotSeed] = useState<{ id: number; text: string } | null>(null);
+  const [copilotSeed, setCopilotSeed] = useState<{ id: number; text: string; example?: string } | null>(null);
   const appliedProposals = useRef<Set<string>>(new Set());
   const [loadingWorkflow, setLoadingWorkflow] = useState<keyof typeof workspaceWorkflows | null>(null);
   const workflowRequest = useRef(0);
@@ -391,7 +394,7 @@ export default function App() {
   const [customCities, setCustomCities, citiesSaved] =
     useUserCities(activeUser);
   
-  const currentLocation = useCurrentLocation();
+  const currentLocation = useCurrentLocation(!demoActive);
   const userLocation = useMemo(
     () =>
       currentLocation.position
@@ -1510,7 +1513,7 @@ export default function App() {
 
   const demoBannerNode = demoActive ? (
     <div className="demo-banner" role="status">
-      <span><strong>演示工作区</strong> 全部为合成数据，不连接 Google、Gmail 或地图供应服务。</span>
+      <span><strong>演示工作区</strong> 使用示例安排和路线。</span>
       <div className="demo-banner-actions">
         <button type="button" onClick={() => enterDemoWorkspace(true)}>重置演示</button>
         <button type="button" onClick={leaveDemoWorkspace}>退出演示</button>
@@ -1533,7 +1536,7 @@ export default function App() {
     <main
       ref={workspaceRef}
       
-      className={`workspace theme-${mode} ${!tripActive && !footprintActive && !activeOverlay ? "map-library-mode" : ""} ${workspaceCollapsed ? "workspace-is-collapsed" : ""} ${sidebarOpen ? "sheet-expanded" : "sheet-collapsed"} ${selectedPlace && !activeOverlay ? "has-detail" : ""} ${selectedPlace && !activeOverlay && !detailOrigin ? "has-place-detail" : ""} ${activeOverlay ? `overlay-${activeOverlay}` : ""}`}
+      className={`workspace theme-${mode} ${copilotOpen ? "assistant-open" : ""} ${!tripActive && !footprintActive && !activeOverlay ? "map-library-mode" : ""} ${workspaceCollapsed ? "workspace-is-collapsed" : ""} ${sidebarOpen ? "sheet-expanded" : "sheet-collapsed"} ${selectedPlace && !activeOverlay ? "has-detail" : ""} ${selectedPlace && !activeOverlay && !detailOrigin ? "has-place-detail" : ""} ${activeOverlay ? `overlay-${activeOverlay}` : ""}`}
     >
       <button
         className="workspace-collapse-toggle"
@@ -1613,6 +1616,10 @@ export default function App() {
             退出演示
           </button>
         )}
+        <button ref={mobileAssistant} type="button" className="mobile-assistant-entry icon-button" aria-label="问 Wayline"
+          aria-expanded={copilotOpen} onClick={() => { setCopilotSeed(null); setCopilotOpen(true); }}>
+          <MessageCircle size={19} aria-hidden="true" />
+        </button>
       </header>
       <nav className="workspace-nav" aria-label="工作区">
         <button
@@ -1666,6 +1673,8 @@ export default function App() {
             }
           >
             <MapView
+              key={demoActive ? "demo-map" : "live-map"}
+              demo={demoActive}
               city={city}
               places={footprintActive ? [] : showingBusinessTrip ? tripVisiblePlaces : activeOverlay === "history" ? historyMapPlaces : mapPlaces}
               selectedPlace={selectedPlace}
@@ -1876,8 +1885,8 @@ export default function App() {
           nextStopId={todayStops.find(stop => Date.parse(stop.event.start)>=clockNow)?.event.id}
           syncWarning={!freshness.calendarCurrent && todayStops.some(stop => stop.event.google)}
           onNavigate={rememberLegFocus}
-          onExplainAction={copilotStatus.enabled && !demoActive ? (action) => {
-            setCopilotSeed({ id: Date.now(), text: `请解释这条提醒并给出下一步：${action.title}。${action.problem}` });
+          onExplainAction={copilotStatus.enabled || demoActive ? (action) => {
+            setCopilotSeed({ id: Date.now(), text: `请解释这条提醒：${action.title}`, example: demoActive ? `${action.problem} ${action.nextStep.label}` : undefined });
             setCopilotOpen(true);
           } : undefined}
           onFocus={id => {
@@ -2112,8 +2121,15 @@ export default function App() {
           contextPlaces={routePlaces}
           calendarEvents={calendarEvents}
           googleCalendar={googleCalendar}
+          onGoogleSignIn={account.signIn}
           gmailAccount={activeUser.method === "google" && account.status === "signed-in" ? account.account.email : undefined}
           onCalendarChange={incoming=>commitCalendarEvents(mergeCalendarEntries(calendarCurrent.current.events,incoming))}
+          onCalendarImport={incoming => {
+            const current = calendarCurrent.current.events;
+            const result = planCalendarImport(current, incoming);
+            if (result.changes.length) commitCalendarEvents(mergeCalendarEntries(current, result.changes));
+            return result;
+          }}
           onCalendarRemove={id=>{
             const target=calendarCurrent.current.events.find(event=>event.id===id);
             // An imported event is suppressed by source key; a local schedule is removed outright.
@@ -2200,8 +2216,13 @@ export default function App() {
         </Suspense>
       )}
       <CopilotPanel
+        key={activeUser.id}
         open={copilotOpen}
-        onOpenChange={setCopilotOpen}
+        onOpenChange={open => {
+          if (open) setCopilotSeed(null);
+          setCopilotOpen(open);
+          if (!open && compactLayout) requestAnimationFrame(() => mobileAssistant.current?.focus());
+        }}
         status={copilotStatus}
         context={copilotContext}
         owner={activeUser.id}

@@ -104,7 +104,7 @@ export function AuthPanel({
  </> : accountStatus === "loading" ? <p className="field-help" role="status">正在确认登录…</p> : <>
           <button type="button" className="primary-action" disabled={accountStatus === "unavailable"} onClick={onSignIn}>{accountStatus === "unavailable" ? "登录暂不可用" : "用 Google 登录"}</button>
           {onDemo && <button type="button" className="secondary-action" onClick={() => { onDemo(); onClose(); }}>体验演示工作区</button>}
-          <p className="field-help">登录后可跨设备恢复资料，并在日历来源中连接 Google 日历。演示工作区无需登录，全部为合成数据。</p>
+          <p className="field-help">登录后可跨设备恢复资料，并在日历来源中连接 Google 日历。无需登录即可试用示例安排。</p>
         </>}
       </div>
       {user.method === "google" && syncState === "conflict" && onUseCloudVersion &&
@@ -146,7 +146,7 @@ export function AuthPanel({
       </div>}
       <details className="workspace-backup">
         <summary>备份与迁移</summary>
-        <p className="field-help">可将地点、日程和足迹带到其他浏览器。恢复时创建独立空间。{demoSpace ? " 演示工作区为合成数据，不可导出。" : ""}</p>
+        <p className="field-help">可将地点、日程和足迹带到其他浏览器。恢复时创建独立空间。{demoSpace ? " 示例安排无法导出。" : ""}</p>
         <div className="backup-actions">
           <button className="secondary-action" disabled={busy || demoSpace} onClick={async () => {
             setBusy(true);
