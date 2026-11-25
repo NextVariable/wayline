@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import type { Place } from "../types/place";
 import {
+  addDays,
   buildIntakeSchedules,
   draftIntakeItems,
   parseIntakeText,
@@ -191,6 +192,37 @@ describe("smart intake parsing", () => {
       timezone: "Asia/Shanghai",
     });
     expect(schedule.distanceText).toBe("2026-11-25 15:00");
+    expect(schedule.tags).not.toContain("结束时间待确认");
+  });
+
+  it("keeps a cross-midnight range as one item with a next-day end date", () => {
+    const result = parseIntakeText("明天 22:00-01:00 去海上世界加班", { now, places });
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]).toMatchObject({
+      date: "2026-11-25",
+      time: "22:00",
+      endTime: "01:00",
+      endDate: "2026-11-26",
+      pending: [],
+    });
+  });
+
+  it("moves the cross-midnight end date across month and year boundaries", () => {
+    expect(addDays("2026-11-30", 1)).toBe("2026-12-01");
+    expect(addDays("2026-12-31", 1)).toBe("2027-01-01");
+    expect(addDays("", 1)).toBe("");
+  });
+
+  it("saves a cross-midnight arrangement as one schedule with endDate", () => {
+    const result = parseIntakeText("明天 22:00-01:00 去海上世界加班", { now, places });
+    const [schedule] = buildIntakeSchedules(result.items, places, { sessionId: "s1" });
+    expect(schedule.schedule).toEqual({
+      startTime: "22:00",
+      endTime: "01:00",
+      endDate: "2026-11-26",
+      timezone: "Asia/Shanghai",
+    });
+    expect(schedule.reason).toContain("次日 01:00");
     expect(schedule.tags).not.toContain("结束时间待确认");
   });
 

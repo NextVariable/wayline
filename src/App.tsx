@@ -30,6 +30,7 @@ import { DEMO_USER, DEMO_HOME, createDemoMailbox, demoDay, demoLegResults, enter
 import { eventDay } from "./lib/tripDay";
 import { buildTripActions, type TripAction } from "./lib/actionItems";
 import { mergeWorkspaceEvents } from "./lib/scheduleEvents";
+import { addDays } from "./lib/smartIntake";
 const calendarLayerKey = (owner: string) => `whatto.mapCalendarLayer.${owner}`;
 const readCalendarLayer = (owner: string) => { try { return localStorage.getItem(calendarLayerKey(owner)) !== "off"; } catch { return true; } };
 const dayLabel = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric" });
@@ -1233,7 +1234,12 @@ export default function App() {
         description: `关联地点：${place.name}`,
         status: "want_to_go",
         isSaved: true,
-        schedule: { startTime: time, endTime: change.endTime ?? "", timezone: "Asia/Shanghai" },
+        schedule: {
+          startTime: time,
+          endTime: change.endTime ?? "",
+          ...(change.endDate ? { endDate: change.endDate } : {}),
+          timezone: "Asia/Shanghai",
+        },
         distanceText: `${change.date}${time ? ` ${time}` : ""}`,
       };
       createSchedulePlaces([schedulePlace]);
@@ -1244,10 +1250,18 @@ export default function App() {
       if (!existing) return { ok: false, error: "只能修改 Wayline 本地安排，请重新选择" };
       const date = change.date || existing.distanceText.split(" ")[0];
       const time = change.startTime ?? existing.schedule?.startTime ?? "";
+      const endTime = change.endTime ?? existing.schedule?.endTime ?? "";
+      const crossesMidnight = !!time && !!endTime && endTime <= time;
+      const endDate = crossesMidnight ? (change.endDate || addDays(date, 1)) : "";
       updatePlace({
         ...existing,
         name: change.title || existing.name,
-        schedule: { startTime: time, endTime: change.endTime ?? existing.schedule?.endTime ?? "", timezone: "Asia/Shanghai" },
+        schedule: {
+          startTime: time,
+          endTime,
+          ...(endDate ? { endDate } : {}),
+          timezone: "Asia/Shanghai",
+        },
         distanceText: `${date}${time ? ` ${time}` : ""}`,
         reason: `智能录入 · ${date}${time ? ` ${time}` : ""} · ${change.reason || change.title || "日程调整"}`,
       });

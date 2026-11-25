@@ -86,6 +86,28 @@ it("turns a local schedule into a calendar-shaped event with Wayline identity", 
   expect(event.place?.id).toBe("schedule-intake-s1-0");
 });
 
+it("keeps a cross-midnight schedule on one event with a next-day end", () => {
+  const nightShift = schedule(
+    "schedule-night-1",
+    "夜间值班",
+    4,
+    [],
+    { startTime: "22:00", endTime: "01:00", endDate: "2026-11-26", timezone: "Asia/Shanghai" },
+    "2026-11-25 22:00",
+  );
+  const event = localScheduleEvent(nightShift)!;
+  expect(event).toMatchObject({
+    start: at("25", "22:00"),
+    end: "2026-11-26T01:00:00+08:00",
+    allDay: false,
+    local: { endPending: false },
+  });
+  // Downstream Smart Routes reads the same start/end instead of a zero-length event.
+  const [pair] = legPairs([localScheduleEvent(intakeSchedule)!, event], "2026-11-25");
+  expect(pair.to.event.end).toBe("2026-11-26T01:00:00+08:00");
+  expect(pair.gapMinutes).toBeGreaterThan(0);
+});
+
 it("keeps an unknown end time unknown instead of inventing one", () => {
   const event = localScheduleEvent(manualSchedule)!;
   expect(event.end).toBe(event.start);

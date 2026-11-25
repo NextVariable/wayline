@@ -30,6 +30,8 @@ export interface ExternalLinks {
 export interface ScheduleTiming {
   startTime?: string;
   endTime?: string;
+  /** End date when the arrangement crosses midnight; normally the next day. */
+  endDate?: string;
   /** IANA zone; local schedules currently use Asia/Shanghai. */
   timezone?: string;
 }

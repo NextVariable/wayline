@@ -142,8 +142,8 @@ for (let i = 0; i < 15; i++) {
   ]);
 }
 
-// G. 10 cross-midnight cases. PRD requires the full end date; the schema today
-// cannot represent it, so these are expected to expose that gap.
+// G. 10 cross-midnight cases. One arrangement per range with an explicit
+// next-day endDate; splitting into two items fails the count check.
 const crossMidnight = [
   ["今晚十一点到明天凌晨一点在上海中心大厦加班", "上海", "p-sh-tower", "加班", "23:00", "01:00"],
   ["今晚十点到明天早上六点在客户办公室值班", "深圳", "p-office", "值班", "22:00", "06:00"],
@@ -155,16 +155,22 @@ for (let i = 0; i < 10; i++) {
   const [text, city, placeId, activity, start, end] = crossMidnight[i % crossMidnight.length];
   const startOffset = text.startsWith("周五") ? nextFridayOffset : text.startsWith("明天") ? 1 : 0;
   push("cross-midnight", text, city,
-    [{ date: day(startOffset), start, end, place: placeId, keywords: [activity] }]);
+    [{ date: day(startOffset), start, end, endDate: day(startOffset + 1), place: placeId, keywords: [activity] }]);
 }
 
 const owners = ["eval-m5-a", "eval-m5-b", "eval-m5-c", "eval-m5-d"];
 const ownerFor = (index) => owners[Math.floor(index / 25) % owners.length];
+// Targeted rerun: one fresh eval account per case, so the per-account daily
+// call guard is never the reason a sample fails. Evidence goes to its own file.
+const onlyIndex = process.argv.indexOf("--only");
+const only = onlyIndex >= 0 ? process.argv[onlyIndex + 1] : "";
+const selected = only ? cases.filter((test) => test.category === only) : cases;
+const usedOwners = new Set();
 const report = {
   generatedAt: new Date().toISOString(),
   model: config.model,
   thinking: config.thinking,
-  totalCases: cases.length,
+  totalCases: selected.length,
   cases: [],
   accuracy: {},
   categories: {},
@@ -175,12 +181,13 @@ const tally = (bucket, key, ok) => {
   bucket[key].total += 1;
   if (ok) bucket[key].ok += 1;
 };
-const overall = { date: { ok: 0, total: 0 }, start: { ok: 0, total: 0 }, end: { ok: 0, total: 0 }, place: { ok: 0, total: 0 }, title: { ok: 0, total: 0 }, count: { ok: 0, total: 0 } };
+const overall = { date: { ok: 0, total: 0 }, start: { ok: 0, total: 0 }, end: { ok: 0, total: 0 }, endDate: { ok: 0, total: 0 }, place: { ok: 0, total: 0 }, title: { ok: 0, total: 0 }, count: { ok: 0, total: 0 } };
 const byCategory = {};
 
-for (let index = 0; index < cases.length; index++) {
-  const test = cases[index];
-  const owner = ownerFor(index);
+for (let index = 0; index < selected.length; index++) {
+  const test = selected[index];
+  const owner = only ? `eval-m5r-${test.id}` : ownerFor(cases.indexOf(test));
+  usedOwners.add(owner);
   const result = await runIntake({
     provider, budget, config,
     input: { owner, text: test.text, activeCity: test.activeCity },
@@ -188,7 +195,7 @@ for (let index = 0; index < cases.length; index++) {
   });
   const record = { ...test, ok: result.ok, code: result.ok ? "ok" : result.code, items: result.ok ? result.items : [], expected: test.expect };
   report.cases.push(record);
-  const category = (byCategory[test.category] ??= { date: { ok: 0, total: 0 }, start: { ok: 0, total: 0 }, end: { ok: 0, total: 0 }, place: { ok: 0, total: 0 }, title: { ok: 0, total: 0 }, count: { ok: 0, total: 0 } });
+  const category = (byCategory[test.category] ??= { date: { ok: 0, total: 0 }, start: { ok: 0, total: 0 }, end: { ok: 0, total: 0 }, endDate: { ok: 0, total: 0 }, place: { ok: 0, total: 0 }, title: { ok: 0, total: 0 }, count: { ok: 0, total: 0 } });
   const countOk = result.ok && result.items.length === test.expect.length;
   tally(overall, "count", countOk); tally(category, "count", countOk);
   if (!result.ok) continue;
@@ -210,6 +217,12 @@ for (let index = 0; index < cases.length; index++) {
     for (const key of ["date", "start", "end", "place", "title"]) {
       tally(overall, key, checks[key]); tally(category, key, checks[key]);
     }
+    if (expected.endDate) {
+      // Only cross-midnight cases carry an explicit end date.
+      const ok = item.endDate === expected.endDate;
+      item._checks.endDate = ok;
+      tally(overall, "endDate", ok); tally(category, "endDate", ok);
+    }
     if (!checks.place) item._resolvedPlace = resolved?.name ?? null;
   }
 }
@@ -219,8 +232,8 @@ const rate = (bucket) => Object.fromEntries(Object.entries(bucket).map(([key, va
 ]));
 report.accuracy = rate(overall);
 report.categories = Object.fromEntries(Object.entries(byCategory).map(([key, value]) => [key, rate(value)]));
-for (const owner of owners) report.usage[owner] = budget.snapshot(owner);
-report.dailySpentUsd = budget.snapshot(owners[0]).spentUsd;
+for (const owner of usedOwners) report.usage[owner] = budget.snapshot(owner);
+report.dailySpentUsd = budget.snapshot().spentUsd;
 
 const arg = process.argv.indexOf("--json");
 const output = arg >= 0 ? process.argv[arg + 1] : "docs/m5-ai-eval.json";

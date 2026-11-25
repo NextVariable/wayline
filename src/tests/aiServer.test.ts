@@ -126,6 +126,7 @@ describe("DeepSeek adapter", () => {
 describe("business schema validation", () => {
   const now = Date.parse("2026-11-25T04:00:00Z");
   const tomorrow = shanghaiDay(now + 86_400_000);
+  const dayAfter = shanghaiDay(now + 2 * 86_400_000);
   const farFuture = shanghaiDay(now + 4 * 365 * 86_400_000);
 
   it("keeps unknown fields empty and never accepts coordinates or bookings", () => {
@@ -140,17 +141,64 @@ describe("business schema validation", () => {
         bookingId: "X1",
       }],
     }, { now, places });
+    // An end before the start is treated as the next day, not silently dropped.
     expect(result.items[0]).toMatchObject({
       title: "客户会议",
       date: tomorrow,
       time: "09:05",
-      endTime: "",
+      endTime: "09:00",
+      endDate: dayAfter,
       placeId: "",
     });
-    expect(result.items[0].pending).toContain("end");
+    expect(result.items[0].pending).not.toContain("end");
     expect(result.items[0].pending).toContain("place");
     expect(result.warnings.join("")).toContain("地理或订单字段");
     expect(result.warnings.join("")).toContain("多个候选");
+    expect(result.warnings.join("")).toContain("按次日处理");
+  });
+
+  it("keeps an explicit cross-midnight end as one item across day, month and year", () => {
+    const cases = [
+      { date: "2026-11-28", endDate: "2026-11-29" },
+      { date: "2026-11-30", endDate: "2026-12-01" },
+      { date: "2026-12-31", endDate: "2027-01-01" },
+    ];
+    for (const entry of cases) {
+      const result = validateIntakeOutput({
+        items: [{
+          title: "夜间值班",
+          date: entry.date,
+          startTime: "22:00",
+          endTime: "01:00",
+          endDate: entry.endDate,
+          placeQuery: "深圳湾体育中心",
+        }],
+      }, { now, places });
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]).toMatchObject({
+        date: entry.date,
+        time: "22:00",
+        endTime: "01:00",
+        endDate: entry.endDate,
+        pending: [],
+      });
+      expect(result.warnings.join("")).not.toContain("按次日处理");
+    }
+  });
+
+  it("infers the next day when the model omits endDate, and rejects an out-of-range end date", () => {
+    const inferred = validateIntakeOutput({
+      items: [{ title: "加班", date: "2026-11-28", startTime: "23:00", endTime: "01:00", placeQuery: "深圳湾体育中心" }],
+    }, { now, places });
+    expect(inferred.items[0]).toMatchObject({ endTime: "01:00", endDate: "2026-11-29" });
+    expect(inferred.warnings.join("")).toContain("按次日处理");
+
+    const rejected = validateIntakeOutput({
+      items: [{ title: "长会", date: "2026-11-28", startTime: "23:00", endTime: "01:00", endDate: "2026-11-30", placeQuery: "深圳湾体育中心" }],
+    }, { now, places });
+    expect(rejected.items[0].endTime).toBe("");
+    expect(rejected.items[0].pending).toContain("end");
+    expect(rejected.warnings.join("")).toContain("超出单次日程范围");
   });
 
   it("rejects dates outside the window and invalid times", () => {
@@ -181,5 +229,12 @@ describe("business schema validation", () => {
       message: "好",
       proposal: { operation: "update", targetId: "e1", startTime: "10:00", endTime: "09:00" },
     }, { now })).toMatchObject({ proposal: { operation: "update", startTime: "10:00", endTime: "" } });
+    expect(validateCopilotOutput({
+      message: "好",
+      proposal: {
+        operation: "update", targetId: "e1", date: "2026-11-28",
+        startTime: "22:00", endTime: "01:00", endDate: "2026-11-29",
+      },
+    }, { now })).toMatchObject({ proposal: { endTime: "01:00", endDate: "2026-11-29" } });
   });
 });

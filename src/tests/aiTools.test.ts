@@ -10,6 +10,7 @@ const now = Date.now();
 const later = new Date(now + 36_000_000).toISOString();
 const today = shanghaiDay(now);
 const tomorrow = shanghaiDay(now + 86_400_000);
+const dayAfter = shanghaiDay(now + 2 * 86_400_000);
 
 const context = sanitizeCopilotContext({
   owner: "u1",
@@ -110,6 +111,13 @@ describe("Tool registry and permission gateway", () => {
     expect(await runner.run("propose_schedule_change", {
       operation: "update", targetId: "e1", endTime: "08:00", startTime: "09:00",
     }, { task: "copilot" })).toMatchObject({ ok: false, code: "invalid_range" });
+    expect(await runner.run("propose_schedule_change", {
+      operation: "create", placeId: "p2", date: tomorrow,
+      startTime: "22:00", endTime: "01:00", endDate: dayAfter, title: "夜间值班",
+    }, { task: "copilot" })).toMatchObject({
+      ok: true,
+      result: { endTime: "01:00", endDate: dayAfter },
+    });
     expect(await runner.run("propose_schedule_change", {
       operation: "create", placeId: "p9", date: tomorrow,
     }, { task: "copilot" })).toMatchObject({ ok: false, code: "unknown_place" });

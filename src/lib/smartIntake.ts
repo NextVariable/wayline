@@ -10,6 +10,8 @@ export interface IntakeItem {
   date: string;
   time: string;
   endTime: string;
+  /** End date when the arrangement crosses midnight; empty for same-day items. */
+  endDate: string;
   /** IANA zone used to place the arrangement on a timeline. */
   timezone: string;
   placeQuery: string;
@@ -159,6 +161,28 @@ export function extractIntakeRange(segment: string) {
   return null;
 }
 
+/** Shift a YYYY-MM-DD date across day, month and year boundaries. */
+export function addDays(date: string, days: number): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return "";
+  const parsed = new Date(`${date}T12:00:00`);
+  if (!Number.isFinite(parsed.getTime())) return "";
+  parsed.setDate(parsed.getDate() + days);
+  return localDay(parsed);
+}
+
+/** True when an explicit end time falls on the following day. */
+export function crossesMidnight(startTime: string, endTime: string): boolean {
+  return !!startTime && !!endTime && endTime <= startTime;
+}
+
+/** The end date for an item: explicit model value, otherwise the next day. */
+export function intakeEndDate(item: Pick<IntakeItem, "date" | "time" | "endTime" | "endDate">): string {
+  if (!item.date || !item.endTime || !crossesMidnight(item.time, item.endTime)) return "";
+  const explicit = item.endDate ?? "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(explicit) && explicit > item.date) return explicit;
+  return addDays(item.date, 1);
+}
+
 function intakeTimezone(segment: string) {
   const warnings: string[] = [];
   if (/(?:东京|日本)时间|UTC\+9|GMT\+9/.test(segment))
@@ -191,6 +215,7 @@ export function parseIntakeText(
     if (!time) pending.push("time");
     else if (!endTime) pending.push("end");
     if (!place) pending.push("place");
+    const endDate = date && endTime ? intakeEndDate({ date, time, endTime, endDate: "" }) : "";
     const title = titleFromSegment(segment, place?.name ?? placeQuery);
     items.push({
       id: `${prefix}-${index}`,
@@ -199,6 +224,7 @@ export function parseIntakeText(
       date,
       time,
       endTime,
+      endDate,
       timezone: zone.timezone,
       placeQuery,
       placeId: place?.id ?? "",
@@ -248,7 +274,9 @@ export function buildIntakeSchedules(
   for (const [index, item] of readyIntakeItems(items).entries()) {
     const place = places.find((candidate) => candidate.id === item.placeId);
     if (!place) continue;
-    const scheduleTime = `${item.date}${item.time ? ` ${item.time}` : ""}${item.endTime ? `-${item.endTime}` : ""}`;
+    const endDate = intakeEndDate(item);
+    const crosses = !!endDate && endDate !== item.date;
+    const scheduleTime = `${item.date}${item.time ? ` ${item.time}` : ""}${item.endTime ? `-${crosses ? `次日 ${item.endTime}` : item.endTime}` : ""}`;
     const kind = item.time ? "待办事项" : "备忘录";
     const endNote = item.time && !item.endTime ? "（结束时间待确认）" : "";
     created.push({
@@ -272,6 +300,7 @@ export function buildIntakeSchedules(
       schedule: {
         startTime: item.time,
         endTime: item.endTime,
+        ...(crosses ? { endDate } : {}),
         timezone: item.timezone,
       },
       distanceText: `${item.date}${item.time ? ` ${item.time}` : ""}`,
@@ -328,6 +357,7 @@ function isIntakeItem(value: unknown): value is IntakeItem {
     ["id", "raw", "title", "date", "time", "endTime", "timezone", "placeQuery", "placeId"].every(
       (key) => typeof item[key] === "string",
     ) &&
+    (item.endDate === undefined || typeof item.endDate === "string") &&
     Array.isArray(item.pending) &&
     item.pending.every((field) => PENDING_FIELDS.includes(field as IntakePendingField)) &&
     Array.isArray(item.warnings) &&
@@ -339,7 +369,12 @@ export function readIntakeDrafts(owner: string): IntakeItem[] {
   if (!owner || typeof localStorage === "undefined") return [];
   try {
     const value = JSON.parse(localStorage.getItem(draftsKey(owner)) ?? "[]");
-    return Array.isArray(value) ? value.filter(isIntakeItem).slice(0, 50) : [];
+    return Array.isArray(value)
+      ? value
+          .filter(isIntakeItem)
+          .slice(0, 50)
+          .map((item) => ({ ...item, endDate: typeof item.endDate === "string" ? item.endDate : "" }))
+      : [];
   } catch {
     return [];
   }

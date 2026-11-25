@@ -72,6 +72,7 @@ export interface AiScheduleChange {
   date?: string;
   startTime?: string;
   endTime?: string;
+  endDate?: string;
   title?: string;
   reason?: string;
   baseVersion?: string;

@@ -26,6 +26,23 @@ function dayNumber(date) {
   return Number.isFinite(parsed) ? Math.floor(parsed / DAY_MS) : NaN;
 }
 
+/** Accepts a real calendar date without the "future window" restriction. */
+function calendarDate(value) {
+  const text = String(value ?? "").trim();
+  if (!DATE.test(text)) return "";
+  const [year, month, day] = text.split("-").map(Number);
+  const parsed = new Date(`${text}T00:00:00Z`);
+  if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() + 1 !== month || parsed.getUTCDate() !== day)
+    return "";
+  return text;
+}
+
+/** Next calendar day, used only for an explicit cross-midnight end. */
+function nextDate(date) {
+  const parsed = Date.parse(`${date}T00:00:00Z`);
+  return Number.isFinite(parsed) ? new Date(parsed + DAY_MS).toISOString().slice(0, 10) : "";
+}
+
 export function validDate(value, now = Date.now()) {
   const text = String(value ?? "").trim();
   if (!DATE.test(text)) return false;
@@ -134,9 +151,26 @@ export function validateIntakeOutput(raw, { now = Date.now(), places = [], prefi
     if ((source.startTime || source.time) && !start) itemWarnings.push("开始时间格式无效，已留空");
     if ((source.endTime || source.end) && !end) itemWarnings.push("结束时间格式无效，已留空");
     let endTime = end;
-    if (start && end && end <= start) {
-      endTime = "";
-      itemWarnings.push("结束时间不晚于开始时间，已留待确认");
+    let endDate = "";
+    if (start && end) {
+      if (end > start) {
+        // Same-day range; an end date is only meaningful when the end crosses midnight.
+        endDate = "";
+      } else {
+        const explicit = calendarDate(source.endDate ?? source.end_date);
+        const next = date ? nextDate(date) : "";
+        if (!date) {
+          // The start date is unknown, so the end date cannot be inferred.
+          endTime = "";
+          itemWarnings.push("缺少开始日期，跨日结束时间已留待确认");
+        } else if (explicit && explicit !== date && explicit !== next) {
+          endTime = "";
+          itemWarnings.push("结束日期超出单次日程范围，已留待确认");
+        } else {
+          endDate = next;
+          if (!explicit) itemWarnings.push("结束时间早于开始时间，已按次日处理，请确认");
+        }
+      }
     }
     const zone = cleanText(source.timezone, 40);
     if (zone && zone !== "Asia/Shanghai") itemWarnings.push("仅按北京时间解析，已使用 Asia/Shanghai");
@@ -156,6 +190,7 @@ export function validateIntakeOutput(raw, { now = Date.now(), places = [], prefi
       date,
       time: start,
       endTime,
+      endDate,
       timezone: "Asia/Shanghai",
       placeQuery,
       placeId: matched.place?.id ?? "",
@@ -209,15 +244,21 @@ export function validateCopilotOutput(raw, { now = Date.now() } = {}) {
   }
   const startTime = normalizeTime(candidate.startTime ?? candidate.time);
   let endTime = normalizeTime(candidate.endTime);
+  let endDate = "";
   if (startTime && endTime && endTime <= startTime) {
-    endTime = "";
-    warnings.push("提案结束时间不晚于开始时间，已留待确认");
+    const explicit = calendarDate(candidate.endDate ?? candidate.end_date);
+    const next = date ? nextDate(date) : "";
+    if (next && explicit === next) endDate = next;
+    else {
+      endTime = "";
+      warnings.push("提案结束时间不晚于开始时间，已留待确认");
+    }
   }
   if (operation === "update" && !placeId && !date && !startTime && !endTime && !candidate.title) {
     warnings.push("提案没有可执行的修改内容");
     return { message, warnings, proposal: null };
   }
-  const proposal = { kind: "schedule-change", operation, targetId, placeId, date, startTime, endTime };
+  const proposal = { kind: "schedule-change", operation, targetId, placeId, date, startTime, endTime, endDate };
   for (const field of PROPOSAL_TEXT_FIELDS) {
     const value = cleanText(candidate[field], field === "reason" ? 160 : 40);
     if (value) proposal[field] = value;

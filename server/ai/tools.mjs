@@ -118,6 +118,7 @@ const definitions = {
           date: { type: "string", description: "YYYY-MM-DD" },
           startTime: { type: "string", description: "HH:MM" },
           endTime: { type: "string", description: "HH:MM" },
+          endDate: { type: "string", description: "跨午夜时结束日期 YYYY-MM-DD，通常为次日" },
           reason: { type: "string" },
         },
         required: ["operation"],
@@ -137,6 +138,10 @@ class ToolError extends Error {
 
 const clean = (value, max = 80) => (typeof value === "string" ? value.trim().slice(0, max) : "");
 const TIME = /^([01]?\d|2[0-3]):([0-5]\d)$/;
+const nextDay = (date) => {
+  const parsed = Date.parse(`${date}T00:00:00Z`);
+  return Number.isFinite(parsed) ? new Date(parsed + 86_400_000).toISOString().slice(0, 10) : "";
+};
 
 const shanghaiDateOf = (value) =>
   new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" }).format(new Date(value));
@@ -244,8 +249,16 @@ export function createToolRunner({ context, services = {}, now = Date.now }) {
       const endTime = clean(args.endTime, 5);
       if (startTime && !TIME.test(startTime)) throw new ToolError("invalid_time", "开始时间格式无效");
       if (endTime && !TIME.test(endTime)) throw new ToolError("invalid_time", "结束时间格式无效");
-      if (startTime && endTime && endTime <= startTime)
-        throw new ToolError("invalid_range", "结束时间必须晚于开始时间");
+      let endDate = clean(args.endDate, 10);
+      if (endDate && !validDate(endDate, now)) throw new ToolError("invalid_date", "结束日期超出可接受范围");
+      if (startTime && endTime && endTime <= startTime) {
+        // A cross-midnight end is only allowed with an explicit next-day endDate.
+        const next = date ? nextDay(date) : "";
+        if (!next || endDate !== next)
+          throw new ToolError("invalid_range", "跨午夜结束时间需要提供次日 endDate");
+      } else {
+        endDate = "";
+      }
       return {
         kind: "schedule-change",
         operation,
@@ -254,6 +267,7 @@ export function createToolRunner({ context, services = {}, now = Date.now }) {
         date,
         startTime,
         endTime,
+        endDate,
         title: clean(args.title, 40),
         reason: clean(args.reason, 160),
         baseVersion: context.revision,

@@ -35,8 +35,15 @@ export function localScheduleEvent(place: Place): CalendarEntry | null {
   let endPending = false;
   if (!allDay) {
     if (TIME.test(endTime)) {
+      const explicitEndDate = place.schedule?.endDate ?? "";
       const crossesMidnight = endTime <= validStart;
-      end = `${crossesMidnight ? dayAfter(storedDate, 1) : storedDate}T${endTime}:00+08:00`;
+      const endDate =
+        DATE.test(explicitEndDate) && explicitEndDate > storedDate
+          ? explicitEndDate
+          : crossesMidnight
+            ? dayAfter(storedDate, 1)
+            : storedDate;
+      end = `${endDate}T${endTime}:00+08:00`;
     } else {
       endPending = true;
     }

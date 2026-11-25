@@ -1,0 +1,777 @@
+{
+  "generatedAt": "2026-11-25T15:12:12.860Z",
+  "model": "deepseek-flash",
+  "thinking": "disabled",
+  "totalCases": 10,
+  "cases": [
+    {
+      "id": "c91",
+      "category": "cross-midnight",
+      "text": "今晚十一点到明天凌晨一点在上海中心大厦加班",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-25",
+          "start": "23:00",
+          "end": "01:00",
+          "endDate": "2026-11-26",
+          "place": "p-sh-tower",
+          "keywords": [
+            "加班"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "上海中心大厦加班",
+          "date": "2026-11-25",
+          "time": "23:00",
+          "endTime": "01:00",
+          "endDate": "2026-11-26",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-sh-tower",
+          "pending": [],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true,
+            "endDate": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-25",
+          "start": "23:00",
+          "end": "01:00",
+          "endDate": "2026-11-26",
+          "place": "p-sh-tower",
+          "keywords": [
+            "加班"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c92",
+      "category": "cross-midnight",
+      "text": "今晚十点到明天早上六点在客户办公室值班",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-25",
+          "start": "22:00",
+          "end": "06:00",
+          "endDate": "2026-11-26",
+          "place": "p-office",
+          "keywords": [
+            "值班"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "客户办公室值班",
+          "date": "2026-11-25",
+          "time": "22:00",
+          "endTime": "06:00",
+          "endDate": "2026-11-26",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "客户办公室",
+          "placeId": "p-office",
+          "pending": [],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true,
+            "endDate": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-25",
+          "start": "22:00",
+          "end": "06:00",
+          "endDate": "2026-11-26",
+          "place": "p-office",
+          "keywords": [
+            "值班"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c93",
+      "category": "cross-midnight",
+      "text": "周五晚上十点到周六凌晨两点在深圳湾体育中心布置会场",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-27",
+          "start": "22:00",
+          "end": "02:00",
+          "endDate": "2026-11-28",
+          "place": "p-sz-center",
+          "keywords": [
+            "布置会场"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "深圳湾体育中心布置会场",
+          "date": "2026-11-27",
+          "time": "22:00",
+          "endTime": "02:00",
+          "endDate": "2026-11-28",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "深圳湾体育中心",
+          "placeId": "p-sz-center",
+          "pending": [],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true,
+            "endDate": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-27",
+          "start": "22:00",
+          "end": "02:00",
+          "endDate": "2026-11-28",
+          "place": "p-sz-center",
+          "keywords": [
+            "布置会场"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c94",
+      "category": "cross-midnight",
+      "text": "明天晚上十一点到后天凌晨三点在虹桥机场T2接客户",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "23:00",
+          "end": "03:00",
+          "endDate": "2026-11-27",
+          "place": "p-hongqiao",
+          "keywords": [
+            "接客户"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "虹桥机场T2接客户",
+          "date": "2026-11-26",
+          "time": "23:00",
+          "endTime": "03:00",
+          "endDate": "2026-11-27",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥机场T2",
+          "placeId": "p-hongqiao",
+          "pending": [],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true,
+            "endDate": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "23:00",
+          "end": "03:00",
+          "endDate": "2026-11-27",
+          "place": "p-hongqiao",
+          "keywords": [
+            "接客户"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c95",
+      "category": "cross-midnight",
+      "text": "今晚九点半到明天凌晨零点在静安嘉里中心复盘",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-25",
+          "start": "21:30",
+          "end": "00:00",
+          "endDate": "2026-11-26",
+          "place": "p-jingan",
+          "keywords": [
+            "复盘"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "静安嘉里中心复盘",
+          "date": "2026-11-25",
+          "time": "21:30",
+          "endTime": "00:00",
+          "endDate": "2026-11-26",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "静安嘉里中心",
+          "placeId": "p-jingan",
+          "pending": [],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true,
+            "endDate": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-25",
+          "start": "21:30",
+          "end": "00:00",
+          "endDate": "2026-11-26",
+          "place": "p-jingan",
+          "keywords": [
+            "复盘"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c96",
+      "category": "cross-midnight",
+      "text": "今晚十一点到明天凌晨一点在上海中心大厦加班",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-25",
+          "start": "23:00",
+          "end": "01:00",
+          "endDate": "2026-11-26",
+          "place": "p-sh-tower",
+          "keywords": [
+            "加班"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "上海中心大厦加班",
+          "date": "2026-11-25",
+          "time": "23:00",
+          "endTime": "01:00",
+          "endDate": "2026-11-26",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "上海中心大厦",
+          "placeId": "p-sh-tower",
+          "pending": [],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true,
+            "endDate": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-25",
+          "start": "23:00",
+          "end": "01:00",
+          "endDate": "2026-11-26",
+          "place": "p-sh-tower",
+          "keywords": [
+            "加班"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c97",
+      "category": "cross-midnight",
+      "text": "今晚十点到明天早上六点在客户办公室值班",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-25",
+          "start": "22:00",
+          "end": "06:00",
+          "endDate": "2026-11-26",
+          "place": "p-office",
+          "keywords": [
+            "值班"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "客户办公室值班",
+          "date": "2026-11-25",
+          "time": "22:00",
+          "endTime": "06:00",
+          "endDate": "2026-11-26",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "客户办公室",
+          "placeId": "p-office",
+          "pending": [],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true,
+            "endDate": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-25",
+          "start": "22:00",
+          "end": "06:00",
+          "endDate": "2026-11-26",
+          "place": "p-office",
+          "keywords": [
+            "值班"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c98",
+      "category": "cross-midnight",
+      "text": "周五晚上十点到周六凌晨两点在深圳湾体育中心布置会场",
+      "activeCity": "深圳",
+      "expect": [
+        {
+          "date": "2026-11-27",
+          "start": "22:00",
+          "end": "02:00",
+          "endDate": "2026-11-28",
+          "place": "p-sz-center",
+          "keywords": [
+            "布置会场"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "深圳湾体育中心布置会场",
+          "date": "2026-11-27",
+          "time": "22:00",
+          "endTime": "02:00",
+          "endDate": "2026-11-28",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "深圳湾体育中心",
+          "placeId": "p-sz-center",
+          "pending": [],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true,
+            "endDate": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-27",
+          "start": "22:00",
+          "end": "02:00",
+          "endDate": "2026-11-28",
+          "place": "p-sz-center",
+          "keywords": [
+            "布置会场"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c99",
+      "category": "cross-midnight",
+      "text": "明天晚上十一点到后天凌晨三点在虹桥机场T2接客户",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-26",
+          "start": "23:00",
+          "end": "03:00",
+          "endDate": "2026-11-27",
+          "place": "p-hongqiao",
+          "keywords": [
+            "接客户"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "虹桥机场T2接客户",
+          "date": "2026-11-26",
+          "time": "23:00",
+          "endTime": "03:00",
+          "endDate": "2026-11-27",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "虹桥机场T2",
+          "placeId": "p-hongqiao",
+          "pending": [],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true,
+            "endDate": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-26",
+          "start": "23:00",
+          "end": "03:00",
+          "endDate": "2026-11-27",
+          "place": "p-hongqiao",
+          "keywords": [
+            "接客户"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c100",
+      "category": "cross-midnight",
+      "text": "今晚九点半到明天凌晨零点在静安嘉里中心复盘",
+      "activeCity": "上海",
+      "expect": [
+        {
+          "date": "2026-11-25",
+          "start": "21:30",
+          "end": "00:00",
+          "endDate": "2026-11-26",
+          "place": "p-jingan",
+          "keywords": [
+            "复盘"
+          ]
+        }
+      ],
+      "ok": true,
+      "code": "ok",
+      "items": [
+        {
+          "id": "ai-0",
+          "raw": "",
+          "title": "静安嘉里中心复盘",
+          "date": "2026-11-25",
+          "time": "21:30",
+          "endTime": "00:00",
+          "endDate": "2026-11-26",
+          "timezone": "Asia/Shanghai",
+          "placeQuery": "静安嘉里中心",
+          "placeId": "p-jingan",
+          "pending": [],
+          "warnings": [],
+          "_checks": {
+            "date": true,
+            "start": true,
+            "end": true,
+            "place": true,
+            "title": true,
+            "endDate": true
+          }
+        }
+      ],
+      "expected": [
+        {
+          "date": "2026-11-25",
+          "start": "21:30",
+          "end": "00:00",
+          "endDate": "2026-11-26",
+          "place": "p-jingan",
+          "keywords": [
+            "复盘"
+          ]
+        }
+      ]
+    }
+  ],
+  "accuracy": {
+    "date": {
+      "ok": 10,
+      "total": 10,
+      "rate": 100
+    },
+    "start": {
+      "ok": 10,
+      "total": 10,
+      "rate": 100
+    },
+    "end": {
+      "ok": 10,
+      "total": 10,
+      "rate": 100
+    },
+    "endDate": {
+      "ok": 10,
+      "total": 10,
+      "rate": 100
+    },
+    "place": {
+      "ok": 10,
+      "total": 10,
+      "rate": 100
+    },
+    "title": {
+      "ok": 10,
+      "total": 10,
+      "rate": 100
+    },
+    "count": {
+      "ok": 10,
+      "total": 10,
+      "rate": 100
+    }
+  },
+  "categories": {
+    "cross-midnight": {
+      "date": {
+        "ok": 10,
+        "total": 10,
+        "rate": 100
+      },
+      "start": {
+        "ok": 10,
+        "total": 10,
+        "rate": 100
+      },
+      "end": {
+        "ok": 10,
+        "total": 10,
+        "rate": 100
+      },
+      "endDate": {
+        "ok": 10,
+        "total": 10,
+        "rate": 100
+      },
+      "place": {
+        "ok": 10,
+        "total": 10,
+        "rate": 100
+      },
+      "title": {
+        "ok": 10,
+        "total": 10,
+        "rate": 100
+      },
+      "count": {
+        "ok": 10,
+        "total": 10,
+        "rate": 100
+      }
+    }
+  },
+  "usage": {
+    "eval-m5r-c91": {
+      "spentUsd": 0.042859,
+      "remainingUsd": 0.957141,
+      "callsUsed": 1,
+      "tokens": {
+        "input": 125999,
+        "output": 18034
+      },
+      "tasks": {
+        "intake": 200,
+        "copilot": 30
+      }
+    },
+    "eval-m5r-c92": {
+      "spentUsd": 0.042859,
+      "remainingUsd": 0.957141,
+      "callsUsed": 1,
+      "tokens": {
+        "input": 125999,
+        "output": 18034
+      },
+      "tasks": {
+        "intake": 200,
+        "copilot": 30
+      }
+    },
+    "eval-m5r-c93": {
+      "spentUsd": 0.042859,
+      "remainingUsd": 0.957141,
+      "callsUsed": 1,
+      "tokens": {
+        "input": 125999,
+        "output": 18034
+      },
+      "tasks": {
+        "intake": 200,
+        "copilot": 30
+      }
+    },
+    "eval-m5r-c94": {
+      "spentUsd": 0.042859,
+      "remainingUsd": 0.957141,
+      "callsUsed": 1,
+      "tokens": {
+        "input": 125999,
+        "output": 18034
+      },
+      "tasks": {
+        "intake": 200,
+        "copilot": 30
+      }
+    },
+    "eval-m5r-c95": {
+      "spentUsd": 0.042859,
+      "remainingUsd": 0.957141,
+      "callsUsed": 1,
+      "tokens": {
+        "input": 125999,
+        "output": 18034
+      },
+      "tasks": {
+        "intake": 200,
+        "copilot": 30
+      }
+    },
+    "eval-m5r-c96": {
+      "spentUsd": 0.042859,
+      "remainingUsd": 0.957141,
+      "callsUsed": 1,
+      "tokens": {
+        "input": 125999,
+        "output": 18034
+      },
+      "tasks": {
+        "intake": 200,
+        "copilot": 30
+      }
+    },
+    "eval-m5r-c97": {
+      "spentUsd": 0.042859,
+      "remainingUsd": 0.957141,
+      "callsUsed": 1,
+      "tokens": {
+        "input": 125999,
+        "output": 18034
+      },
+      "tasks": {
+        "intake": 200,
+        "copilot": 30
+      }
+    },
+    "eval-m5r-c98": {
+      "spentUsd": 0.042859,
+      "remainingUsd": 0.957141,
+      "callsUsed": 1,
+      "tokens": {
+        "input": 125999,
+        "output": 18034
+      },
+      "tasks": {
+        "intake": 200,
+        "copilot": 30
+      }
+    },
+    "eval-m5r-c99": {
+      "spentUsd": 0.042859,
+      "remainingUsd": 0.957141,
+      "callsUsed": 1,
+      "tokens": {
+        "input": 125999,
+        "output": 18034
+      },
+      "tasks": {
+        "intake": 200,
+        "copilot": 30
+      }
+    },
+    "eval-m5r-c100": {
+      "spentUsd": 0.042859,
+      "remainingUsd": 0.957141,
+      "callsUsed": 1,
+      "tokens": {
+        "input": 125999,
+        "output": 18034
+      },
+      "tasks": {
+        "intake": 200,
+        "copilot": 30
+      }
+    }
+  },
+  "dailySpentUsd": 0.042859
+}

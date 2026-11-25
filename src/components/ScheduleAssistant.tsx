@@ -20,6 +20,7 @@ import {
 import {
   buildIntakeSchedules,
   draftIntakeItems,
+  intakeEndDate,
   intakeSessionId,
   pendingLabels,
   readIntakeDrafts,
@@ -173,7 +174,10 @@ export function ScheduleAssistant({
     setIntakeItems((items) =>
       items.map((item) => {
         if (item.id !== id) return item;
-        const next = { ...item, ...patch };
+        // Editing a time or date re-derives the cross-midnight end date.
+        const resetsEndDate = patch.date !== undefined || patch.time !== undefined || patch.endTime !== undefined;
+        const merged = { ...item, ...patch, ...(resetsEndDate ? { endDate: "" } : {}) };
+        const next = { ...merged, endDate: intakeEndDate(merged) };
         const pending: IntakePendingField[] = [];
         if (!next.date) pending.push("date");
         if (!next.time) pending.push("time");
@@ -447,7 +451,7 @@ export function ScheduleAssistant({
                   <label>时间
                     <input type="time" value={item.time} onChange={(event) => updateIntakeItem(item.id, { time: event.target.value })} />
                   </label>
-                  <label>结束
+                  <label>结束{item.endDate && item.endDate !== item.date ? "（次日）" : ""}
                     <input type="time" value={item.endTime} onChange={(event) => updateIntakeItem(item.id, { endTime: event.target.value })} />
                   </label>
                   <label className="intake-place">地点
@@ -464,6 +468,9 @@ export function ScheduleAssistant({
                 </div>
                 {item.pending.length > 0 && (
                   <p className="field-help">待确认：{pendingLabels(item).join("、")}</p>
+                )}
+                {item.endDate && item.endDate !== item.date && (
+                  <p className="field-help">跨日：{item.endDate} {item.endTime}（北京时间），保存为一条安排</p>
                 )}
                 <p className="field-help">时区：{item.timezone}（北京时间）；未知字段不会自动补全</p>
                 {item.raw && <p className="field-help">原文：{item.raw}</p>}
@@ -517,6 +524,7 @@ export function ScheduleAssistant({
             return;
           }
           const scheduleTime = `${effectiveDate}${effectiveTime ? " " + effectiveTime : ""}`;
+          const endDate = intakeEndDate({ date: effectiveDate, time: effectiveTime, endTime, endDate: "" });
           const carried = editSchedule?.tags.includes("智能录入") ? ["智能录入"] : [];
           const pendingTags = effectiveTime
             ? (endTime ? [] : ["结束时间待确认"])
@@ -536,6 +544,7 @@ export function ScheduleAssistant({
             schedule: {
               startTime: effectiveTime,
               endTime: effectiveTime ? endTime : "",
+              ...(endDate ? { endDate } : {}),
               timezone: editSchedule?.schedule?.timezone ?? "Asia/Shanghai",
             },
             distanceText: scheduleTime,
