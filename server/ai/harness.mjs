@@ -131,6 +131,13 @@ export async function runCopilot({ provider, budget, config, proposals, input, c
   const trace = [];
   let totalCost = 0;
   let pendingProposal = null;
+  const verifiedRoutes = new Set();
+  let routeRequested = false;
+  const formatClock = new Intl.DateTimeFormat("zh-CN", {
+    month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",hourCycle:"h23",timeZone:"Asia/Shanghai",
+  });
+  const clock = value => value && Number.isFinite(Date.parse(value)) ? formatClock.format(new Date(value)) : "";
+  const routeModes = {walking:"步行",transit:"地铁公交",driving:"打车",selfDrive:"自驾"};
 
   for (let round = 0; round <= config.toolRoundLimit; round += 1) {
     const verdict = budget.begin({ owner, task: "copilot" });
@@ -177,6 +184,27 @@ export async function runCopilot({ provider, budget, config, proposals, input, c
             summary: clean(outcome.result.reason, 160) || "本地日程修改",
           });
         }
+        if (call.name === "query_route" || call.name === "assess_commute") {
+          routeRequested = true;
+          if (outcome.ok) {
+            const fact = outcome.result;
+            const mode = routeModes[fact.mode] || "通勤";
+            if (call.name === "query_route") verifiedRoutes.add(
+              `${fact.from} → ${fact.to} · ${mode}约 ${fact.minutes} 分钟${fact.reference ? "（参考）" : ""}。高德查询于 ${clock(fact.observedAt)}。${fact.departure ? `计划出发 ${clock(fact.departure)}。` : ""}${fact.note}。`);
+            else {
+              const from=context.events.find(event=>event.id===fact.fromEventId)?.title ?? "上一项安排";
+              const to=context.events.find(event=>event.id===fact.toEventId)?.title ?? "下一项安排";
+              const numberText = [
+                fact.routeMinutes != null && `路线约 ${fact.routeMinutes} 分钟`,
+                fact.accessMinutes != null && fact.accessMinutes > 0 && `额外预留 ${fact.accessMinutes} 分钟`,
+                fact.bufferMinutes != null && `安全缓冲 ${fact.bufferMinutes} 分钟`,
+                fact.remainingMinutes != null && `预计${fact.remainingMinutes < 0 ? "差" : "余"} ${Math.abs(fact.remainingMinutes)} 分钟`,
+                fact.latestDeparture && `建议最迟 ${clock(fact.latestDeparture)} 出发`,
+              ].filter(Boolean);
+              verifiedRoutes.add(`${from} → ${to} · ${mode}${fact.reference ? "（参考）" : ""}。${numberText.length ? numberText.join("，")+"。" : "路线或时间仍待确认。"}`);
+            }
+          } else if (["departure_required","ambiguous_departure"].includes(outcome.code)) verifiedRoutes.add(outcome.error);
+        }
         trace.push({ tool: call.name, ok: outcome.ok, code: outcome.ok ? "ok" : outcome.code });
         messages.push({
           role: "tool",
@@ -189,7 +217,7 @@ export async function runCopilot({ provider, budget, config, proposals, input, c
 
     const parsed = parseModelJson(response.content);
     const validated = validateCopilotOutput(parsed ?? {}, { now });
-    if (!validated.message)
+    if (!validated.message && !routeRequested)
       return { ok: false, code: "invalid_output", message: "模型未返回可读回答，请重试", trace, usage };
     if (validated.proposal && !pendingProposal) {
       const outcome = await runner.run(
@@ -216,10 +244,16 @@ export async function runCopilot({ provider, budget, config, proposals, input, c
         trace.push({ tool: "propose_schedule_change", ok: false, code: outcome.code });
       }
     }
+    const routeLanguage = /路线|通勤|地铁|公交|打车|自驾|步行|赶上|时间余量|最迟出发/;
+    const unsupportedRouteClaim = !routeRequested && validated.message &&
+      (routeLanguage.test(history.at(-1).content) || routeLanguage.test(validated.message)) &&
+      /(?:[0-9一二三四五六七八九十百半]+\s*(?:分钟|小时|分(?:钟)?|秒)|\b\d{1,2}:\d{2}\s*(?:前)?出发)/.test(validated.message);
     return {
       ok: true,
-      message: validated.message,
-      warnings: validated.warnings,
+      // Route replies are rendered from tool facts. A model can select a tool but
+      // cannot replace provider durations, calculated margins or departure times.
+      message: routeRequested ? (Array.from(verifiedRoutes).join("\n") || "暂未取得可核对的路线结果，请打开对应路段重试。") : unsupportedRouteClaim ? "暂未取得可核对的路线结果。请先打开对应路段，或确认计划出发时间。" : validated.message,
+      warnings: routeRequested || unsupportedRouteClaim ? [] : validated.warnings,
       proposal: pendingProposal,
       trace,
       usage,

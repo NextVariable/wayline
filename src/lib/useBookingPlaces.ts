@@ -21,7 +21,7 @@ export function useBookingPlaces(points: OrderPoint[], owner: string) {
       });
       if (!response.ok) return [];
       const raw = await response.json();
-      const rows: { name: string; city: string; lat: number; lng: number; address: string; coordinateSystem?: string; isMatched?: boolean }[] = Array.isArray(raw) ? raw : raw.results ?? [];
+      const rows: { name: string; city: string; lat: number; lng: number; address: string; coordinateSystem?: string; isMatched?: boolean; routeAccess?:Place["routeAccess"] }[] = Array.isArray(raw) ? raw : raw.results ?? [];
       const exact = rows.filter(row => typeof row.name === "string" && typeof row.city === "string" &&
         cityKey(row.city) === cityKey(city) && nameKey(row.name) === nameKey(name) &&
         row.isMatched === true && row.coordinateSystem === "GCJ02" &&
@@ -29,7 +29,7 @@ export function useBookingPlaces(points: OrderPoint[], owner: string) {
       if (!exact.length || exact.some(row => Math.abs(row.lat-exact[0].lat) > 0.0002 ||
         Math.abs(row.lng-exact[0].lng) > 0.0002)) return [];
       const row = exact[0];
-      const place: Place = { id:"booking:"+key, name, city, lat:row.lat, lng:row.lng, address:row.address,
+      const place: Place = { id:"booking:"+key, name, city, lat:row.lat, lng:row.lng, address:row.address, routeAccess:row.routeAccess,
         type:"user", source:"imported", category:"transport", openingHours:"", description:"", tags:[], reason:"",
         status:"saved", isSaved:false, distanceText:"", externalLinks:{} };
       return [[key, place] as const];

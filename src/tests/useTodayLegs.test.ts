@@ -46,7 +46,7 @@ describe("looking up one leg", () => {
     await fetchLeg(pair, "transit", { fetchImpl });
     await fetchLeg(pair, "walking", { fetchImpl });
     const transit = requestOf(fetchImpl.mock.calls[0] as unknown[]), walking = requestOf(fetchImpl.mock.calls[1] as unknown[]);
-    expect(transit.departure).toBe("2026-11-13T10:00:00+08:00");
+    expect(transit.departure).toBe("2026-11-13T02:00:00.000Z");
     expect(transit.places.map(p => p.id)).toEqual([guomao.id, south.id]);
     expect(walking.departure).toBeUndefined();
   });

@@ -257,3 +257,29 @@ describe("Proposal store and AI routes", () => {
     expect(result).toMatchObject({ status: 503, payload: { ok: false, code: "missing_key" } });
   });
 });
+
+it("returns verified route numbers even when the model rewrites them", async () => {
+  const now = Date.parse("2026-11-26T00:20:00+08:00");
+  const departure = "2026-11-26T00:20:00.000Z";
+  const routeContext = sanitizeCopilotContext({
+    owner:"u1", revision:"r1",
+    events:[
+      {id:"e1",title:"第一场",start:"2026-11-26T00:00:00Z",end:departure,placeId:"p1"},
+      {id:"e2",title:"第二场",start:"2026-11-26T02:00:00Z",end:"2026-11-26T03:00:00Z",placeId:"p2"},
+    ],
+    places:[{id:"p1",name:"起点",lat:31.2,lng:121.4},{id:"p2",name:"终点",lat:31.25,lng:121.44}],
+    routePairs:[{fromEventId:"e1",toEventId:"e2",departure}],
+  },{owner:"u1",now});
+  const fake=provider([
+    {content:"",toolCalls:[{id:"c1",name:"query_route",arguments:JSON.stringify({fromPlaceId:"p1",toPlaceId:"p2",mode:"transit"})}]},
+    {content:JSON.stringify({message:"实际只需 5 分钟，一定能准时。"})},
+  ]);
+  const result=await runCopilot({
+    provider:fake as never,config:config(),budget:createAiBudget({config:config(),store:createMemoryUsageStore()}),
+    proposals:createProposalStore(),input:{owner:"u1",messages:[{role:"user",content:"地铁要多久？"}]},
+    context:routeContext,now,services:{route:async()=>({source:"amap",duration:3121,observedAt:now})},
+  });
+  expect(result.message).toContain("53 分钟（参考）");
+  expect(result.message).toContain("08:20");
+  expect(result.message).not.toContain("一定能准时");
+});

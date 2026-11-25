@@ -5,6 +5,9 @@
  * detect that a preview went stale before a proposal is applied.
  */
 import type { Place } from "../types/place";
+import type { LegAssessment } from "./smartRoutes";
+import type { TodayLegPair } from "./todayMap";
+import type { RouteEvidence } from "./tripDomain";
 
 export interface CopilotEventInput {
   id: string;
@@ -38,12 +41,24 @@ export interface CopilotCommuteInput {
   availableMinutes: number | null;
   routeMinutes?: number | null;
   bufferMinutes?: number | null;
+  accessMinutes?: number | null;
+  observedAt?: number;
   remainingMinutes?: number | null;
   latestDeparture?: string | null;
   advice?: string;
   reference?: boolean;
   pending?: boolean;
   source?: string;
+}
+
+export function copilotCommute(pair:TodayLegPair, plan:LegAssessment, result?:RouteEvidence):CopilotCommuteInput {
+  return {
+    fromEventId:pair.from.event.id, toEventId:pair.to.event.id,
+    mode:plan.mode, status:plan.status, availableMinutes:plan.availableMinutes, routeMinutes:plan.routeMinutes,
+    accessMinutes:plan.accessMinutes, bufferMinutes:plan.bufferMinutes, remainingMinutes:plan.remainingMinutes,
+    latestDeparture:plan.latestDeparture, advice:plan.advice, reference:plan.reference,
+    pending:plan.status === "pending", observedAt:result?.observedAt, source:result?.source,
+  };
 }
 
 export interface CopilotBookingInput {
@@ -74,7 +89,10 @@ export interface CopilotPlace {
   address: string;
   lat: number | null;
   lng: number | null;
+  routeAccess?: Place["routeAccess"];
 }
+
+interface CopilotRoutePair { fromEventId:string; toEventId:string; departure?:string }
 
 export interface CopilotContext {
   owner: string;
@@ -84,6 +102,7 @@ export interface CopilotContext {
   places: CopilotPlace[];
   actions: CopilotActionInput[];
   commutes: CopilotCommuteInput[];
+  routePairs?: CopilotRoutePair[];
   bookings: CopilotBookingInput[];
   trips: CopilotTripInput[];
 }
@@ -117,6 +136,7 @@ export function buildCopilotContext(input: {
   places: Place[];
   actions: CopilotActionInput[];
   commutes: CopilotCommuteInput[];
+  routePairs?: CopilotRoutePair[];
   bookings: CopilotBookingInput[];
   trips: CopilotTripInput[];
 }): CopilotContext {
@@ -139,6 +159,7 @@ export function buildCopilotContext(input: {
     address: clean(place.address, 120),
     lat: finite(place.lat),
     lng: finite(place.lng),
+    ...(place.routeAccess && {routeAccess:place.routeAccess}),
   })).filter((place) => place.id && place.name);  return {
     owner: clean(input.owner, 120),
     revision: contextRevision(events, places),
@@ -155,6 +176,7 @@ export function buildCopilotContext(input: {
       eventIds: action.eventIds.map((id) => clean(id, 120)).filter(Boolean).slice(0, 4),
       nextStep: { kind: clean(action.nextStep.kind, 32), label: clean(action.nextStep.label, 60) },
     })).filter((action) => action.id && action.title),
+    routePairs: input.routePairs?.slice(0,24),
     commutes: input.commutes.slice(0, 24).map((commute) => ({
       fromEventId: clean(commute.fromEventId, 120),
       toEventId: clean(commute.toEventId, 120),
@@ -163,6 +185,8 @@ export function buildCopilotContext(input: {
       availableMinutes: finite(commute.availableMinutes),
       routeMinutes: finite(commute.routeMinutes),
       bufferMinutes: finite(commute.bufferMinutes),
+      accessMinutes: finite(commute.accessMinutes),
+      observedAt: commute.observedAt,
       remainingMinutes: finite(commute.remainingMinutes),
       latestDeparture: commute.latestDeparture ? clean(commute.latestDeparture, 40) : "",
       advice: clean(commute.advice, 160),

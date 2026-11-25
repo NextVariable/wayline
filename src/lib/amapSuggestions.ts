@@ -1,4 +1,5 @@
 import type { City, ExtractedPlace } from "../types/place";
+import { routeAccess } from "../../shared/route-input.mjs";
 import { cityKey } from "./citySelection";
 
 export function normalizeAMapTips(tips: unknown, city: City): ExtractedPlace[] {
@@ -10,7 +11,7 @@ export function normalizeAMapTips(tips: unknown, city: City): ExtractedPlace[] {
     if(typeof tip?.name!=="string" || !tip.name.trim() || !Number.isFinite(lng)||!Number.isFinite(lat)||Math.abs(lng)>180||Math.abs(lat)>90||(lng===0&&lat===0))return [];
     const district=typeof tip.district==="string"?tip.district:"";
     const address=typeof tip.address==="string"?tip.address:"";
-    return [{name:tip.name,city:district?cityKey(district):city.name,category:"custom" as const,source:"imported" as const,isMatched:true,lat,lng,address:district+address,coordinateSystem:"GCJ02" as const,reason:""}];
+    return [{name:tip.name,city:district?cityKey(district):city.name,category:"custom" as const,source:"imported" as const,isMatched:true,lat,lng,routeAccess:routeAccess({poiId:tip.id}),address:district+address,coordinateSystem:"GCJ02" as const,reason:""}];
   }).slice(0,8);
 }
 

@@ -38,7 +38,7 @@ it("keeps the default leg to mode, duration and the necessary risk", () => {
   expect(transit).toContain('data-status="insufficient"');
   const taxi = render("driving");
   expect(taxi).toContain("打车 20 分钟");
-  expect(taxi).toContain('data-status="sufficient"');
+  expect(taxi).toContain('data-status="reference"');
   expect(taxi).not.toContain("时间不足");
   // 缓冲、余量与来源默认收起，按需展开。
   expect(taxi).not.toContain("剩余时间");
@@ -48,10 +48,10 @@ it("keeps the default leg to mode, duration and the necessary risk", () => {
 
 it("reveals buffer, remaining time and mode comparison only when opened", () => {
   const open = render("driving", false, options, pair.id);
-  expect(open).toContain("可用时间");
-  expect(open).toContain("剩余时间");
-  expect(open).toContain("15 分钟");
-  expect(open).toContain("缓冲组成");
+  expect(open).toContain("门到门估算");
+  expect(open).toContain("预计余量");
+  expect(open).toContain("7 分钟");
+  expect(open).toContain("安全缓冲");
   expect(open).toContain('aria-pressed="true">打车');
   expect(open).toContain("高德");
 });

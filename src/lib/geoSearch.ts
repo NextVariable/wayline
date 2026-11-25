@@ -169,6 +169,7 @@ export async function searchPlaceCandidates(keyword: string, city: City, options
     source: "system",
     lat: place.lat,
     lng: place.lng,
+    ...(place.routeAccess && {routeAccess:place.routeAccess}),
     address: officialAddressByName[place.name] ?? place.address,
     openingHours: "以现场营业时间为准",
     description: place.address,

@@ -1,3 +1,4 @@
+import { routeAccess } from "../../shared/route-input.mjs";
 import { bookingPlaceKey } from "./useBookingPlaces";
 import type { Place, Trip } from "./tripDomain";
 
@@ -10,6 +11,7 @@ export interface TripTransfer {
   from: Place;
   to: Place;
   availableMinutes: number;
+  departure: string;
 }
 
 export function tripTransfers(trip:Trip, locations:Record<string,Place>):TripTransfer[] {
@@ -30,9 +32,9 @@ export function tripTransfers(trip:Trip, locations:Record<string,Place>):TripTra
         const gap=inbound ? Date.parse(constraint.at)-Date.parse(bookedAt) : Date.parse(bookedAt)-Date.parse(constraint.at);
         if (!Number.isFinite(gap) || gap<0) return [];
         const key=JSON.stringify([trip.id,segment.id,order.id,constraint.eventId,constraint.kind,bookedAt,constraint.at,
-          from.id,from.lat,from.lng,to.id,to.lat,to.lng]);
+          from.id,from.lat,from.lng,routeAccess(from.routeAccess),to.id,to.lat,to.lng,routeAccess(to.routeAccess)]);
         return [{key,segmentId:segment.id,orderId:order.id,eventId:constraint.eventId,kind:constraint.kind,from,to,
-          availableMinutes:Math.floor(gap/60_000)}];
+          departure:inbound ? bookedAt : constraint.at, availableMinutes:Math.floor(gap/60_000)}];
       });
     });
   });

@@ -61,15 +61,15 @@ export interface CommuteAssessment { verdict: LegAssessment; plan: LegAssessment
  * 只有真实或明确标注的合成路线能给出确定性结论；估算与未来路线保持参考语义。
  */
 export function assessCommute(pair:TodayLegPair, routes:RouteEvidence[], mode:TravelMode, status:Freshness,
-  options:{ bufferOverride?:number } = {}):CommuteAssessment {
+  options:{ bufferOverride?:number; accessOverride?:number } = {}):CommuteAssessment {
   const result = routes.find(item => item.mode === mode)
     ?? routes.find(item => routeProviderMode(item.mode) === routeProviderMode(mode));
-  const plan = assessLeg({ pair, route:result, mode, now:status.now, bufferOverride:options.bufferOverride });
+  const plan = assessLeg({ pair, route:result, mode, now:status.now, bufferOverride:options.bufferOverride, accessOverride:options.accessOverride });
   const sources=[eventSource(pair.from.event,status), eventSource(pair.to.event,status)];
   const routeStale=plan.routeState === "stale";
   const evidenceStale=sources.some(source => source.stale) || routeStale;
-  const verdict:LegAssessment = evidenceStale && (plan.status === "sufficient" || plan.status === "reference")
-    ? { ...plan, status:"pending", advice:"日历或路线证据需要更新，暂不下确定性结论" }
+  const verdict:LegAssessment = evidenceStale && !["overlap","pending","stale"].includes(plan.status)
+    ? { ...plan, status:"pending", latestDeparture:null, remainingMinutes:null, advice:"日历或路线证据需要更新，暂不下确定性结论" }
     : plan;
   if (verdict.status === "sufficient" || verdict.status === "reference") return {verdict, plan};
   const overlap=verdict.status === "overlap";
@@ -86,11 +86,12 @@ export function assessCommute(pair:TodayLegPair, routes:RouteEvidence[], mode:Tr
     action:{kind:overlap?"review-calendar":"review-route",
       label:overlap?"核对两场日程":verdict.status === "stale"?"刷新路线":
         confirmed && verdict.latestDeparture ? `最迟 ${legClock(verdict.latestDeparture)} 出发` : "查询路线"}};
-  return {verdict,plan,risk};
+  return {verdict,plan:verdict,risk};
 }
 
 function commuteBasis(pair:TodayLegPair, plan:LegAssessment, route?:RouteEvidence) {
-  const buffer=plan.bufferMinutes ? `，缓冲 ${plan.bufferMinutes} 分钟` : "";
+  const buffer=(plan.accessMinutes ? `，门到门预留 ${plan.accessMinutes} 分钟` : "") +
+    (plan.bufferMinutes ? `，安全缓冲 ${plan.bufferMinutes} 分钟` : "");
   if (plan.status === "overlap") return `日程占用时间与下一场重叠 ${plan.shortBy} 分钟`;
   if (plan.status === "insufficient") return `可用 ${plan.availableMinutes} 分钟，路线约 ${plan.routeMinutes} 分钟${buffer}，差 ${plan.shortBy} 分钟`;
   if (plan.status === "tight") return `可用 ${plan.availableMinutes} 分钟，路线约 ${plan.routeMinutes} 分钟${buffer}，仅余 ${plan.remainingMinutes} 分钟`;
@@ -144,15 +145,16 @@ export function assessTrip(trip:Trip,status:Freshness,transfers:TripTransfer[] =
           const routeStale=!!route && !isCurrentRoute(route,status.now);
           const enoughEvidence=!!transfer && !!route && !routeStale && !outdated;
           const shortBy=enoughEvidence ? route.minutes-transfer.availableMinutes : 0;
+          const futureReference=!!transfer && !!route && Date.parse(transfer.departure) > Math.min(status.now,route.observedAt ?? 0);
           const inbound=constraint.kind==="arrive-before";
           const routeEvidence:SourceProvenance[] = route && transfer ? [{source:route.source,recordId:transfer.key,
             observedAt:route.observedAt,confidence:route.source === "estimate" ? "inferred" : "recorded",stale:routeStale}] : [];
           risks.push({...common,id:JSON.stringify([segment.id,order.id,constraint.kind]),eventIds:[constraint.eventId],
             evidence:[...common.evidence,...routeEvidence],stale:outdated || routeStale,
-            type:"intercity",severity:shortBy>0?"high":"info",status:shortBy>0?"confirmed":"uncertain",
-            title:shortBy>0?"按查询耗时，城际接驳时间不足":"城际接驳待确认",
+            type:"intercity",severity:shortBy>0?(futureReference?"medium":"high"):"info",status:shortBy>0 && !futureReference?"confirmed":"uncertain",
+            title:shortBy>0?(futureReference?"参考路线显示城际接驳可能不足":"按查询耗时，城际接驳时间不足"):"城际接驳待确认",
             basis:label+" · "+(enoughEvidence
-              ? `可用 ${transfer.availableMinutes} 分钟，高德驾车约 ${route.minutes} 分钟${shortBy>0?`，差 ${shortBy} 分钟`:"，另需核对进出站与等车时间"}`
+              ? `可用 ${transfer.availableMinutes} 分钟，高德驾车约 ${route.minutes} 分钟${shortBy>0?`，${futureReference?"可能":""}差 ${shortBy} 分钟`:""}${futureReference?"（查询时参考）":""}，另需核对进出站与等车时间`
               : !order.end && inbound ? "订单缺少到达时间" : routeStale || outdated ? "日历、订单或路线证据需要更新" : "尚未核实车站或机场与会场之间的耗时"),
             action:{kind:"review-route",label:inbound?"核对到站后接驳":"核对出发前接驳"}});
         }

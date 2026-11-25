@@ -14,6 +14,9 @@ export interface LegAssessment {
   availableMinutes: number | null;
   routeMinutes: number | null;
   bufferMinutes: number;
+  accessMinutes: number;
+  accessEstimated: boolean;
+  doorToDoorMinutes: number | null;
   bufferParts: BufferPart[];
   bufferPending: boolean;
   bufferOverridden: boolean;
@@ -51,9 +54,10 @@ const HUB_BUFFERS = {
 type Hub = "rail" | "airport" | null;
 
 function hubOf(place: { name: string; category?: string; address?: string }): Hub {
-  const text = `${place.name} ${place.address ?? ""}`;
-  if (/机场|航站楼/.test(text)) return "airport";
-  if (place.category === "transport" || /火车站|高铁站|车站|站$/.test(place.name)) return "rail";
+  if (/地铁|公交|轻轨|有轨电车|BRT|汽车站/i.test(place.name)) return null;
+  if (/机场|航站楼/.test(place.name)) return "airport";
+  if (/火车站|高铁站|铁路客站|动车站/.test(place.name) ||
+      (place.category === "transport" && /站(?:[（(].*[）)])?$/.test(place.name))) return "rail";
   return null;
 }
 
@@ -94,10 +98,10 @@ export function bufferPlan(pair: TodayLegPair, override?: number): BufferPlan {
   };
 }
 
-/** 这段安排是否发生在本地时间的未来某天。未来路线只能作为参考。 */
+/** Compare actual instants, including a departure later on the same day. */
 export function isFutureLeg(pair: TodayLegPair, now: number) {
   const departure = pair.departure ?? pair.from.event.end;
-  return localDateKey(departure) > localDateKey(now);
+  return Date.parse(departure) > now;
 }
 
 /** 路线的时效语义。缺失与过期分开，未来路线单独标记参考。 */
@@ -106,22 +110,27 @@ export function legRouteState(pair: TodayLegPair, route: RouteEvidence | undefin
   if (!route || !Number.isFinite(route.minutes) || route.minutes < 0) return "missing";
   if (!route.observedAt || route.observedAt > now + MINUTE) return "stale";
   const future = isFutureLeg(pair, now);
+  const queriedBeforeDeparture = isFutureLeg(pair, route.observedAt);
   const maxAge = future ? MAX_FUTURE_AGE : ROUTE_TTLS[mode] ?? ROUTE_TTLS[routeProviderMode(mode) as TravelMode] ?? ROUTE_TTLS.transit;
   if (now - route.observedAt > maxAge) return "stale";
-  if (route.source === "estimate") return "reference";
-  return future ? "reference" : "fresh";
+  if ((route.source === "estimate" || route.source === "synthetic")) return "reference";
+  return future || queriedBeforeDeparture ? "reference" : "fresh";
 }
 
 export function sourceLabel(route: RouteEvidence | undefined, mode: TravelMode) {
   if (!route || route.source === "estimate") return "估算";
   if (route.source === "synthetic") return "演示路线";
-  if (mode === "driving") return "高德 · 不含等车";
-  if (mode === "selfDrive") return "高德 · 不含停车";
+  if (routeProviderMode(mode) === "driving") return "高德驾车 · 查询时参考";
   return "高德";
 }
 
-const roundUpFive = (minutes: number) => Math.ceil(minutes / 5) * 5;
-const clock = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false });
+export type RoadAccessMode = Extract<TravelMode, "driving" | "selfDrive">;
+export const ROAD_ACCESS_DEFAULTS: Record<RoadAccessMode, number> = { driving: 8, selfDrive: 10 };
+export const roadAccessLabel = (mode: RoadAccessMode) => mode === "driving" ? "等车预留" : "取车与停车预留";
+export function roadAccessMode(mode: TravelMode): mode is RoadAccessMode {
+  return mode === "driving" || mode === "selfDrive";
+}
+const clock = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "Asia/Shanghai" });
 
 export function legClock(iso: string | null | undefined) {
   if (!iso) return "";
@@ -142,20 +151,27 @@ export function assessLeg(input: {
   mode: TravelMode;
   now: number;
   bufferOverride?: number;
+  accessOverride?: number;
 }): LegAssessment {
   const { pair, route, mode, now, bufferOverride } = input;
   const buffer = bufferPlan(pair, bufferOverride);
+  const roadAccess = !pair.sameSpot && roadAccessMode(mode);
+  const configured = input.accessOverride;
+  const confirmedAccess = typeof configured === "number" && Number.isFinite(configured) && configured >= 0 && configured <= 120;
+  const accessMinutes = roadAccess ? (confirmedAccess ? Math.round(configured) : ROAD_ACCESS_DEFAULTS[mode]) : 0;
+  const accessEstimated = roadAccess && !confirmedAccess;
   const available = Number.isFinite(pair.gapMinutes) ? Math.floor(pair.gapMinutes) : null;
   const routeState = legRouteState(pair, route, mode, now);
   const future = isFutureLeg(pair, now);
-  const reference = routeState === "reference" || (future && routeState === "fresh");
+  const reference = routeState === "reference" || (routeState === "fresh" && (future || accessEstimated));
   const routeMinutes = pair.sameSpot ? 0
     : route && routeState !== "missing" && routeState !== "stale" ? Math.ceil(route.minutes) : null;
   const base = {
     mode,
     availableMinutes: available,
     routeMinutes,
-    bufferMinutes: buffer.minutes,
+    bufferMinutes: buffer.minutes, accessMinutes, accessEstimated,
+    doorToDoorMinutes: routeMinutes === null ? null : routeMinutes + accessMinutes,
     bufferParts: buffer.parts,
     bufferPending: buffer.pending,
     bufferOverridden: buffer.overridden,
@@ -187,8 +203,8 @@ export function assessLeg(input: {
     return unknown("stale", "路线参考已过期，刷新后再判断");
   }
   const minutes = routeMinutes ?? 0;
-  const remaining = available - minutes - buffer.minutes;
-  const latestDeparture = new Date(Date.parse(pair.to.event.start) - (minutes + buffer.minutes) * MINUTE).toISOString();
+  const remaining = available - minutes - accessMinutes - buffer.minutes;
+  const latestDeparture = new Date(Date.parse(pair.to.event.start) - (minutes + accessMinutes + buffer.minutes) * MINUTE).toISOString();
   const estimateOnly = route?.source === "estimate";
   // 未来日期与估算路线只给参考语义：即使按参考值算不过来，也不输出确定的风险结论。
   if (reference) {
@@ -221,7 +237,7 @@ export function assessLeg(input: {
   if (remaining < TIGHT_REMAINING_MINUTES) {
     return {
       ...base, status: "tight", remainingMinutes: remaining, latestDeparture, shortBy: 0,
-      advice: `剩余 ${remaining} 分钟，低于 ${TIGHT_REMAINING_MINUTES} 分钟建议缓冲，最迟 ${legClock(latestDeparture)} 出发`,
+      advice: `剩余 ${remaining} 分钟，最迟 ${legClock(latestDeparture)} 出发`,
     };
   }
   return {

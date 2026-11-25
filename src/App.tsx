@@ -1,10 +1,11 @@
 import { planCalendarImport } from "./lib/calendarImportPlan";
+import type { RoadAccessMode } from "./lib/smartRoutes";
 import { BusinessTripCommute, type CommuteChoice } from "./components/BusinessTripCommute";
 import { BusinessTripConnections } from "./components/BusinessTripConnections";
 import { tripTransfers } from "./lib/tripTransfers";
 import { buildTravelWorkspace, tripTimeline } from "./lib/tripIntelligence";
 import { assignTripBookings, collectTripBookings } from "./lib/businessOrders";
-import { assessCommute, assessTrip, calendarRisks, isCurrentRoute } from "./lib/tripFeasibility";
+import { assessCommute, assessTrip, calendarRisks } from "./lib/tripFeasibility";
 import { useBookingPlaces, bookingPlaceKey } from "./lib/useBookingPlaces";
 import { useTripMailbox } from "./lib/useTripMailbox";
 import {storedPlaceCity} from "./lib/placeCity";
@@ -21,10 +22,10 @@ import { CalendarPlaceHint } from "./components/CalendarPlaceHint";
 import { TodayPanel, type TodaySegment } from "./components/TodayPanel";
 import { CopilotPanel } from "./components/CopilotPanel";
 import { OFFLINE_AI_STATUS, fetchAiStatus, type AiProposal, type AiStatus } from "./lib/aiClient";
-import { buildCopilotContext } from "./lib/aiContext";
+import { buildCopilotContext, copilotCommute, type CopilotCommuteInput } from "./lib/aiContext";
 import { OfflineNotice } from "./components/OfflineNotice";
 import { localDateKey, placePairKey, routeProviderMode, type TodayLegPair, type TravelMode } from "./lib/todayMap";
-import { useTodayLegs, type LegResult } from "./lib/useTodayLegs";
+import { pairDeparture, useTodayLegs, type LegResult } from "./lib/useTodayLegs";
 import { BusinessTripsPanel } from "./components/BusinessTripsPanel";
 import { HistoryPanel } from "./components/HistoryPanel";
 import { groupBusinessTrips, readBusinessTripSettings, tripPlaces, writeBusinessTripSettings, type BusinessTripSettings } from "./lib/businessTrips";
@@ -323,6 +324,7 @@ export default function App() {
     return () => { window.clearInterval(timer); document.removeEventListener("visibilitychange", update); };
   }, []);
   const [legPreference, setLegPreference] = useState<{ owner: string; values: Record<string, TravelMode> }>();
+  const [roadAccessPreference, setRoadAccessPreference] = useState<{owner:string; values:Partial<Record<RoadAccessMode, number>>}>();
   const [bufferPreference, setBufferPreference] = useState<{ owner: string; values: Record<string, number> }>();
   const [compareLeg, setCompareLeg] = useState<string | null>(null);
   const [legFocus, setLegFocus] = useState<{ owner: string; id: string | null }>();
@@ -680,6 +682,22 @@ export default function App() {
         typeof minutes === "number" && Number.isFinite(minutes) && minutes >= 0 && minutes <= 360)) as Record<string, number>;
     } catch { return {}; }
   }, [bufferPreference, bufferKey, activeUser.id]);
+  const roadAccessKey = `wayline.roadAccess.${activeUser.id}`;
+  const roadAccessMinutes = useMemo(() => {
+    if (roadAccessPreference?.owner === activeUser.id) return roadAccessPreference.values;
+    try {
+      const stored = JSON.parse(localStorage.getItem(roadAccessKey) ?? "{}");
+      return Object.fromEntries(Object.entries(stored ?? {}).filter(([mode, value]) =>
+        (mode === "driving" || mode === "selfDrive") && typeof value === "number" &&
+        Number.isInteger(value) && value >= 0 && value <= 120)) as Partial<Record<RoadAccessMode, number>>;
+    } catch { return {}; }
+  }, [roadAccessKey, roadAccessPreference, activeUser.id]);
+  const chooseRoadAccess = (mode:RoadAccessMode, minutes:number | undefined) => {
+    const values = { ...roadAccessMinutes };
+    if (minutes === undefined) delete values[mode]; else values[mode] = minutes;
+    setRoadAccessPreference({owner:activeUser.id, values});
+    try { localStorage.setItem(roadAccessKey, JSON.stringify(values)); } catch { /* session only */ }
+  };
   const chooseBuffer = (pair: TodayLegPair, minutes: number | undefined) => {
     const values = { ...bufferOverrides };
     const key = placePairKey(pair);
@@ -715,9 +733,10 @@ export default function App() {
     const options = values;
     const result = values[mode] ?? values[routeProviderMode(mode)];
     const bufferOverride = bufferOverrides[placePairKey(pair)];
-    const assessment = assessCommute(pair, Object.values(values), mode, freshness, { bufferOverride });
-    return {pair, mode, result, options, bufferOverride, ...assessment};
-  }), [pairs, choices, todayLegResults, freshness, bufferOverrides]);
+    const accessOverride = mode === "driving" || mode === "selfDrive" ? roadAccessMinutes[mode] : undefined;
+    const assessment = assessCommute(pair, Object.values(values), mode, freshness, { bufferOverride, accessOverride });
+    return {pair, mode, result, options, bufferOverride, accessOverride, ...assessment};
+  }), [pairs, choices, todayLegResults, freshness, bufferOverrides, roadAccessMinutes]);
   const todayConflicts = useMemo(() => calendarRisks(workspaceEvents,freshness,today?.dateKey ?? effectiveTodayKey)
     .filter(risk => risk.type === "overlap" && !todaySegments.some(({pair,plan}) =>
       plan.status === "overlap" && pair.from.event.id === risk.eventIds[0] && pair.to.event.id === risk.eventIds[1])),
@@ -743,8 +762,8 @@ export default function App() {
   }), [todayConflicts, todayTripRisks, todaySegments, workspaceEvents, clockNow]);
   const showTodayOnMap = todayVisible && calendarLayer && todayStops.length > 0;
   const todayRoutes = useMemo(() => showTodayOnMap ? todaySegments.flatMap(({ pair, result, plan }) =>
-    result && isCurrentRoute(result,clockNow) ? [{ id: pair.id, points: result.points, late: plan.status === "insufficient" || plan.status === "overlap" }] : []
-  ) : undefined, [showTodayOnMap, todaySegments, clockNow]);
+    result && (plan.routeState === "fresh" || plan.routeState === "reference") ? [{ id: pair.id, points: result.points, late: plan.status === "insufficient" || plan.status === "overlap" }] : []
+  ) : undefined, [showTodayOnMap, todaySegments]);
   const todayPlaces = useMemo(() => showTodayOnMap ? todayStops
     .filter((stop, index, stops) => stops.findIndex(item => samePlace(item.place, stop.place)) === index)
     .map(stop => ({ ...stop.place, calendarEventIds: todayStops.filter(item => samePlace(item.place, stop.place)).map(item => item.event.id) })) : [], [showTodayOnMap, todayStops]);
@@ -758,7 +777,7 @@ export default function App() {
       sessionStorage.removeItem(businessNavKey);
       const data = JSON.parse(raw);
       if (!businessTrips.some(trip => trip.id === data?.tripId) || typeof data?.choice?.id !== "string" ||
-        !["walking", "transit", "selfDrive"].includes(data.choice.mode)) return;
+        !["walking", "transit", "driving", "selfDrive"].includes(data.choice.mode)) return;
       setBusinessSelection({owner:activeUser.id, id:data.tripId});
       setResumedCommute({owner:activeUser.id, tripId:data.tripId, choice:data.choice});
       setActiveOverlay("business-trips");
@@ -775,11 +794,14 @@ export default function App() {
     ? businessTrips.find(item => item.id === businessSelection.id) : undefined;
   const selectedModel = selectedBusinessTrip && model.tripModels.get(selectedBusinessTrip.id);
   const selectedPlan = selectedBusinessTrip && bookingPlan.get(selectedBusinessTrip.id);
+  const [tripCommuteAssessment, setTripCommuteAssessment] = useState<{owner:string; tripId:string; commute:CopilotCommuteInput}>();
   const copilotContext = useMemo(() => {
     const tomorrow = demoActive ? demoDay(1, demoNow) : localDateKey(new Date(clockNow + 86_400_000).toISOString());
     const days = new Set([effectiveTodayKey, tomorrow]);
+    const tripPairs = activeOverlay === "business-trips" ? selectedModel?.segments.flatMap(segment => segment.kind === "commute" ? [segment.pair] : []) ?? [] : [];
+    const selectedEventIds = new Set(tripPairs.flatMap(pair => [pair.from.event.id,pair.to.event.id]));
     const events = workspaceEvents
-      .filter(event => days.has(demoActive ? eventDay(event) : localDateKey(event.start)))
+      .filter(event => selectedEventIds.has(event.id) || days.has(demoActive ? eventDay(event) : localDateKey(event.start)))
       .map(event => ({
         id: event.id,
         title: event.title,
@@ -792,7 +814,9 @@ export default function App() {
         local: !!event.local,
         stale: !!event.google?.stale,
       }));
-    const physicalPlaces = [...todayPlaces, ...userPlaces.filter(place => place.city === city.name)]
+    const eventIds = new Set(events.map(event => event.id));
+    const scheduledPlaces = workspaceEvents.flatMap(event => event.place && eventIds.has(event.id) ? [event.place] : []);
+    const physicalPlaces = [...new Map([...scheduledPlaces, ...userPlaces.filter(place => place.city === city.name)].map(place => [place.id,place])).values()]
       .filter(place => !place.tags?.includes("日程助手"));
     const bookings = [...(selectedPlan?.legs ?? []), ...(selectedPlan?.nights ?? [])]
       .flatMap(entry => entry.orders)
@@ -823,21 +847,16 @@ export default function App() {
         eventIds: action.eventIds,
         nextStep: { kind: action.nextStep.kind, label: action.nextStep.label },
       })),
-      commutes: todaySegments.map(({ pair, mode, plan, result }) => ({
-        fromEventId: pair.from.event.id,
-        toEventId: pair.to.event.id,
-        mode,
-        status: plan.status,
-        availableMinutes: plan.availableMinutes,
-        routeMinutes: result?.minutes ?? null,
-        bufferMinutes: plan.bufferMinutes,
-        remainingMinutes: plan.remainingMinutes,
-        latestDeparture: plan.latestDeparture,
-        advice: plan.advice,
-        reference: plan.status === "reference",
-        pending: plan.status === "pending",
-        source: result?.source,
+      routePairs: [...new Map([...pairs,...tripPairs].map(pair => [pair.id,pair])).values()].map(pair => ({
+        fromEventId:pair.from.event.id, toEventId:pair.to.event.id, departure:pairDeparture(pair),
       })),
+      commutes: [
+        ...(activeOverlay === "business-trips" && tripCommuteAssessment &&
+          tripCommuteAssessment.owner === activeUser.id && tripCommuteAssessment.tripId === selectedModel?.id &&
+          tripPairs.some(pair => pair.from.event.id === tripCommuteAssessment.commute.fromEventId &&
+            pair.to.event.id === tripCommuteAssessment.commute.toEventId) ? [tripCommuteAssessment.commute] : []),
+        ...todaySegments.map(({pair,plan,result}) => copilotCommute(pair,plan,result)),
+      ],
       bookings,
       trips: businessTrips.map(trip => ({
         id: trip.id,
@@ -849,7 +868,7 @@ export default function App() {
       })),
     });
   }, [activeUser.id, businessTrips, city.name, clockNow, demoActive, demoNow, effectiveTodayKey,
-    selectedPlan, todayActions, todayPlaces, todaySegments, userPlaces, workspaceEvents]);
+    activeOverlay, selectedPlan, todayActions, todaySegments, userPlaces, workspaceEvents, pairs, selectedModel, tripCommuteAssessment]);
   useEffect(() => {
     if (demoActive) return;
     let live = true;
@@ -1882,6 +1901,7 @@ export default function App() {
           now={demoActive ? demoNow : clockNow}
           onCompare={setCompareLeg}
           onBufferChange={chooseBuffer}
+          onAccessChange={chooseRoadAccess}
           nextStopId={todayStops.find(stop => Date.parse(stop.event.start)>=clockNow)?.event.id}
           syncWarning={!freshness.calendarCurrent && todayStops.some(stop => stop.event.google)}
           onNavigate={rememberLegFocus}
@@ -1934,7 +1954,9 @@ export default function App() {
         openConnections={resumedCommute?.owner === activeUser.id && resumedCommute.tripId === selectedModel?.id}
         connections={selectedModel && selectedPlan && <>
           <BusinessTripCommute key={`${businessRevision}:${businessOverviewCommand}`} trip={selectedModel} freshness={freshness}
-            bufferOverrides={bufferOverrides}
+            owner={activeUser.id} bufferOverrides={bufferOverrides} accessOverrides={roadAccessMinutes}
+            onBufferChange={chooseBuffer} onAccessChange={chooseRoadAccess}
+            onAssessment={commute => setTripCommuteAssessment(commute ? {owner:activeUser.id,tripId:selectedModel.id,commute} : undefined)}
             initialChoice={resumedCommute?.owner === activeUser.id && resumedCommute.tripId === selectedModel.id ? resumedCommute.choice : undefined}
             onNavigate={choice => {
               try { sessionStorage.setItem(businessNavKey, JSON.stringify({tripId:selectedModel.id, choice})); } catch { /* retain the current view */ }

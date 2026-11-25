@@ -1,4 +1,14 @@
+import { chinaDeparture, plannedDeparture, routeAccess, routeEndpoint } from '../shared/route-input.mjs';
 import { createJourneySuppliers } from './journey-suppliers.mjs';
+const accessPoint = value => {
+  if (typeof value !== 'string' || !/^-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?$/.test(value)) return undefined;
+  const [lng,lat]=value.split(',').map(Number);
+  return {lat,lng};
+};
+const accessOf = poi => routeAccess({poiId:poi.id,citycode:poi.citycode,
+  entrance:accessPoint(poi.entr_location),exit:accessPoint(poi.exit_location),
+  vehicle:accessPoint(poi.navi_location)});
+
 /** Provider-backed lookup; errors never include credential-bearing request URLs. */
 export function createTravelServices({ fetchImpl = fetch, tiandituToken = '', amapKey = '', minRequestIntervalMs = 0 } = {}) {
   let nextRequestAt=0;
@@ -19,7 +29,7 @@ export function createTravelServices({ fetchImpl = fetch, tiandituToken = '', am
     async searchPlaces({ keyword, city, count, types, cityLimit = false, includeDistrict = false, requestIntervalMs }) {
       if (!amapKey) throw new Error('地点查询暂不可用');
       const params = new URLSearchParams({key:amapKey, keywords:keyword, city, citylimit:String(cityLimit),
-        offset:String(count), page:'1', extensions:'base', output:'JSON'});
+        offset:String(count), page:'1', extensions:'all', output:'JSON'});
       if (types) params.set('types', types);
       const raw = await get('https://restapi.amap.com/v3/place/text?' + params, 3500, requestIntervalMs);
       if (raw?.status !== '1' || !Array.isArray(raw.pois)) {
@@ -33,7 +43,9 @@ export function createTravelServices({ fetchImpl = fetch, tiandituToken = '', am
         const [lng, lat] = parts.map(Number);
         try { coordinate(lat,lng); } catch { return []; }
         const text = value => typeof value === 'string' ? value : '';
+        const routeAccess=accessOf(poi);
         return [{name:poi.name, city:text(poi.cityname)||text(poi.pname), address:text(poi.address)||poi.name, lat, lng,
+          ...(routeAccess && {routeAccess}),
           ...(types ? { id:text(poi.id), typecode:text(poi.typecode), district:text(poi.adname) } : includeDistrict ? {district:text(poi.adname)} : {})}];
       });
     },
@@ -45,7 +57,7 @@ export function createTravelServices({ fetchImpl = fetch, tiandituToken = '', am
       const candidates = raw.pois.filter(p => p.typecode === '150200' && typeof p.name === 'string' && p.name.endsWith('站') && !/地铁|公交|售票|出站|进站|停车/.test(p.name)).flatMap(p => {
         const [lng, lat] = String(p.location || '').split(',').map(Number);
         try { coordinate(lat, lng); } catch { return []; }
-        return [{ id: 'amap:' + p.id, name: p.name, city: p.cityname, citycode: p.citycode, address: p.address, lat, lng }];
+        return [{ id: 'amap:' + p.id, name: p.name, city: p.cityname, citycode: p.citycode, address: p.address, lat, lng, routeAccess:accessOf(p) }];
       }).slice(0, 2);
       return { candidates, observedAt: Date.now(), source: 'amap' };
     },
@@ -57,7 +69,7 @@ export function createTravelServices({ fetchImpl = fetch, tiandituToken = '', am
       const rows=(raw.pois||[]).filter(p=>canon(p.name)===canon(name));
       if(raw.status!=='1'||rows.length!==1)throw new Error('地点尚未唯一匹配');
       const p=rows[0],[lng,lat]=String(p.location||'').split(',').map(Number);coordinate(lat,lng);
-      return {id:'amap:'+p.id,name:p.name,city:p.cityname,citycode:p.citycode,address:p.address,lat,lng};
+      return {id:'amap:'+p.id,name:p.name,city:p.cityname,citycode:p.citycode,address:p.address,lat,lng,routeAccess:accessOf(p)};
     },
     async findHotels({place,keywords}) {
       coordinate(place.lat, place.lng);
@@ -91,16 +103,19 @@ export function createTravelServices({ fetchImpl = fetch, tiandituToken = '', am
       return { city: city.replace(/市$/, ''), address: raw.result.formatted_address || '', lat, lng,
         source: 'tianditu', observedAt: Date.now() };
     },
-    async route({ places, mode = 'driving', departure }) {
+    async route({ places, mode = 'driving', departure, plannedAt }) {
       if (!['driving', 'walking', 'transit'].includes(mode)) throw new Error('不支持此交通方式');
       if (departure && mode !== 'transit') throw new Error('此道路接口不支持未来出发时间，不能作为未来路况保证');
       if (!Array.isArray(places) || places.length < 2 || places.length > 12) throw new Error('请选择2至12个地点');
-      for (const p of places) coordinate(p.lat, p.lng);
+      for (const p of places) coordinate(p?.lat, p?.lng);
+      const planned = plannedDeparture(mode === 'transit' ? departure : plannedAt);
+      const observedAt=Date.now();
       if (!amapKey) throw new Error('真实路线服务未配置');
-      if(mode==='transit' && (places.length!==2 || typeof departure!=='string' || !/(?:Z|[+-]\d\d:\d\d)$/.test(departure) || !Number.isFinite(Date.parse(departure)))) throw new Error('公交查询需要两个地点和明确的出发时间');
+      if(mode==='transit' && (places.length!==2 || !planned)) throw new Error('公交查询需要两个地点和明确的出发时间');
       const legs = await Promise.all(places.slice(1).map(async (_, offset) => {
         const i = offset + 1;
-        let a = places[i - 1], b = places[i];
+        let a = {...places[i-1],...routeEndpoint(places[i-1],mode,'from')};
+        let b = {...places[i],...routeEndpoint(places[i],mode,'to')};
         if(mode==='transit') {
           const resolveCity=async p=>{
             if(p.citycode!=null && !(typeof p.citycode==='string' && /^\d{3,4}$/.test(p.citycode)))throw new Error('公交查询需要供应商城市编码');
@@ -113,11 +128,14 @@ export function createTravelServices({ fetchImpl = fetch, tiandituToken = '', am
           };
           [a,b]=await Promise.all([resolveCity(a),resolveCity(b)]);
         }
-        const params = new URLSearchParams({ key: amapKey, origin: `${a.lng},${a.lat}`, destination: `${b.lng},${b.lat}`, show_fields: 'cost,polyline', output: 'JSON' });
+        const params = new URLSearchParams({ key: amapKey, origin: `${a.lng.toFixed(6)},${a.lat.toFixed(6)}`, destination: `${b.lng.toFixed(6)},${b.lat.toFixed(6)}`, show_fields: 'cost,polyline', output: 'JSON' });
+        if (a.poiId) params.set(mode === 'transit' ? 'originpoi' : 'origin_id',a.poiId);
+        if (b.poiId) params.set(mode === 'transit' ? 'destinationpoi' : 'destination_id',b.poiId);
+        if (mode === 'driving') params.set('strategy','32');
         if(mode==='transit') {
           if(![a.citycode,b.citycode].every(c=>typeof c==='string' && /^\d{3,4}$/.test(c))) throw new Error('公交查询需要供应商城市编码');
-          const local=new Date(Date.parse(departure)+8*3600000).toISOString();
-          params.set('city1',a.citycode);params.set('city2',b.citycode);params.set('date',local.slice(0,10));params.set('time',local.slice(11,16));params.set('strategy','0');
+          const {date,time}=chinaDeparture(planned);
+          params.set('city1',a.citycode);params.set('city2',b.citycode);params.set('date',date);params.set('time',time);params.set('strategy','0');
         }
         let raw;
         try { raw = await get('https://restapi.amap.com/v5/direction/' + (mode==='transit'?'transit/integrated':mode) + '?' + params); }
@@ -128,6 +146,7 @@ export function createTravelServices({ fetchImpl = fetch, tiandituToken = '', am
           const number = Number(value);
           return Number.isFinite(number) && number >= 0 ? number : null;
         };
+        // v5 cost.duration is the entire itinerary in seconds, including transit waiting.
         const distance = numeric(path?.distance), duration = numeric(path?.cost?.duration);
         if (raw?.status !== '1' || distance === null || duration === null || (distance > 0 && duration === 0))
           throw new Error('地图未返回有效路线');
@@ -144,12 +163,13 @@ export function createTravelServices({ fetchImpl = fetch, tiandituToken = '', am
         const walkingDuration=mode==='walking'?duration:mode==='transit' && walkingParts.length>0 && walkingParts.every(v=>v!==null)?walkingParts.reduce((sum,v)=>sum+v,0):null;
         const buses=(path.segments || []).filter(segment=>segment.bus?.buslines?.length).length;
         const fare=numeric(path.cost?.transit_fee);
-        return { from:a.name, to:b.name, distance, duration, points,
+        return { from:a.name, to:b.name, distance, duration, points, endpointAnchors:[a.anchor,b.anchor],
           instructions: steps.map(step=>step.instruction || step.name).filter(v=>typeof v==='string' && v.trim()).slice(0,80),
           walkingDuration, transfers:mode==='transit'?(buses>0?Math.max(0,buses-1):null):0,
           cost:mode==='transit' && fare!==null?{amount:fare,currency:'CNY',basis:'per_person'}:null };
       }));
-      return { mode, source: 'amap', observedAt: Date.now(), legs,
+      return { mode, source: 'amap', observedAt, plannedDeparture:planned,
+        timing:mode === 'transit' ? 'scheduled-transit' : mode === 'driving' ? 'query-time-road' : 'walking', legs,
         distance: legs.reduce((sum, leg) => sum + leg.distance, 0), duration: legs.reduce((sum, leg) => sum + leg.duration, 0) };
     },
   };
