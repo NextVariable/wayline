@@ -4,7 +4,7 @@
 仓库：NextVariable/wayline  
 分支：`feat/ai-native-mvp`  
 版本：`1.0.0-rc.5`  
-收口提交：`{{SHA}}`  
+收口提交：`e6350a8b7d3778172195dd84231e5c6563e4566c`  
 结论：**工程侧可处理阻断项已完成；RC.5 可进入受限内测准备。Google 真实联调、实体设备与 G0/R02–R05 仍阻断正式 V1.0。**
 
 本轮未进入 M6，未修改 `main`，未合并 PR #9，未删除历史分支，未创建 Release/Tag，未执行真实部署。
@@ -164,11 +164,11 @@
 ## 11. Git、CI 与本地预览
 
 - 分支：`feat/ai-native-mvp`。
-- 当前 HEAD：`{{SHA}}`。
-- 与 `main` 关系：领先 27+ 提交，`main` 无新提交可回并；未修改 `main`。
-- CI：`{{CI}}`
+- 当前代码 HEAD：`e6350a8b7d3778172195dd84231e5c6563e4566c`（本报告随后的提交仅更新文档证据）。
+- 与 `main` 关系：领先 28 个提交，`main` 无新提交可回并；未修改 `main`。
+- CI：本地 `tsc` / `lint` / `vitest` / `build` / `rc-preflight` 全部通过；**远端 CI 未触发，本轮未推送**（未获远端推送授权）。
 - 本地预览：`http://127.0.0.1:8787/`（单实例本地构建，已重启加载本轮代码）。
-- PR #9：仍为 draft，base 为 `codex/v1.0-rc.2`；**未合并、未修改**。建议后续新开 `feat/ai-native-mvp` → `main` 的单一发布 PR。
+- PR #9：仍为 draft，base 为 `codex/v1.0-rc.2`；**未合并、未修改**。建议后续新开 `feat/ai-native-mvp` → `main` 的单一发布 PR；推送与开 PR 需产品负责人明确授权。
 
 ## 12. RC.5 Private Beta 与正式 V1.0 的剩余差距
 
