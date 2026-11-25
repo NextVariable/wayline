@@ -149,7 +149,7 @@ M1–M4 的本地核心旅程、真实高德路线、真实 DeepSeek 调用、�
 4. **Gmail**：在 Google restricted scope/CASA 与 DeepSeek 数据处理条款确认前保持 `GMAIL_ORDERS_ENABLED=0`；不发送原始邮件到模型。
 5. **高德/Tianditu**：Web 服务 Key 仅服务端；JS Key 绑定生产域名；配置配额告警。
 6. **密钥与日志**：Docker secret/系统环境注入；确保日志不记录 `Authorization`、OAuth code、`tk`、`sk-`；Nginx 仅记录 `$uri`。
-7. **预算与限速**：保留 AI 账本挂载卷；设置每日预算、单任务 Token、轮次、超时、每分钟限速；`AI_DISABLED=1` 作为熔断。
+7. **预算与限速**：保留 AI 账本挂载卷；设置每日预算、单任务 Token、轮次、超时、每分钟限速；`AI_DISABLED=1` 作为熔断。当前文件账本只在进程内缓存，横向扩容前需改为共享事务存储，否则多实例会低估已用预算。
 8. **监控与回滚**：外部 uptime 检查 `/healthz`；错误率/OAuth 失败/高德配额/AI 预算告警；镜像按 tag 回滚，`.wayline-private` 快照恢复演练。
 9. **数据**：账户删除与 30 天恢复任务补齐后再开放真实账号；备份加密、最小权限。
 
