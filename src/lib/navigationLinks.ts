@@ -1,3 +1,4 @@
+import { routeEndpoint } from "../../shared/route-input.mjs";
 import type { Place } from "../types/place";
 import { haversineKm, routeProviderMode, type TravelMode } from "./todayMap";
 import { gcjToWgs } from "./trackCoordinates";
@@ -14,8 +15,10 @@ const amapMode = { walking: "walk", transit: "bus", driving: "car" };
 export function amapNavigationUrl(from: Place, to: Place, mode: TravelMode, mobile = false) {
   const url = new URL("https://uri.amap.com/navigation");
   // Wayline coordinates are GCJ-02, which is what Amap expects.
-  url.searchParams.set("from", `${from.lng},${from.lat},${from.name}`);
-  url.searchParams.set("to", `${to.lng},${to.lat},${to.name}`);
+  const providerMode=routeProviderMode(mode);
+  const origin=routeEndpoint(from,providerMode,"from"), destination=routeEndpoint(to,providerMode,"to");
+  url.searchParams.set("from", `${origin.lng},${origin.lat},${from.name}`);
+  url.searchParams.set("to", `${destination.lng},${destination.lat},${to.name}`);
   url.searchParams.set("mode", amapMode[routeProviderMode(mode)]);
   url.searchParams.set("coordinate", "gaode");
   url.searchParams.set("callnative", mobile ? "1" : "0");

@@ -5,7 +5,7 @@ import { calendarSearchCity } from "./geoSearch";
 import { findCityPreset } from "../data/cities";
 
 /** What the server resolver returns for one place. */
-export interface FoundPlace { name: string; city: string; address: string; lat: number; lng: number }
+export interface FoundPlace { name: string; city: string; address: string; lat: number; lng: number; routeAccess?: Place["routeAccess"] }
 export type ResolveResult =
   | { text: string; status: "found"; place: FoundPlace }
   | { text: string; status: "ambiguous"; candidates: FoundPlace[] }
@@ -27,7 +27,7 @@ export function toCalendarPlace(found: FoundPlace): Place {
   return {
     id: "calendar:" + shortHash(`${found.name}|${found.lat.toFixed(6)}|${found.lng.toFixed(6)}`),
     name: found.name, city: found.city, category: "custom", type: "user", source: "imported",
-    lat: found.lat, lng: found.lng, address: found.address, openingHours: "", description: "",
+    lat: found.lat, lng: found.lng, ...(found.routeAccess && {routeAccess:found.routeAccess}), address: found.address, openingHours: "", description: "",
     tags: ["日程"], reason: "", status: "saved", isSaved: false, distanceText: "", externalLinks: Object.fromEntries([]),
   };
 }

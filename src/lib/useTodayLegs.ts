@@ -3,12 +3,17 @@ import { apiEndpoint } from "./apiEndpoint";
 import type { Place, RouteEvidence } from "./tripDomain";
 import { normalizeRouteEvidence } from "./plannerEvidence";
 import { routeProviderMode, type TodayLegPair, type TravelMode } from "./todayMap";
-import { ROUTE_TTLS, assessLeg, isFutureLeg } from "./smartRoutes";
+import { plannedDeparture, routeAccess, routeMinutes } from "../../shared/route-input.mjs";
+import { ROUTE_TTLS, assessLeg } from "./smartRoutes";
 
 type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
 export type LegResult = RouteEvidence;
 type Legs = Record<string, Partial<Record<TravelMode, LegResult>>>;
 const emptyLegs: Legs = {};
+const nearDeparture = (pair: TodayLegPair, now: number) => {
+  const departure = Date.parse(pairDeparture(pair) ?? "");
+  return !pair.sameSpot && now >= departure - 30 * 60_000 && now < Date.parse(pair.to.event.start);
+};
 export const ALL_MODES: TravelMode[] = ["walking", "transit", "driving"];
 
 /**
@@ -37,7 +42,13 @@ function syntheticMinutes(places: [Place, Place], mode: TravelMode, departure?: 
 type LookupOptions = {fetchImpl?:FetchLike; signal?:AbortSignal};
 
 export function fetchLeg(pair: TodayLegPair, mode: TravelMode, options?:LookupOptions) {
-  return fetchRoute([pair.from.place,pair.to.place],mode,pair.departure ?? pair.from.event.end,options);
+  const departure = pairDeparture(pair);
+  if (mode === "transit" && !departure) return Promise.resolve(null);
+  return fetchRoute([pair.from.place,pair.to.place],mode,departure,options);
+}
+
+export function pairDeparture(pair: TodayLegPair) {
+  return pair.endPending ? undefined : plannedDeparture(pair.departure ?? pair.from.event.end);
 }
 
 export async function fetchRoute(places:[Place,Place], mode:TravelMode, departure?:string,
@@ -53,8 +64,8 @@ export async function fetchRoute(places:[Place,Place], mode:TravelMode, departur
     const response = await fetchImpl(apiEndpoint("route"), {
       method: "POST", headers: { "Content-Type": "application/json" }, signal,
       body: JSON.stringify({
-        places: places.map(({ id, name, lat, lng }) => ({ id, name, lat, lng })),
-        mode: routeProviderMode(mode), ...(mode === "transit" ? { departure } : {}),
+        places: places.map(({ id, name, lat, lng, routeAccess: access }) => ({ id, name, lat, lng, routeAccess: routeAccess(access) })),
+        mode: routeProviderMode(mode), ...(mode === "transit" ? { departure } : { plannedAt: departure }),
       }),
     });
     if (!response.ok) return null;
@@ -62,7 +73,7 @@ export async function fetchRoute(places:[Place,Place], mode:TravelMode, departur
     if (evidence?.mode !== routeProviderMode(mode) || evidence.legs.length !== 1) return null;
     const [leg] = evidence.legs;
     if (leg.points.length < 2 || (leg.distance > 0 && leg.duration === 0)) return null;
-    return { mode, minutes: Math.ceil(leg.duration / 60), source: "amap", points: leg.points, observedAt: evidence.observedAt };
+    return { mode, minutes: routeMinutes(leg.duration), source: "amap", points: leg.points, observedAt: evidence.observedAt };
   } catch {
     return null;
   }
@@ -96,8 +107,8 @@ export function createTodayLegsRunner({ fetchImpl = fetch }: { fetchImpl?: Fetch
   };
   const cancel = () => { active?.abort(); active = null; };
   const key = (pair: TodayLegPair, mode: TravelMode) => JSON.stringify([
-    ...[pair.from.place, pair.to.place].map(p => [p.id, p.city, p.lat, p.lng]),
-    routeProviderMode(mode), mode === "transit" ? pair.departure ?? pair.from.event.end : null,
+    ...[pair.from.place, pair.to.place].map(p => [p.id, p.city, p.lat, p.lng, routeAccess(p.routeAccess)]),
+    routeProviderMode(mode), mode === "transit" ? pairDeparture(pair) : null,
   ]);
   return {
     cancel,
@@ -108,8 +119,8 @@ export function createTodayLegsRunner({ fetchImpl = fetch }: { fetchImpl?: Fetch
       const live = () => active === controller && !controller.signal.aborted;
       const look = async (pair: TodayLegPair, mode: TravelMode) => {
         const entry = done.get(key(pair, mode));
-        const ttl = isFutureLeg(pair, Date.now()) ? ROUTE_TTLS.walking : ROUTE_TTLS[mode];
-        const cached = !force && entry && Date.now()-entry.fetchedAt < Math.min(entry.ttl, ttl) ? entry.leg : undefined;
+        const ttl = ROUTE_TTLS[mode];
+        const cached = !force && entry && Date.now() - (entry.leg.observedAt ?? entry.fetchedAt) < Math.min(entry.ttl, ttl) ? entry.leg : undefined;
         const leg = cached ? (cached.mode === mode ? cached : { ...cached, mode }) : await limited(() => fetchLeg(pair, mode, { fetchImpl, signal: controller.signal }));
         if (!live()) return null;
         if (leg) {
@@ -122,9 +133,9 @@ export function createTodayLegsRunner({ fetchImpl = fetch }: { fetchImpl?: Fetch
       await Promise.all(pairs.filter(pair => !pair.sameSpot).map(async pair => {
         const chosen = choices[pair.id] ?? pair.defaultMode;
         const first = await look(pair, chosen);
-        if (!first || !live()) return;
+        if (!live()) return;
         const wantsCompare = compare === pair.id;
-        const short = assessLeg({ pair, route: first, mode: chosen, now: Date.now(), bufferOverride: 0 }).status === "insufficient";
+        const short = first && assessLeg({ pair, route: first, mode: chosen, now: Date.now(), bufferOverride: 0 }).shortBy > 0;
         if (!wantsCompare && !short) return;
         const providerModes = new Set<"walking" | "transit" | "driving">(["walking", "transit", "driving"]);
         providerModes.delete(routeProviderMode(chosen));
@@ -139,18 +150,15 @@ export function createTodayLegsRunner({ fetchImpl = fetch }: { fetchImpl?: Fetch
 export function useTodayLegs({ pairs, choices, owner, retryCount, compare }: {
   pairs: TodayLegPair[]; choices: Record<string, TravelMode>; owner: string; retryCount: number; compare?: string | null;
 }) {
-  const [networkRevision, setNetworkRevision] = useState(0);
-  useEffect(() => {
-    const refresh = () => setNetworkRevision(value => value + 1);
-    window.addEventListener("online", refresh);
-    return () => window.removeEventListener("online", refresh);
-  }, []);
+  const [networkRevision, setNetworkRevision] = useState({count:0, nearOnly:false});
+  const previousNetworkRevision = useRef(0);
+
   const requestedRetry = useRef(retryCount);
   const runner = useRef<{ owner: string; lookup: ReturnType<typeof createTodayLegsRunner> } | null>(null);
   const [result, setResult] = useState<{ signature: string; legs: Legs; pending: boolean }>();
   const signature = JSON.stringify([owner, pairs.map(p => [
-    p.id, ...[p.from.place, p.to.place].map(place => [place.id, place.city, place.lat, place.lng]),
-    p.departure ?? p.from.event.end, p.to.event.start, p.sameSpot, p.defaultMode,
+    p.id, ...[p.from.place, p.to.place].map(place => [place.id, place.city, place.lat, place.lng, routeAccess(place.routeAccess)]),
+    pairDeparture(p), p.to.event.start, p.sameSpot, p.defaultMode,
   ])]);
   const chosenModes = JSON.stringify(choices);
   const hasRoutes = pairs.some(pair => !pair.sameSpot);
@@ -158,18 +166,39 @@ export function useTodayLegs({ pairs, choices, owner, retryCount, compare }: {
   input.current = { pairs, choices, compare };
   useEffect(() => {
     if (!hasRoutes) return;
+    const refresh = () => setNetworkRevision(value => ({count:value.count + 1, nearOnly:false}));
+    const refreshNearDeparture = () => {
+      if (document.visibilityState !== "visible" || navigator.onLine === false) return;
+      const now = Date.now();
+      if (input.current.pairs.some(pair => nearDeparture(pair, now)))
+        setNetworkRevision(value => ({count:value.count + 1, nearOnly:true}));
+    };
+    const timer = window.setInterval(refreshNearDeparture, 60_000);
+    document.addEventListener("visibilitychange", refreshNearDeparture);
+    window.addEventListener("online", refresh);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", refreshNearDeparture);
+      window.removeEventListener("online", refresh);
+    };
+  }, [hasRoutes]);
+  useEffect(() => {
+    if (!hasRoutes) return;
     if (runner.current?.owner !== owner) runner.current = { owner, lookup: createTodayLegsRunner() };
     const current = runner.current.lookup;
     let live = true;
     setResult(old => ({ signature, legs: old?.signature === signature ? old.legs : emptyLegs, pending: true }));
+    const autoRefresh = previousNetworkRevision.current !== networkRevision.count && networkRevision.nearOnly;
+    previousNetworkRevision.current = networkRevision.count;
     const force = requestedRetry.current !== retryCount;
     requestedRetry.current = retryCount;
     void current.run({
       ...input.current, force,
+      pairs: autoRefresh ? input.current.pairs.filter(pair => nearDeparture(pair, Date.now())) : input.current.pairs,
       onLeg: (id, mode, leg) => {
         if (live) setResult(old => {
           if (old?.signature !== signature || old.legs[id]?.[mode] === (leg ?? undefined)) return old;
-          return { ...old, legs: { ...old.legs, [id]: { ...old.legs[id], [mode]: leg ?? undefined } } };
+          return { ...old, legs: { ...old.legs, [id]: { ...old.legs[id], [mode]: leg ?? old.legs[id]?.[mode] } } };
         });
       },
     }).then(() => {

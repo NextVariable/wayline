@@ -91,7 +91,7 @@ function TransferLookup({ transfer, onTransfer }: {transfer:TripTransfer; onTran
     pending.current=request;
     setState("loading");
     onTransfer(transfer.key,null);
-    const route=await fetchRoute([transfer.from,transfer.to],"driving",undefined,{signal:request.signal});
+    const route=await fetchRoute([transfer.from,transfer.to],"driving",transfer.departure,{signal:request.signal});
     if (request.signal.aborted) return;
     pending.current=null;
     onTransfer(transfer.key,route);

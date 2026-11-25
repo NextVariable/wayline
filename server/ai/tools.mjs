@@ -7,6 +7,7 @@
  * Time and feasibility come from context.commutes, which the client computes
  * with the same Smart Routes engine that renders Today.
  */
+import { plannedDeparture, routeMinutes } from "../../shared/route-input.mjs";
 import { shanghaiDay, validDate } from "./schemas.mjs";
 
 export const AI_TOOL_MATRIX = Object.freeze({
@@ -75,6 +76,8 @@ const definitions = {
         properties: {
           fromPlaceId: { type: "string" },
           toPlaceId: { type: "string" },
+          fromEventId: { type: "string", description: "同地点间有多段时，指定该段起始日程 ID" },
+          toEventId: { type: "string", description: "同地点间有多段时，指定该段结束日程 ID" },
           mode: { type: "string", enum: ["walking", "transit", "driving", "selfDrive"] },
         },
         required: ["fromPlaceId", "toPlaceId", "mode"],
@@ -200,24 +203,36 @@ export function createToolRunner({ context, services = {}, now = Date.now }) {
       if (!["walking", "transit", "driving", "selfDrive"].includes(args.mode))
         throw new ToolError("invalid_arguments", "交通方式不受支持");
       if (typeof services.route !== "function") throw new ToolError("tool_unavailable", "路线服务暂不可用");
-      // The map provider needs an explicit departure for transit and has no
-      // separate self-drive endpoint; both stay deterministic and cost-aware here.
       const routeMode = args.mode === "selfDrive" ? "driving" : args.mode;
-      const route = await services.route({
-        mode: routeMode,
-        places: [{ id: from.id, lat: from.lat, lng: from.lng }, { id: to.id, lat: to.lat, lng: to.lng }],
-        ...(routeMode === "transit" ? { departure: new Date(now).toISOString() } : {}),
+      const matches = (context.routePairs ?? context.commutes.map(pair => ({
+        ...pair,departure:findEvent(pair.fromEventId)?.end,
+      }))).filter(pair => {
+        const start=findEvent(pair.fromEventId), end=findEvent(pair.toEventId);
+        return start?.placeId === from.id && end?.placeId === to.id && !start.stale && !end.stale &&
+          (!args.fromEventId || args.fromEventId === start.id) && (!args.toEventId || args.toEventId === end.id);
       });
-      if (!Number.isFinite(Number(route?.duration)))
+      if (matches.length>1) throw new ToolError("ambiguous_departure", "这两个地点有多段安排，请选择具体日程");
+      const departure=plannedDeparture(matches[0]?.departure);
+      if (routeMode === "transit" && !departure)
+        throw new ToolError("departure_required", "公交查询需要已确认的计划出发时间，请先确认对应日程");
+      const route = await services.route({
+        mode: routeMode, places: [from,to],
+        ...(routeMode === "transit" ? { departure } : { plannedAt:departure }),
+      });
+      if (route?.source !== "amap" || !Number.isFinite(route.duration) || route.duration < 0 ||
+          !Number.isFinite(route.observedAt))
         throw new ToolError("route_unavailable", "路线服务未返回可用耗时");
       return {
         from: from.name,
         to: to.name,
         mode: args.mode,
-        minutes: Math.ceil(Number(route.duration) / 60),
-        source: clean(route.source, 24) || "amap",
-        observedAt: new Date(now).toISOString(),
-        note: "由真实地图路线服务返回，不含等车、停车与进出站时间",
+        minutes: routeMinutes(route.duration),
+        source: "amap",
+        observedAt: new Date(route.observedAt).toISOString(),
+        departure,
+        reference: !departure || Date.parse(departure)>Math.min(now,route.observedAt) || routeMode==="driving",
+        note: routeMode==="transit" ? "方案总耗时已含方案内步行、等车和换乘"
+          : routeMode==="driving" ? "查询时的高德驾车参考，未加等车或取车停车预留" : "高德步行预计耗时",
       };
     },
     assess_commute(args) {

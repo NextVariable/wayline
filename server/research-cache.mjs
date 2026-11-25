@@ -1,3 +1,5 @@
+import { chinaDeparture, routeEndpoint } from "../shared/route-input.mjs";
+
 /** Bounded, short-lived provider evidence. Failures are never cached. */
 export function cacheTravelServices(services, { now = Date.now, ttl = 600000, limit = 150, persistent } = {}) {
   const cache = new Map();
@@ -19,7 +21,18 @@ export function cacheTravelServices(services, { now = Date.now, ttl = 600000, li
     try { return await pending; } finally { if(inFlight.get(key)===pending)inFlight.delete(key); }
   };
   return { ...services,
-    ...(services.route ? {route: input => cached('route', [input.mode || 'driving', input.departure || null, input.city || null, input.cityd || null, input.places.map(p => [p.id, p.name, p.city, p.citycode, p.lat, p.lng])], () => services.route(input))}:{}),
+    ...(services.route ? {route: input => {
+      const mode=input.mode || 'driving';
+      if (!Array.isArray(input.places) || input.places.some(place => !place)) return services.route(input);
+      // Keep the original timing metadata request-specific, while sharing the same road calculation.
+      const requestedSlot=mode === 'transit' ? chinaDeparture(input.departure) : null;
+      if (mode === 'transit' && !requestedSlot) return services.route(input);
+      const lifetime=Math.min(ttl, mode === 'driving' ? 300000 : mode === 'transit' ? 900000 : 86400000);
+      return cached('route-v5', [mode,requestedSlot,input.places.map((place,index,places) => [
+        place.name, index > 0 ? routeEndpoint(place,mode,'to') : null,
+        index < places.length-1 ? routeEndpoint(place,mode,'from') : null,
+      ])], () => services.route({...input,plannedAt:undefined}), lifetime);
+    }}:{}),
     ...(services.findHotels ? { findHotels: input => cached('hotels', [input.place.name, input.place.lat, input.place.lng,input.keywords||null], () => services.findHotels(input)) } : {}),
     ...(services.findStations ? {findStations:input=>cached('stations',[input.city],()=>services.findStations(input))}:{}),
     ...(services.resolvePlace ? {resolvePlace:input=>cached('identity',[input.name,input.city],()=>services.resolvePlace(input))}:{}),

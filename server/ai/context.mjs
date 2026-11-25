@@ -4,6 +4,8 @@
  * untrusted data. Mail bodies and full calendars are never part of this shape.
  */
 
+import { plannedDeparture, routeAccess } from "../../shared/route-input.mjs";
+
 const MAX_EVENTS = 24;
 const MAX_PLACES = 50;
 const MAX_BOOKINGS = 20;
@@ -77,6 +79,7 @@ export function sanitizeCopilotContext(raw, { owner, now = Date.now() } = {}) {
       category: text(place.category, 24),
       lat: number(place.lat, -90, 90),
       lng: number(place.lng, -180, 180),
+      routeAccess:routeAccess(place.routeAccess),
     }];
   });
 
@@ -132,6 +135,8 @@ export function sanitizeCopilotContext(raw, { owner, now = Date.now() } = {}) {
       availableMinutes: number(commute.availableMinutes, 0, 10_080),
       routeMinutes: number(commute.routeMinutes, 0, 10_080),
       bufferMinutes: number(commute.bufferMinutes, 0, 1_440),
+      accessMinutes: number(commute.accessMinutes, 0, 120),
+      observedAt:number(commute.observedAt, 0, now+60_000),
       remainingMinutes: number(commute.remainingMinutes, -10_080, 10_080),
       latestDeparture: iso(commute.latestDeparture),
       advice: text(commute.advice, 160),
@@ -168,6 +173,10 @@ export function sanitizeCopilotContext(raw, { owner, now = Date.now() } = {}) {
     bookings,
     actions,
     commutes,
+    routePairs: Array.isArray(raw.routePairs) ? list(raw.routePairs, MAX_COMMUTES).flatMap(pair => {
+      const fromEventId=text(pair?.fromEventId,120), toEventId=text(pair?.toEventId,120);
+      return fromEventId && toEventId ? [{fromEventId,toEventId,departure:plannedDeparture(pair?.departure)}] : [];
+    }) : undefined,
     trips,
   };
 }

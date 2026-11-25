@@ -41,7 +41,7 @@ const services = {
     { name: "海上世界", city: "深圳", address: "南山", category: "attraction" },
     { name: "海上世界文化艺术中心", city: "深圳", address: "南山", category: "attraction" },
   ],
-  route: async () => ({ duration: 1500, source: "amap" }),
+  route: async () => ({ duration: 1500, source: "amap", observedAt:now }),
 };
 
 describe("Tool registry and permission gateway", () => {
@@ -77,12 +77,12 @@ describe("Tool registry and permission gateway", () => {
     const spy = {
       route: async (args: { mode: string; departure?: string }) => {
         calls.push(args);
-        return { duration: 600, source: "amap" };
+        return { duration: 600, source: "amap", observedAt:now };
       },
     };
     const runner = createToolRunner({ context, services: spy, now });
     expect(await runner.run("query_route", { fromPlaceId: "p1", toPlaceId: "p2", mode: "transit" }, { task: "copilot" })).toMatchObject({ ok: true });
-    expect(calls[0]).toMatchObject({ mode: "transit", departure: new Date(now).toISOString() });
+    expect(calls[0]).toMatchObject({ mode: "transit", departure: later });
     expect(await runner.run("query_route", { fromPlaceId: "p1", toPlaceId: "p2", mode: "selfDrive" }, { task: "copilot" })).toMatchObject({ ok: true });
     expect(calls[1]).toMatchObject({ mode: "driving" });
     expect(calls[1].departure).toBeUndefined();
@@ -130,5 +130,18 @@ describe("Tool registry and permission gateway", () => {
     expect(found.result.results[0]).not.toHaveProperty("lat");
     expect(await runner.run("search_place", { query: "海" }, { task: "copilot" }))
       .toMatchObject({ ok: false, code: "invalid_arguments" });
+  });
+});
+
+it("rejects a transit query without a confirmed departure, and resolves repeated pairs by event ID", async () => {
+  const args={fromPlaceId:"p1",toPlaceId:"p2",mode:"transit"};
+  const query=(routePairs:unknown[], ids:Record<string,string>={}) => createToolRunner({
+    context:{...context,routePairs},services,now,
+  }).run("query_route",{...args,...ids},{task:"copilot"});
+  expect(await query([{fromEventId:"e1",toEventId:"e2"}])).toMatchObject({ok:false,code:"departure_required"});
+  const pairs=[{fromEventId:"e1",toEventId:"e2",departure:later},{fromEventId:"e1",toEventId:"e3",departure:later}];
+  expect(await query(pairs)).toMatchObject({ok:false,code:"ambiguous_departure"});
+  expect(await query(pairs,{fromEventId:"e1",toEventId:"e2"})).toMatchObject({
+    ok:true,result:{departure:later,observedAt:new Date(now).toISOString(),reference:true},
   });
 });

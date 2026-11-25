@@ -1,8 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Navigation } from "lucide-react";
 import type { TravelRisk } from "../lib/tripDomain";
-import { modeName, routeProviderMode, type TravelMode } from "../lib/todayMap";
-import { legClock, type LegAssessment } from "../lib/smartRoutes";
+import { modeName, type TravelMode } from "../lib/todayMap";
+import { legClock, ROAD_ACCESS_DEFAULTS, roadAccessLabel, roadAccessMode, type RoadAccessMode, type LegAssessment } from "../lib/smartRoutes";
 
 export interface RouteLegOption { mode: TravelMode; minutes?: number | null }
 
@@ -17,9 +17,12 @@ export interface RouteLegProps {
   risk?: TravelRisk;
   options?: RouteLegOption[];
   bufferOverride?: number;
+  accessOverride?: number;
+  onAccessChange?: (mode:RoadAccessMode, minutes:number | undefined) => void;
   reminder?: string;
   source?: string;
   observedAt?: number;
+  plannedAt?: string;
   onChooseMode?: (mode: TravelMode) => void;
   onRetry?: () => void;
   onToggle?: (open: boolean) => void;
@@ -32,7 +35,7 @@ export interface RouteLegProps {
 
 type Status = LegAssessment["status"];
 
-const clock = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false });
+const clock = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "Asia/Shanghai", month: "numeric", day: "numeric" });
 
 function riskLabel(status: Status, plan: LegAssessment): { text: string; tone?: "danger" | "warn" | "reference" } {
   switch (status) {
@@ -41,7 +44,7 @@ function riskLabel(status: Status, plan: LegAssessment): { text: string; tone?: 
     case "tight": return { text: "时间紧张", tone: "warn" };
     case "stale": return { text: "路线已过期", tone: "warn" };
     case "pending": return { text: "待确认", tone: "warn" };
-    case "reference": return { text: "参考", tone: "reference" };
+    case "reference": return { text: plan.shortBy > 0 ? `参考 · 可能差 ${plan.shortBy} 分` : "参考", tone: "reference" };
     default: return { text: "" };
   }
 }
@@ -52,7 +55,7 @@ function riskLabel(status: Status, plan: LegAssessment): { text: string; tone?: 
  */
 export function RouteLeg({
   mode, minutes, plan, sameSpot, loading, failed, focused, risk, options,
-  bufferOverride, reminder, source, observedAt, onChooseMode, onRetry, onToggle, onBufferChange, navigation, onNavigate, note,
+  bufferOverride, accessOverride, onAccessChange, reminder, source, observedAt, plannedAt, onChooseMode, onRetry, onToggle, onBufferChange, navigation, onNavigate, note,
 }: RouteLegProps) {
   const [open, setOpen] = useState(Boolean(focused));
   useEffect(() => { if (focused) setOpen(true); }, [focused]);
@@ -68,7 +71,7 @@ export function RouteLeg({
     setOpen(next);
     onToggle?.(next);
   };
-  const driving = routeProviderMode(mode) === "driving";
+  const roadMode = roadAccessMode(mode) && !sameSpot ? mode : null;
   const synthetic = Boolean(source?.includes("合成"));
   return (
     <div className={`route-leg${status === "insufficient" || status === "overlap" ? " is-late" : ""}`} data-status={sameSpot ? "same-spot" : status ?? (loading ? "loading" : failed ? "pending" : "idle")} aria-busy={loading}>
@@ -83,29 +86,6 @@ export function RouteLeg({
       {reminder && <p className="leg-reminder" role="status">{reminder}</p>}
       {open && (
         <div className="leg-detail">
-          {plan && (
-            <dl className="leg-metrics">
-              <div><dt>可用时间</dt><dd>{plan.availableMinutes === null ? "待确认" : `${plan.availableMinutes} 分钟`}</dd></div>
-              <div><dt>路线耗时</dt><dd>{plan.routeMinutes === null ? "未查询" : `${plan.routeMinutes} 分钟`}</dd></div>
-              <div><dt>额外缓冲</dt><dd>{plan.bufferMinutes} 分钟{plan.bufferOverridden ? "（本段）" : ""}</dd></div>
-              <div><dt>剩余时间</dt><dd data-negative={plan.remainingMinutes !== null && plan.remainingMinutes < 0}>{plan.remainingMinutes === null ? "待确认" : `${plan.remainingMinutes} 分钟`}</dd></div>
-              <div><dt>最迟出发</dt><dd>{plan.latestDeparture ? legClock(plan.latestDeparture) : "待确认"}</dd></div>
-            </dl>
-          )}
-          {plan && (
-            <div className="leg-buffer">
-              <strong>缓冲组成</strong>
-              <ul>{plan.bufferParts.map(part => <li key={part.label}>{part.label} {part.minutes} 分钟{part.pending ? " · PRD 建议值，待确认" : ""}</li>)}</ul>
-              <small>路线服务已包含的步行、候车不会重复扣除。</small>
-            </div>
-          )}
-          {onBufferChange && (
-            <div className="leg-buffer-change" role="group" aria-label="调整这段的额外缓冲">
-              {[0, 5, 10, 15, 20].map(minutesValue => <button type="button" key={minutesValue} aria-pressed={(bufferOverride ?? -1) === minutesValue}
-                onClick={() => onBufferChange(minutesValue)}>{minutesValue} 分</button>)}
-              {bufferOverride !== undefined && <button type="button" onClick={() => onBufferChange(undefined)}>恢复默认</button>}
-            </div>
-          )}
           {onChooseMode && (
             <div className="leg-modes" role="group" aria-label="切换交通方式">
               {options?.map(option => <button type="button" key={option.mode} aria-pressed={mode === option.mode}
@@ -114,16 +94,46 @@ export function RouteLeg({
               </button>)}
             </div>
           )}
-          {risk && <p className="leg-risk"><strong>{risk.title}</strong> · {risk.basis}</p>}
-          {plan?.advice && <p className="leg-advice" data-bad={plan.status === "insufficient"}>{plan.advice}</p>}
+          {plan && (
+            <>
+              <dl className="leg-metrics">
+                <div><dt>路线预计</dt><dd>{plan.routeMinutes === null ? "未查询" : `${plan.routeMinutes} 分钟`}</dd></div>
+                {plan.accessMinutes > 0 && <div><dt>门到门估算</dt><dd>{plan.doorToDoorMinutes === null ? "待确认" : `${plan.doorToDoorMinutes} 分钟`}</dd></div>}
+                <div><dt>安全缓冲</dt><dd>{plan.bufferMinutes} 分钟</dd></div>
+                <div><dt>建议最迟出发</dt><dd>{plan.latestDeparture ? legClock(plan.latestDeparture) : "待确认"}{plan.reference && plan.latestDeparture ? "（参考）" : ""}</dd></div>
+                {plan.remainingMinutes !== null && <div><dt>{plan.remainingMinutes < 0 ? "预计差" : "预计余量"}</dt><dd data-negative={plan.remainingMinutes < 0}>{Math.abs(plan.remainingMinutes)} 分钟</dd></div>}
+              </dl>
+              {roadMode && <p className="leg-note">{roadAccessLabel(roadMode)} {plan.accessMinutes} 分钟{plan.accessEstimated ? " · 默认估算" : " · 你设置的预留"}</p>}
+              {mode === "transit" && plan.routeMinutes !== null && <p className="leg-note">公交总耗时包含方案内步行、等车和换乘。</p>}
+            </>
+          )}
+          {(onBufferChange || (roadMode && onAccessChange)) && <details className="leg-buffer">
+            <summary>调整预留</summary>
+            {roadMode && onAccessChange && <label>
+              {roadAccessLabel(roadMode)}（分钟）
+              <input key={`${roadMode}:${accessOverride}`} type="number" min={0} max={120} step={1}
+                defaultValue={accessOverride} placeholder={String(ROAD_ACCESS_DEFAULTS[roadMode])}
+                onBlur={event => {
+                  const {value,valueAsNumber,validity}=event.currentTarget;
+                  if (!value && !validity.badInput) onAccessChange(roadMode, undefined);
+                  else if (validity.valid) onAccessChange(roadMode, valueAsNumber);
+                }}
+                onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} />
+            </label>}
+            {onBufferChange && <div className="leg-buffer-change" role="group" aria-label="调整安全缓冲">
+              {[0, 5, 10, 15, 20].map(minutesValue => <button type="button" key={minutesValue}
+                aria-pressed={bufferOverride === minutesValue} onClick={() => onBufferChange(minutesValue)}>{minutesValue} 分</button>)}
+              {bufferOverride !== undefined && <button type="button" onClick={() => onBufferChange(undefined)}>恢复默认</button>}
+            </div>}
+            {plan?.bufferPending && <small>车站或机场的预留为建议值，需要确认。</small>}
+          </details>}
+          {risk && !plan?.advice && <p className="leg-risk">{risk.basis}</p>}
+          {plan?.advice && !["sufficient","tight"].includes(plan.status) &&
+            <p className="leg-advice" data-bad={plan.status === "insufficient"}>{plan.advice}</p>}
           {note}
+          {mode === "transit" && plannedAt && <p className="leg-note">计划出发 {clock.format(new Date(plannedAt))}</p>}
           {(source || observedAt) && <p className="leg-note">
             {source}{observedAt ? ` · ${clock.format(new Date(observedAt))} 查询` : ""}
-          </p>}
-          {plan && (driving || plan.routeState === "reference") && <p className="leg-note">
-            {plan.routeState === "reference" ? "未来或估算路线，仅作参考" : ""}
-            {plan.routeState === "reference" && driving ? " · " : ""}
-            {driving ? "驾车数据不含等车/停车时间" : ""}
           </p>}
           <div className="leg-actions">
             <button type="button" className="text-action" onClick={onRetry}>刷新路线</button>

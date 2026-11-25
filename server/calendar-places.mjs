@@ -13,7 +13,7 @@ const ONLINE_LINK = /https?:\/\/|meeting\.tencent\.com|zoom\.us|teams\.microsoft
 const ONLINE_WORDS = new Set(['线上', '视频会议', '电话', '腾讯会议', 'zoom']);
 export const isOnlineLocation = text => { const value = String(text ?? '').trim(); return ONLINE_LINK.test(value) || ONLINE_WORDS.has(value.toLowerCase()); };
 const invalid = message => Object.assign(new Error(message), { status: 400 });
-const placeOf = p => ({ name: p.name, city: p.city, address: typeof p.address === 'string' ? p.address : '', lat: p.lat, lng: p.lng });
+const placeOf = p => ({ name: p.name, city: p.city, address: typeof p.address === 'string' ? p.address : '', lat: p.lat, lng: p.lng, ...(p.routeAccess && {routeAccess:p.routeAccess}) });
 
 /** A random secret kept beside the cache (0600). Without it the cached keys cannot be matched against guessed text. */
 function cacheSecret(cacheFile) {

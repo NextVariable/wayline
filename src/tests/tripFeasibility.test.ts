@@ -37,11 +37,12 @@ it("uses current route evidence and accounts for an intervening online meeting",
   const [pair]=legPairs([a,online,b],localDateKey(a.start));
   expect(pair.gapMinutes).toBe(10);
   expect(pair.departure).toBe("2026-11-20T01:50:00.000Z");
-  const route:RouteEvidence={mode:"transit",source:"amap",minutes:25,points:[],observedAt:freshness.now};
-  expect(assessCommute(pair,[route],"transit",freshness)).toMatchObject({
+  const current={...freshness,now:Date.parse(pair.departure!)};
+  const route:RouteEvidence={mode:"transit",source:"amap",minutes:25,points:[],observedAt:current.now};
+  expect(assessCommute(pair,[route],"transit",current)).toMatchObject({
     verdict:{status:"insufficient",shortBy:25},risk:{severity:"high",status:"confirmed",eventIds:["A","B"]},
   });
-  expect(assessCommute(pair,[{...route,observedAt:freshness.now-31*60_000}],"transit",freshness)).toMatchObject({
+  expect(assessCommute(pair,[{...route,observedAt:current.now-31*60_000}],"transit",current)).toMatchObject({
     verdict:{status:"stale"},risk:{status:"uncertain",stale:true},
   });
   expect(assessCommute(pair,[],"transit",freshness).risk).toMatchObject({status:"uncertain",type:"commute-time"});
@@ -146,7 +147,7 @@ it("uses a dated route for station-to-meeting timing, degrades stale data and in
   const route:RouteEvidence={mode:"driving",source:"amap",minutes:15,points:[],observedAt:freshness.now};
   const routes={[transfers[0].key]:route};
   const get=(status=freshness)=>assessTrip(trip,status,transfers,routes).find(r=>r.type==="intercity");
-  expect(get()).toMatchObject({severity:"high",status:"confirmed",basis:expect.stringContaining("差 5 分钟")});
+  expect(get()).toMatchObject({severity:"medium",status:"uncertain",basis:expect.stringContaining("可能差 5 分钟")});
   expect(get({...freshness,mailboxCurrent:false})).toMatchObject({severity:"info",status:"uncertain",stale:true});
   expect(get({...freshness,now:freshness.now+31*60_000})).toMatchObject({severity:"info",status:"uncertain",stale:true});
   const moved={...meeting,place:cityPlace("上海","新会场",5)};

@@ -1,3 +1,5 @@
+import type { RouteAccess } from "../../shared/route-input.mjs";
+
 export type CoreCityName = "北京" | "上海" | "广州" | "深圳";
 export type CityName = CoreCityName | (string & {});
 
@@ -56,6 +58,7 @@ export interface Place {
   isSaved: boolean;
   distanceText: string;
   externalLinks: ExternalLinks;
+  routeAccess?: RouteAccess;
   schedule?: ScheduleTiming;
   calendarEventIds?: string[];
   resourceEvidence?:
@@ -72,6 +75,7 @@ export interface City {
 }
 
 export interface ExtractedPlace {
+  routeAccess?: RouteAccess;
   coordinateSystem?: "GCJ02" | "WGS84";
   name: string;
   city: CityName;

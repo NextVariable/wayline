@@ -101,15 +101,15 @@ it("keeps an unverified arrival transfer uncertain until route evidence exists",
   expect(inbound).toMatchObject({ status: "uncertain", severity: "info" });
 });
 
-it("proves a short last-mile connection only when a fresh route is available", () => {
+it("shows a future last-mile shortage as a reference only when a route is available", () => {
   const { tripModels } = workspace(baseMailbox);
   const trip = [...tripModels.values()][0];
   const transfers = tripTransfers(trip, { [bookingPlaceKey({ city: "上海", name: "上海虹桥站" })]: station });
   const route = (minutes: number): RouteEvidence => ({ mode: "driving", minutes, source: "amap", observedAt: NOW - 60_000, points: [] });
   const tight = assessTrip(trip, { calendarCurrent: true, mailboxCurrent: true, now: NOW }, transfers,
     Object.fromEntries(transfers.map(transfer => [transfer.key, route(140)])));
-  const short = tight.find(risk => risk.type === "intercity" && risk.status === "confirmed");
-  expect(short).toMatchObject({ severity: "high" });
+  const short = tight.find(risk => risk.type === "intercity" && risk.title.includes("可能不足"));
+  expect(short).toMatchObject({ severity: "medium", status: "uncertain" });
   expect(short?.basis).toContain("差 5 分钟");
 
   const comfortable = assessTrip(trip, { calendarCurrent: true, mailboxCurrent: true, now: NOW }, transfers,

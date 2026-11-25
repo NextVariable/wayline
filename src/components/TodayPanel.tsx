@@ -3,8 +3,9 @@ import type { TravelRisk } from "../lib/tripDomain";
 import type { TripAction } from "../lib/actionItems";
 import { routeMapLink } from "../lib/navigationLinks";
 import { type TodayLegPair, type TodayStop, type TravelMode } from "../lib/todayMap";
-import type { LegResult } from "../lib/useTodayLegs";
+import { pairDeparture, type LegResult } from "../lib/useTodayLegs";
 import { departureReminder, sourceLabel, type LegAssessment } from "../lib/smartRoutes";
+import type { RoadAccessMode } from "../lib/smartRoutes";
 import { RouteLeg } from "./RouteLeg";
 
 export const todayModes: TravelMode[] = ["walking", "transit", "driving", "selfDrive"];
@@ -19,6 +20,7 @@ export interface TodaySegment {
   options?: Partial<Record<TravelMode, LegResult>>;
   /** 用户为这一段单独设置的缓冲分钟数。 */
   bufferOverride?: number;
+  accessOverride?: number;
 }
 
 interface Props {
@@ -34,6 +36,7 @@ interface Props {
   onOpenSchedule?: () => void;
   onNavigate?: (id: string) => void;
   onCompare?: (id: string | null) => void;
+  onAccessChange?: (mode:RoadAccessMode, minutes:number | undefined) => void;
   onBufferChange?: (pair: TodayLegPair, minutes: number | undefined) => void;
   now?: number;
   syncWarning?: boolean;
@@ -47,7 +50,7 @@ interface Props {
 
 const clock = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false });
 
-export function TodayPanel({ heading, stops, segments, loading, focused, onSelectStop, onChooseMode, onFocus, onRetry, onOpenSchedule, onNavigate, onCompare, onBufferChange, now = Date.now(), syncWarning, conflicts = [], actions = [], onAction, onExplainAction, nextStopId }: Props) {
+export function TodayPanel({ heading, stops, segments, loading, focused, onSelectStop, onChooseMode, onFocus, onRetry, onOpenSchedule, onNavigate, onCompare, onBufferChange, onAccessChange, now = Date.now(), syncWarning, conflicts = [], actions = [], onAction, onExplainAction, nextStopId }: Props) {
   if (!stops.length && !conflicts.length) return null;
   const fromEvent = new Map(segments.map(segment => [segment.pair.from.event.id, segment]));
   return (
@@ -108,7 +111,7 @@ export function TodayPanel({ heading, stops, segments, loading, focused, onSelec
                   <div className="tl-body">
                     <TodayLeg segment={segment} loading={loading} now={now} focused={focused === segment.pair.id}
                       onChooseMode={onChooseMode} onFocus={onFocus} onRetry={onRetry} onNavigate={onNavigate}
-                      onCompare={onCompare} onBufferChange={onBufferChange} />
+                      onCompare={onCompare} onBufferChange={onBufferChange} onAccessChange={onAccessChange} />
                   </div>
                 </li>
               )}
@@ -120,7 +123,7 @@ export function TodayPanel({ heading, stops, segments, loading, focused, onSelec
   );
 }
 
-function TodayLeg({ segment, loading, focused, now, onChooseMode, onFocus, onRetry, onNavigate, onCompare, onBufferChange }: {
+function TodayLeg({ segment, loading, focused, now, onChooseMode, onFocus, onRetry, onNavigate, onCompare, onBufferChange, onAccessChange }: {
   segment: TodaySegment;
   loading: boolean;
   focused: boolean;
@@ -131,6 +134,7 @@ function TodayLeg({ segment, loading, focused, now, onChooseMode, onFocus, onRet
   onNavigate: Props["onNavigate"];
   onCompare: Props["onCompare"];
   onBufferChange: Props["onBufferChange"];
+  onAccessChange: Props["onAccessChange"];
 }) {
   const { pair, mode, result, plan, risk, options = {}, bufferOverride } = segment;
   const navigation = !pair.sameSpot ? routeMapLink(pair.from.place, pair.to.place, mode) : null;
@@ -146,9 +150,12 @@ function TodayLeg({ segment, loading, focused, now, onChooseMode, onFocus, onRet
       focused={focused}
       risk={risk}
       bufferOverride={bufferOverride}
+      accessOverride={segment.accessOverride}
+      onAccessChange={onAccessChange}
       reminder={departureReminder(plan, pair, now)}
       source={result ? sourceLabel(result, mode) : undefined}
       observedAt={result?.observedAt}
+      plannedAt={pairDeparture(pair)}
       options={todayModes.map(value => ({
         mode: value,
         minutes: (options[value] ?? (value === "selfDrive" ? options.driving : undefined))?.minutes,

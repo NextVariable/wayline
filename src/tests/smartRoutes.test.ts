@@ -30,7 +30,7 @@ const makePair = (patch: Partial<TodayLegPair> & { gapMinutes?: number; start?: 
   };
 };
 
-const NOW = Date.parse("2026-11-24T09:00:00+08:00");
+const NOW = Date.parse("2026-11-24T11:00:00+08:00");
 const route = (minutes: number, patch: Partial<RouteEvidence> = {}): RouteEvidence =>
   ({ mode: "transit", minutes, source: "amap", points: [], observedAt: NOW, ...patch });
 
@@ -117,7 +117,7 @@ describe("统一可行性计算", () => {
       sameSpot: false, crossCity: false, directKm: 3, gapMinutes: 30, departure: from.end,
       defaultMode: "driving",
     };
-    const plan = assessLeg({ pair, route: route(10, { mode: "driving" }), mode: "driving", now: NOW });
+    const plan = assessLeg({ pair, route: route(10, { mode: "driving" }), mode: "driving", now: NOW, accessOverride: 0 });
     expect(plan).toMatchObject({ status: "sufficient", availableMinutes: 30, remainingMinutes: 10 });
   });
 });
@@ -126,7 +126,7 @@ describe("路线时效", () => {
   it("公交 15 分钟过期，步行 24 小时仍可用", () => {
     const pair = makePair();
     expect(assessLeg({ pair, route: route(20, { observedAt: NOW - 16 * 60_000 }), mode: "transit", now: NOW }).status).toBe("stale");
-    expect(assessLeg({ pair, route: route(20, { observedAt: NOW - 16 * 60_000 }), mode: "walking", now: NOW }).status).toBe("sufficient");
+    expect(assessLeg({ pair, route: route(20, { observedAt: NOW - 16 * 60_000 }), mode: "walking", now: NOW }).status).toBe("reference");
     expect(assessLeg({ pair, route: route(20, { observedAt: NOW - 6 * 60_000 }), mode: "driving", now: NOW }).status).toBe("stale");
   });
 
@@ -141,7 +141,7 @@ describe("缓冲与出发提醒", () => {
   it("机场与车站使用 PRD 建议值并标注待确认", () => {
     const airport = bufferPlan(makePair({ toPlace: place("airport", "虹桥机场T2") }));
     expect(airport).toMatchObject({ minutes: 120, pending: true, parts: [{ label: "前往机场预留", minutes: 120, pending: true }] });
-    const rail = bufferPlan(makePair({ fromPlace: place("station", "上海虹桥站") }));
+    const rail = bufferPlan(makePair({ fromPlace: { ...place("station", "上海虹桥站"), category: "transport" } }));
     expect(rail).toMatchObject({ minutes: 15, pending: true, parts: [{ label: "车站到达预留", minutes: 15 }] });
   });
 
@@ -159,6 +159,31 @@ describe("缓冲与出发提醒", () => {
     const plan = assessLeg({ pair, route: route(38), mode: "transit", now: NOW });
     expect(plan.status).toBe("insufficient");
     expect(plan.advice).toContain("差 3 分钟");
-    expect(departureReminder(plan, pair, NOW)).toBe("");
+    expect(departureReminder(plan, pair, Date.parse("2026-11-24T10:30:00+08:00"))).toBe("");
   });
+});
+
+it("labels same-day future trips as reference and never upgrades a pre-departure observation as the clock advances", () => {
+  const pair = makePair();
+  const observedAt = NOW - 2 * 60_000;
+  const result = route(20, { observedAt });
+  expect(assessLeg({ pair, route:result, mode:"transit", now:observedAt })).toMatchObject({status:"reference"});
+  expect(assessLeg({ pair, route:result, mode:"transit", now:NOW })).toMatchObject({status:"reference"});
+  expect(assessLeg({ pair, route:result, mode:"transit", now:NOW+16*60_000 })).toMatchObject({status:"stale"});
+});
+
+it("adds mode-specific door-to-door time once, without adding transit waiting or changing route minutes", () => {
+  const pair=makePair();
+  const plan=(mode:TodayLegPair["defaultMode"], accessOverride?:number) => assessLeg({
+    pair, mode, accessOverride, route:route(20), now:NOW,
+  });
+  expect(plan("transit",8)).toMatchObject({routeMinutes:20,accessMinutes:0,doorToDoorMinutes:20,bufferMinutes:10,remainingMinutes:15});
+  expect(plan("driving")).toMatchObject({status:"reference",routeMinutes:20,accessMinutes:8,accessEstimated:true,doorToDoorMinutes:28,remainingMinutes:7});
+  expect(plan("selfDrive",12)).toMatchObject({status:"tight",routeMinutes:20,accessMinutes:12,accessEstimated:false,doorToDoorMinutes:32,remainingMinutes:3});
+  expect(plan("driving",0)).toMatchObject({status:"sufficient",accessMinutes:0,remainingMinutes:15});
+});
+
+it("does not add railway processing time just because a place is a subway or bus stop", () => {
+  const venue = place("subway", "人民广场（地铁站）", {category:"transport",address:"机场路"});
+  expect(bufferPlan(makePair({toPlace:venue}))).toMatchObject({minutes:10,pending:false});
 });

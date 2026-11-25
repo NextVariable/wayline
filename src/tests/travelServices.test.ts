@@ -98,3 +98,41 @@ it.each(['   ', [], false, 0])('rejects invalid travel times for nonzero distanc
   })});
   await expect(api.route({places:[{lat:31,lng:121},{lat:31.1,lng:121.1}]})).rejects.toThrow('有效路线');
 });
+
+it("passes POI IDs and mode-specific access points with no extra lookup", async () => {
+  const urls:URL[]=[];
+  const data={distance:"1000",cost:{duration:"760"},steps:[{polyline:"121.4,31.2;121.41,31.21"}]};
+  const api=createTravelServices({amapKey:"test",fetchImpl:async(url:string)=>{
+    urls.push(new URL(url));
+    return {ok:true,json:async()=>({status:"1",route:{paths:[data],transits:[{...data,segments:[{walking:{steps:data.steps}}]}]}})};
+  }});
+  const places=[
+    {name:"会场甲",lat:31.2,lng:121.4,routeAccess:{poiId:"B00157917M",citycode:"021",exit:{lat:31.20002,lng:121.40001}}},
+    {name:"会场乙",lat:31.21,lng:121.41,routeAccess:{poiId:"B00155MPRL",citycode:"021",entrance:{lat:31.21003,lng:121.41002},vehicle:{lat:31.211,lng:121.412}}},
+  ];
+  const transit=await api.route({places,mode:"transit",departure:"2026-11-25T16:20:00.000Z"});
+  const car=await api.route({places,mode:"driving"});
+  expect(urls.map(url=>url.pathname)).toEqual(["/v5/direction/transit/integrated","/v5/direction/driving"]);
+  expect(Object.fromEntries(urls[0].searchParams)).toMatchObject({
+    date:"2026-11-26",time:"00:20",strategy:"0",originpoi:"B00157917M",destinationpoi:"B00155MPRL",
+    origin:"121.400010,31.200020",destination:"121.410020,31.210030",
+  });
+  expect(Object.fromEntries(urls[1].searchParams)).toMatchObject({
+    strategy:"32",origin_id:"B00157917M",destination_id:"B00155MPRL",destination:"121.412000,31.211000",
+  });
+  expect(urls[1].searchParams.has("time")).toBe(false);
+  expect(transit).toMatchObject({duration:760,timing:"scheduled-transit"});
+  expect(car).toMatchObject({duration:760,timing:"query-time-road"});
+});
+
+it("preserves routable POI metadata from lookup without treating a navigation ID as coordinates", async () => {
+  const fetchImpl=vi.fn(async (_url:string) => ({ok:true,json:async()=>({status:"1",pois:[
+    {id:"B00155MPRL",name:"合成车站",cityname:"上海",citycode:"021",location:"121.32008,31.19396",
+      entr_location:"121.32021,31.19412",exit_location:[],navi_poiid:"B00155MPRL"},
+  ]})}));
+  const api=createTravelServices({amapKey:"test",fetchImpl});
+  expect(await api.searchPlaces({keyword:"合成车站",city:"上海",count:1})).toMatchObject([
+    {lat:31.19396,lng:121.32008,routeAccess:{poiId:"B00155MPRL",citycode:"021",entrance:{lat:31.19412,lng:121.32021}}},
+  ]);
+  expect(new URL(fetchImpl.mock.calls[0][0]).searchParams.get("extensions")).toBe("all");
+});

@@ -1112,3 +1112,15 @@
     transition: none;
   }
 }
+
+.leg-buffer label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-block: 8px;
+}
+.leg-buffer input[type="number"] {
+  width: 76px;
+  min-height: 36px;
+  padding-inline: 8px;
+}
