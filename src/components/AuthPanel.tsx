@@ -2,6 +2,8 @@ import { userFacingError } from "../lib/userFacingError";
 import { Check, FolderOpen, LogOut, X } from "lucide-react";
 import { useMemo, useState, useRef, useEffect } from "react";
 import { createUser, guestUser, type AppUser } from "../lib/userStorage";
+import { isSchedule } from "../lib/placeIdentity";
+import type { Place } from "../types/place";
 import type { AccountState } from "../lib/account";
 import type { SyncState } from "../lib/workspaceSync";
 
@@ -78,6 +80,9 @@ export function AuthPanel({
   }, [open, user]);
   
   if (!open) return null;
+  const backupPlaces = (pending?.records["whatto.userPlaces."] as Place[] | undefined) ?? [];
+  const backupSchedules = backupPlaces.filter(isSchedule).length;
+  const backupCalendar = (pending?.records["whatto.calendarEvents."] as unknown[] | undefined)?.length ?? 0;
   return (
     <section
       ref={ref}
@@ -168,7 +173,7 @@ export function AuthPanel({
         }} />
         {restoreError && <p className="inline-error" role="alert">{restoreError}</p>}
         {pending && <div className="backup-preview" role="status">
-          <p>恢复「{pending.name === "游客" ? "默认空间" : pending.name}」：{(pending.records["whatto.userPlaces."] as unknown[] | undefined)?.length ?? 0} 个地点与日程，{pending.footprints.tracks.length} 条轨迹，{pending.footprints.visits.length} 次到访。</p>
+          <p>恢复「{pending.name === "游客" ? "默认空间" : pending.name}」：{backupPlaces.length - backupSchedules} 个地点，{backupSchedules} 条手动安排，{backupCalendar} 条日历事件，{pending.footprints.tracks.length} 条轨迹，{pending.footprints.visits.length} 次到访。</p>
           <div className="backup-actions"><button className="primary-action" disabled={busy} onClick={async () => {
             setBusy(true); let rollback: (() => void) | undefined;
             const restored = createUser("local", (pending.name === "游客" ? "默认空间" : pending.name) + " 恢复 " + crypto.randomUUID().slice(0, 8));
